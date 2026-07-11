@@ -1,0 +1,85 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% block title %}KeyByMe{% endblock %}</title>
+    <link rel="icon" type="image/png" href="{% static 'images/logo_keybyme.png' %}">
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-gray-50 text-gray-900 antialiased">
+    {% if user.is_authenticated %}
+    <nav class="border-b border-gray-200 bg-white shadow-sm">
+        <div class="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
+            <a href="{% url 'vault:contact_list' %}" class="flex items-center gap-2 shrink-0">
+                <img src="{% static 'images/logo_keybyme.png' %}" alt="KeyByMe" class="h-9 w-9 rounded-full object-cover">
+                <span class="text-lg font-semibold tracking-tight text-blue-900">KeyByMe</span>
+            </a>
+
+            <div class="flex flex-1 flex-wrap items-center gap-1 text-sm font-medium text-gray-600">
+                <a href="{% url 'vault:contact_list' %}" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-gray-100 hover:text-blue-700">
+                    {% include "icons/users.html" with class="w-4 h-4" %} Contactos
+                </a>
+                <a href="{% url 'vault:password_list' %}" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-gray-100 hover:text-blue-700">
+                    {% include "icons/key.html" with class="w-4 h-4" %} Passwords
+                </a>
+                <a href="{% url 'vault:url_list' %}" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-gray-100 hover:text-blue-700">
+                    {% include "icons/link.html" with class="w-4 h-4" %} Enlaces
+                </a>
+                <a href="{% url 'vault:mediafile_list' %}" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-gray-100 hover:text-blue-700">
+                    {% include "icons/paper-clip.html" with class="w-4 h-4" %} Archivos
+                </a>
+                <a href="{% url 'vault:reminder_list' %}" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-gray-100 hover:text-blue-700">
+                    {% include "icons/bell.html" with class="w-4 h-4" %} Recordatorios
+                </a>
+                <a href="{% url 'vault:category_list' %}" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-gray-100 hover:text-blue-700">
+                    {% include "icons/tag.html" with class="w-4 h-4" %} Categorías
+                </a>
+            </div>
+
+            <div class="flex items-center gap-3 text-sm text-gray-600">
+                <span class="hidden sm:inline">{{ user.username }}</span>
+                <form method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 font-medium text-gray-600 hover:bg-red-50 hover:text-red-600">
+                        {% include "icons/logout.html" with class="w-4 h-4" %} Salir
+                    </button>
+                </form>
+            </div>
+        </div>
+    </nav>
+    <div class="border-b border-gray-100 bg-white px-4 py-2">
+        <div class="mx-auto flex max-w-6xl items-center gap-3 text-xs text-gray-500">
+            {% widthratio user.storage_used_bytes user.storage_quota_bytes 100 as storage_percent %}
+            <span class="whitespace-nowrap">
+                Almacenamiento: {{ user.storage_used_bytes|filesizeformat }} de {{ user.storage_quota_bytes|filesizeformat }}
+            </span>
+            <div class="h-2 flex-1 overflow-hidden rounded-full bg-gray-100">
+                <div class="h-full rounded-full {% if storage_percent >= 90 %}bg-red-500{% elif storage_percent >= 70 %}bg-amber-500{% else %}bg-emerald-500{% endif %}"
+                     style="width: {{ storage_percent }}%"></div>
+            </div>
+            <span class="whitespace-nowrap font-medium text-gray-700">{{ storage_percent }}%</span>
+        </div>
+    </div>
+    {% endif %}
+
+    <main class="mx-auto max-w-6xl px-4 py-8">
+        {% if messages %}
+        <ul class="mb-6 space-y-2">
+            {% for message in messages %}
+            <li class="rounded-lg border px-4 py-3 text-sm
+                {% if message.tags == 'error' %}border-red-200 bg-red-50 text-red-700
+                {% elif message.tags == 'warning' %}border-amber-200 bg-amber-50 text-amber-700
+                {% elif message.tags == 'success' %}border-emerald-200 bg-emerald-50 text-emerald-700
+                {% else %}border-blue-200 bg-blue-50 text-blue-700{% endif %}">
+                {{ message }}
+            </li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+
+        {% block content %}{% endblock %}
+    </main>
+</body>
+</html>

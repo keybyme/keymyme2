@@ -1,0 +1,157 @@
+"""
+Configuración de KeyByMe.
+Lee valores sensibles desde variables de entorno (.env) usando django-environ.
+"""
+
+from pathlib import Path
+
+import environ
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+env = environ.Env(
+    DEBUG=(bool, False),
+)
+# Lee el archivo .env en la raíz del proyecto (si existe)
+environ.Env.read_env(BASE_DIR / ".env")
+
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = env("SECRET_KEY")
+
+DEBUG = env.bool("DEBUG", default=False)
+
+ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
+
+# Detrás del load balancer de DigitalOcean App Platform, las requests le
+# llegan a Django por HTTP con este header indicando que en realidad son HTTPS.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+
+# Llave de cifrado para los passwords guardados en el vault (VaultPassword).
+# Generar con: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+VAULT_ENCRYPTION_KEY = env("VAULT_ENCRYPTION_KEY", default=None)
+
+
+# Application definition
+
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+
+    # Apps propias de KeyByMe
+    'accounts',
+    'menus',
+    'vault',
+]
+
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+]
+
+ROOT_URLCONF = 'config.urls'
+
+TEMPLATES = [
+    {
+        'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [BASE_DIR / "config" / "templates"],
+        'APP_DIRS': True,
+        'OPTIONS': {
+            'context_processors': [
+                'django.template.context_processors.request',
+                'django.contrib.auth.context_processors.auth',
+                'django.contrib.messages.context_processors.messages',
+            ],
+        },
+    },
+]
+
+WSGI_APPLICATION = 'config.wsgi.application'
+
+
+# Database — PostgreSQL, configurable vía DATABASE_URL en el .env.
+# El default sqlite es solo un placeholder para que `collectstatic` (que
+# corre en el build, sin acceso real a la BD) no truene si DATABASE_URL
+# todavía no está disponible en esa fase. En runtime siempre debe existir
+# la real, o cualquier request que toque la BD fallará.
+DATABASES = {
+    'default': env.db('DATABASE_URL', default='sqlite:///build-placeholder.db'),
+}
+
+
+# Modelo de usuario personalizado
+AUTH_USER_MODEL = "accounts.CustomUser"
+
+
+# Password validation
+AUTH_PASSWORD_VALIDATORS = [
+    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator'},
+    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
+]
+
+
+# Internationalization
+LANGUAGE_CODE = 'es'
+TIME_ZONE = 'America/Mexico_City'
+USE_I18N = True
+USE_TZ = True
+
+
+# Static & media files
+STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / "staticfiles"
+STATICFILES_DIRS = [BASE_DIR / "static"]
+
+MEDIA_URL = "media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
+# En App Platform el disco del contenedor es efímero: los archivos subidos a
+# MediaFile deben ir a DigitalOcean Spaces (S3-compatible) en vez del disco
+# local. USE_SPACES=True activa ese storage; en desarrollo local se queda en disco.
+USE_SPACES = env.bool("USE_SPACES", default=False)
+
+if USE_SPACES:
+    AWS_ACCESS_KEY_ID = env("SPACES_ACCESS_KEY_ID")
+    AWS_SECRET_ACCESS_KEY = env("SPACES_SECRET_ACCESS_KEY")
+    AWS_STORAGE_BUCKET_NAME = env("SPACES_BUCKET_NAME")
+    AWS_S3_ENDPOINT_URL = env("SPACES_ENDPOINT_URL")  # ej: https://nyc3.digitaloceanspaces.com
+    AWS_S3_REGION_NAME = env("SPACES_REGION", default="nyc3")
+    AWS_DEFAULT_ACL = "private"
+    AWS_QUERYSTRING_AUTH = True  # URLs firmadas y temporales para los archivos del vault
+    AWS_S3_FILE_OVERWRITE = False
+    AWS_LOCATION = "media"
+
+    STORAGES = {
+        "default": {"BACKEND": "storages.backends.s3boto3.S3Boto3Storage"},
+        "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+    }
+else:
+    STORAGES = {
+        "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+        "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+    }
+
+# Tamaño máximo por archivo subido (en bytes). Ajustable según necesidad.
+FILE_UPLOAD_MAX_MEMORY_SIZE = 20 * 1024 * 1024  # 20 MB en memoria antes de usar disco temporal
+DATA_UPLOAD_MAX_MEMORY_SIZE = 20 * 1024 * 1024
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+LOGIN_URL = "login"
+LOGIN_REDIRECT_URL = "vault:contact_list"
+LOGOUT_REDIRECT_URL = "login"

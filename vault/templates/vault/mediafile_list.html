@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Archivos{% endblock %}
+{% block content %}
+<div class="mb-6 flex items-center justify-between">
+    <h1 class="text-2xl font-semibold text-gray-900">Archivos</h1>
+    <a href="{% url 'vault:mediafile_create' %}" class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700">
+        {% include "icons/plus.html" with class="w-4 h-4" %} Subir archivo
+    </a>
+</div>
+
+{% include "vault/_search_form.html" %}
+
+<div class="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+<table class="min-w-full divide-y divide-gray-100">
+    <thead class="bg-gray-50">
+        <tr>
+            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Nombre</th>
+            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Categoría</th>
+            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Tipo</th>
+            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Tamaño</th>
+            <th class="px-4 py-3"></th>
+        </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100">
+        {% for file in files %}
+        <tr class="hover:bg-gray-50">
+            <td class="whitespace-nowrap px-4 py-3 text-sm font-medium">
+                <a href="{{ file.file.url }}" target="_blank" class="inline-flex items-center gap-1 text-blue-600 hover:underline">
+                    {% include "icons/paper-clip.html" with class="w-4 h-4" %} {{ file.original_name }}
+                </a>
+            </td>
+            <td class="whitespace-nowrap px-4 py-3 text-sm">
+                {% if file.category %}
+                <span class="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">{{ file.category.name }}</span>
+                {% else %}<span class="text-gray-400">—</span>{% endif %}
+            </td>
+            <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-600">{{ file.get_file_type_display }}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-600">{{ file.file_size_bytes|filesizeformat }}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-right text-sm">
+                <div class="flex justify-end gap-3">
+                    <a href="{% url 'vault:mediafile_update' file.pk %}" class="text-gray-400 hover:text-blue-600" title="Editar">
+                        {% include "icons/pencil.html" with class="w-5 h-5" %}
+                    </a>
+                    <a href="{% url 'vault:mediafile_delete' file.pk %}" class="text-gray-400 hover:text-red-600" title="Borrar">
+                        {% include "icons/trash.html" with class="w-5 h-5" %}
+                    </a>
+                </div>
+            </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="px-4 py-6 text-center text-sm text-gray-500">No tienes archivos todavía.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+{% endblock %}
