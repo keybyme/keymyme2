@@ -11,13 +11,13 @@
 <body class="min-h-screen bg-gray-50 text-gray-900 antialiased">
     {% if user.is_authenticated %}
     <nav class="border-b border-gray-200 bg-white shadow-sm">
-        <div class="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3">
+        <div class="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
             <a href="{% url 'vault:contact_list' %}" class="flex items-center gap-2 shrink-0">
                 <img src="{% static 'images/logo_keybyme.png' %}" alt="KeyByMe" class="h-9 w-9 rounded-full object-cover">
                 <span class="text-lg font-semibold tracking-tight text-blue-900">KeyByMe</span>
             </a>
 
-            <div class="flex flex-1 flex-wrap items-center gap-1 text-sm font-medium text-gray-600">
+            <div class="hidden flex-1 flex-wrap items-center gap-1 text-sm font-medium text-gray-600 md:flex">
                 <a href="{% url 'vault:contact_list' %}" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-gray-100 hover:text-blue-700">
                     {% include "icons/users.html" with class="w-4 h-4" %} Contactos
                 </a>
@@ -36,10 +36,55 @@
                 <a href="{% url 'vault:category_list' %}" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-gray-100 hover:text-blue-700">
                     {% include "icons/tag.html" with class="w-4 h-4" %} Categorías
                 </a>
+                <a href="{% url 'vault:qrcode_generate' %}" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-gray-100 hover:text-blue-700">
+                    {% include "icons/qr-code.html" with class="w-4 h-4" %} QR
+                </a>
             </div>
 
-            <div class="flex items-center gap-3 text-sm text-gray-600">
-                <span class="hidden sm:inline">{{ user.username }}</span>
+            <div class="hidden items-center gap-3 text-sm text-gray-600 md:flex">
+                <span>{{ user.username }}</span>
+                <form method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 font-medium text-gray-600 hover:bg-red-50 hover:text-red-600">
+                        {% include "icons/logout.html" with class="w-4 h-4" %} Salir
+                    </button>
+                </form>
+            </div>
+
+            <button type="button" id="menu-toggle" aria-controls="mobile-menu" aria-expanded="false"
+                    class="flex items-center justify-center rounded-md p-2 text-gray-600 hover:bg-gray-100 hover:text-blue-700 md:hidden">
+                <span class="sr-only">Abrir menú</span>
+                <span id="menu-icon-open">{% include "icons/bars-3.html" with class="w-6 h-6" %}</span>
+                <span id="menu-icon-close" class="hidden">{% include "icons/x-mark.html" with class="w-6 h-6" %}</span>
+            </button>
+        </div>
+
+        <div id="mobile-menu" class="hidden border-t border-gray-100 md:hidden">
+            <div class="flex flex-col gap-1 px-4 py-3 text-sm font-medium text-gray-600">
+                <a href="{% url 'vault:contact_list' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
+                    {% include "icons/users.html" with class="w-5 h-5" %} Contactos
+                </a>
+                <a href="{% url 'vault:password_list' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
+                    {% include "icons/key.html" with class="w-5 h-5" %} Passwords
+                </a>
+                <a href="{% url 'vault:url_list' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
+                    {% include "icons/link.html" with class="w-5 h-5" %} Enlaces
+                </a>
+                <a href="{% url 'vault:mediafile_list' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
+                    {% include "icons/paper-clip.html" with class="w-5 h-5" %} Archivos
+                </a>
+                <a href="{% url 'vault:reminder_list' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
+                    {% include "icons/bell.html" with class="w-5 h-5" %} Recordatorios
+                </a>
+                <a href="{% url 'vault:category_list' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
+                    {% include "icons/tag.html" with class="w-5 h-5" %} Categorías
+                </a>
+                <a href="{% url 'vault:qrcode_generate' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
+                    {% include "icons/qr-code.html" with class="w-5 h-5" %} QR
+                </a>
+            </div>
+            <div class="flex items-center justify-between gap-3 border-t border-gray-100 px-4 py-3 text-sm text-gray-600">
+                <span class="font-medium">{{ user.username }}</span>
                 <form method="post" action="{% url 'logout' %}">
                     {% csrf_token %}
                     <button type="submit" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 font-medium text-gray-600 hover:bg-red-50 hover:text-red-600">
@@ -81,5 +126,21 @@
 
         {% block content %}{% endblock %}
     </main>
+
+    {% if user.is_authenticated %}
+    <script>
+        const menuToggle = document.getElementById('menu-toggle');
+        const mobileMenu = document.getElementById('mobile-menu');
+        const menuIconOpen = document.getElementById('menu-icon-open');
+        const menuIconClose = document.getElementById('menu-icon-close');
+        menuToggle.addEventListener('click', () => {
+            const isOpen = !mobileMenu.classList.contains('hidden');
+            mobileMenu.classList.toggle('hidden');
+            menuIconOpen.classList.toggle('hidden');
+            menuIconClose.classList.toggle('hidden');
+            menuToggle.setAttribute('aria-expanded', String(!isOpen));
+        });
+    </script>
+    {% endif %}
 </body>
 </html>

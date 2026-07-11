@@ -103,3 +103,10 @@ class ReminderForm(TailwindFormMixin, UserCategoryFormMixin, forms.ModelForm):
 
 class StyledAuthenticationForm(TailwindFormMixin, AuthenticationForm):
     """AuthenticationForm de Django con clases Tailwind, usado por la vista de login."""
+
+
+class QRCodeForm(TailwindFormMixin, forms.Form):
+    url = forms.URLField(
+        label="URL",
+        widget=forms.URLInput(attrs={"placeholder": "https://ejemplo.com"}),
+    )

@@ -6,3 +6,5 @@ gunicorn==26.0.0
 whitenoise==6.12.0
 django-storages==1.14.6
 boto3==1.43.46
+qrcode==8.2
+pillow==12.3.0

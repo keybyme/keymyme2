@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Galería de fotos{% endblock %}
+{% block content %}
+<div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+    <h1 class="text-2xl font-semibold text-gray-900">Galería de fotos</h1>
+    <a href="{% url 'vault:mediafile_list' %}" class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">
+        {% include "icons/paper-clip.html" with class="w-4 h-4" %} Ver lista de archivos
+    </a>
+</div>
+
+{% include "vault/_search_form.html" %}
+
+{% if files %}
+<div class="columns-2 gap-4 sm:columns-3 lg:columns-4 [column-fill:_balance]">
+    {% for file in files %}
+    <a href="{{ file.file.url }}" target="_blank"
+       class="group relative mb-4 block break-inside-avoid overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm transition hover:shadow-md">
+        <img src="{{ file.file.url }}" alt="{{ file.original_name }}" loading="lazy" class="w-full object-cover">
+        <div class="pointer-events-none absolute inset-x-0 bottom-0 flex items-center justify-between gap-2 bg-gradient-to-t from-black/70 to-transparent px-3 py-2 opacity-0 transition group-hover:opacity-100">
+            <span class="truncate text-xs font-medium text-white">{{ file.original_name }}</span>
+            {% if file.category %}
+            <span class="shrink-0 rounded-full bg-white/20 px-2 py-0.5 text-[11px] font-medium text-white">{{ file.category.name }}</span>
+            {% endif %}
+        </div>
+    </a>
+    {% endfor %}
+</div>
+
+{% if is_paginated %}
+<div class="mt-6 flex items-center justify-center gap-2 text-sm">
+    {% if page_obj.has_previous %}
+    <a href="?page={{ page_obj.previous_page_number }}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if query %}&q={{ query }}{% endif %}" class="rounded-lg border border-gray-300 bg-white px-3 py-1.5 font-medium text-gray-700 hover:bg-gray-50">Anterior</a>
+    {% endif %}
+    <span class="px-2 text-gray-500">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+    <a href="?page={{ page_obj.next_page_number }}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if query %}&q={{ query }}{% endif %}" class="rounded-lg border border-gray-300 bg-white px-3 py-1.5 font-medium text-gray-700 hover:bg-gray-50">Siguiente</a>
+    {% endif %}
+</div>
+{% endif %}
+
+{% else %}
+<div class="rounded-xl border border-gray-200 bg-white px-4 py-12 text-center text-sm text-gray-500 shadow-sm">
+    No tienes fotos todavía{% if selected_category %} en esta categoría{% endif %}.
+</div>
+{% endif %}
+{% endblock %}

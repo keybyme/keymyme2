@@ -1,10 +1,14 @@
+import base64
+import io
+
+import qrcode
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
-from django.views.generic import CreateView, DeleteView, DetailView, ListView, UpdateView, View
+from django.views.generic import CreateView, DeleteView, DetailView, FormView, ListView, UpdateView, View
 
-from .forms import CategoryForm, ContactForm, MediaFileForm, ReminderForm, UrlForm, VaultPasswordForm
+from .forms import CategoryForm, ContactForm, MediaFileForm, QRCodeForm, ReminderForm, UrlForm, VaultPasswordForm
 from .mixins import OwnerCreateMixin, OwnerQuerysetMixin, SearchableListMixin, UserFormKwargsMixin
 from .models import Category, Contact, MediaFile, Reminder, Url, VaultPassword
 
@@ -156,6 +160,18 @@ class MediaFileListView(SearchableListMixin, OwnerQuerysetMixin, ListView):
     search_fields = ("original_name",)
 
 
+class MediaFilePhotoGalleryView(SearchableListMixin, OwnerQuerysetMixin, ListView):
+    """Vista de galería: solo fotos, en cuadrícula, filtrable por categoría."""
+    model = MediaFile
+    template_name = "vault/mediafile_gallery.html"
+    context_object_name = "files"
+    paginate_by = 24
+    search_fields = ("original_name",)
+
+    def get_queryset(self):
+        return super().get_queryset().filter(file_type=MediaFile.FileType.PHOTO)
+
+
 class MediaFileCreateView(OwnerCreateMixin, CreateView):
     model = MediaFile
     form_class = MediaFileForm
@@ -248,3 +264,23 @@ class ReminderDeleteView(OwnerQuerysetMixin, DeleteView):
     model = Reminder
     template_name = "vault/reminder_confirm_delete.html"
     success_url = reverse_lazy("vault:reminder_list")
+
+
+# ---------- QR Codes ----------
+
+class QRCodeGeneratorView(LoginRequiredMixin, FormView):
+    """
+    Herramienta sin persistencia: genera el QR al vuelo y lo muestra
+    como imagen embebida (data URI), sin crear ningún registro en la BD.
+    """
+    template_name = "vault/qrcode_form.html"
+    form_class = QRCodeForm
+
+    def form_valid(self, form):
+        url = form.cleaned_data["url"]
+        image = qrcode.make(url)
+        buffer = io.BytesIO()
+        image.save(buffer, format="PNG")
+        qr_image_base64 = base64.b64encode(buffer.getvalue()).decode("ascii")
+        context = self.get_context_data(form=form, qr_image_base64=qr_image_base64, submitted_url=url)
+        return self.render_to_response(context)
