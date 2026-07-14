@@ -1,11 +1,17 @@
 import base64
+import hmac
 import io
 
 import qrcode
+from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
+from django.core.management import call_command
+from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import CreateView, DeleteView, DetailView, FormView, ListView, UpdateView, View
 
 from .contact_import import parse_csv, parse_vcard
@@ -312,6 +318,23 @@ class ReminderDeleteView(OwnerQuerysetMixin, DeleteView):
     model = Reminder
     template_name = "vault/reminder_confirm_delete.html"
     success_url = reverse_lazy("vault:reminder_list")
+
+
+@method_decorator(csrf_exempt, name="dispatch")
+class SendDueRemindersCronView(View):
+    """
+    Endpoint sin sesión pensado para un cron externo (ej. GitHub Actions) que
+    dispara `manage.py send_due_reminders` vía HTTP. Protegido por un token
+    compartido en el header X-Cron-Token, no por login: quien lo llama no es
+    un usuario de la app.
+    """
+
+    def post(self, request):
+        token = request.headers.get("X-Cron-Token", "")
+        if not settings.CRON_SECRET or not hmac.compare_digest(token, settings.CRON_SECRET):
+            return HttpResponseForbidden()
+        call_command("send_due_reminders")
+        return JsonResponse({"status": "ok"})
 
 
 # ---------- QR Codes ----------

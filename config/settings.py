@@ -50,6 +50,18 @@ EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
 EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="KeyByMe <no-reply@keybyme.com>")
 
+# SMS saliente (usado por `manage.py send_due_reminders` para el aviso por SMS,
+# opcional, cuando el recordatorio tiene recipient_phone). Si no están configuradas,
+# el comando simplemente omite el envío de SMS y solo manda el correo.
+TWILIO_ACCOUNT_SID = env("TWILIO_ACCOUNT_SID", default="")
+TWILIO_AUTH_TOKEN = env("TWILIO_AUTH_TOKEN", default="")
+TWILIO_FROM_NUMBER = env("TWILIO_FROM_NUMBER", default="")
+
+# Token compartido para que un cron externo (ej. GitHub Actions) pueda disparar
+# `send_due_reminders` vía POST a /vault/cron/send-reminders/ (header X-Cron-Token).
+# Generar con: python -c "import secrets; print(secrets.token_urlsafe(32))"
+CRON_SECRET = env("CRON_SECRET", default="")
+
 
 # Application definition
 

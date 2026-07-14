@@ -1,0 +1,16 @@
+name: Send due reminders
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  call-cron-endpoint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST a /vault/cron/send-reminders/
+        run: |
+          curl --fail --show-error --silent \
+            -X POST "${{ secrets.KEYBYME_CRON_URL }}" \
+            -H "X-Cron-Token: ${{ secrets.KEYBYME_CRON_SECRET }}"

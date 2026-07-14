@@ -189,6 +189,16 @@ class Reminder(models.Model):
         null=True, blank=True, editable=False,
         help_text="Cuándo se envió el correo de aviso. Vacío = todavía no se ha enviado.",
     )
+    recipient_phone = models.CharField(
+        max_length=20,
+        blank=True,
+        verbose_name="Teléfono del destinatario (SMS)",
+        help_text="Formato internacional, ej. +5215512345678. Vacío = no se manda SMS.",
+    )
+    sms_sent_at = models.DateTimeField(
+        null=True, blank=True, editable=False,
+        help_text="Cuándo se envió el SMS de aviso. Vacío = todavía no se ha enviado.",
+    )
 
     class Meta:
         ordering = ["remind_at"]

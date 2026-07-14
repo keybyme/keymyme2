@@ -46,4 +46,7 @@ urlpatterns = [
 
     # QR Codes
     path("qrcode/", views.QRCodeGeneratorView.as_view(), name="qrcode_generate"),
+
+    # Cron externo (ver config/settings.py CRON_SECRET)
+    path("cron/send-reminders/", views.SendDueRemindersCronView.as_view(), name="cron_send_reminders"),
 ]
