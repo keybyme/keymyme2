@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Importar contactos{% endblock %}
+{% block content %}
+<h1 class="mb-6 text-2xl font-semibold text-gray-900">Importar contactos</h1>
+<form method="post" enctype="multipart/form-data" class="max-w-lg rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+    {% csrf_token %}
+    {% include "_form_fields.html" %}
+    <p class="mt-4 text-xs text-gray-500">
+        Acepta un archivo <strong>.vcf</strong> (vCard, exportado de iPhone/iCloud) o
+        un <strong>.csv</strong> con columnas nombre, telefono, email, direccion y notas.
+    </p>
+    <div class="mt-6 flex items-center gap-3">
+        <button type="submit" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700">Importar</button>
+        <a href="{% url 'vault:contact_list' %}" class="text-sm font-medium text-gray-600 hover:text-gray-900">Cancelar</a>
+    </div>
+</form>
+{% endblock %}

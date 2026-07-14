@@ -8,7 +8,17 @@ from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DeleteView, DetailView, FormView, ListView, UpdateView, View
 
-from .forms import CategoryForm, ContactForm, MediaFileForm, QRCodeForm, ReminderForm, UrlForm, VaultPasswordForm
+from .contact_import import parse_csv, parse_vcard
+from .forms import (
+    CategoryForm,
+    ContactForm,
+    ContactImportForm,
+    MediaFileForm,
+    QRCodeForm,
+    ReminderForm,
+    UrlForm,
+    VaultPasswordForm,
+)
 from .mixins import OwnerCreateMixin, OwnerQuerysetMixin, SearchableListMixin, UserFormKwargsMixin
 from .models import Category, Contact, MediaFile, Reminder, Url, VaultPassword
 
@@ -70,6 +80,44 @@ class ContactDeleteView(OwnerQuerysetMixin, DeleteView):
     model = Contact
     template_name = "vault/contact_confirm_delete.html"
     success_url = reverse_lazy("vault:contact_list")
+
+
+class ContactImportView(UserFormKwargsMixin, LoginRequiredMixin, FormView):
+    """Importa contactos en bloque desde un .vcf (vCard) o un .csv."""
+    template_name = "vault/contact_import.html"
+    form_class = ContactImportForm
+    success_url = reverse_lazy("vault:contact_list")
+
+    def form_valid(self, form):
+        uploaded_file = form.cleaned_data["file"]
+        category = form.cleaned_data.get("category")
+        text = uploaded_file.read().decode("utf-8-sig", errors="replace")
+
+        if uploaded_file.name.lower().endswith(".csv"):
+            parsed_contacts = parse_csv(text)
+        else:
+            parsed_contacts = parse_vcard(text)
+
+        new_contacts = [
+            Contact(
+                owner=self.request.user,
+                name=data["name"][:150],
+                phone=data["phone"][:30],
+                email=data["email"][:254],
+                address=data["address"][:255],
+                notes=data["notes"],
+                category=category,
+            )
+            for data in parsed_contacts
+        ]
+        Contact.objects.bulk_create(new_contacts)
+
+        if new_contacts:
+            messages.success(self.request, f"Se importaron {len(new_contacts)} contacto(s).")
+        else:
+            messages.warning(self.request, "No se encontró ningún contacto válido en el archivo.")
+
+        return super().form_valid(form)
 
 
 # ---------- Vault Passwords ----------

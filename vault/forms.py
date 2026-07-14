@@ -51,6 +51,25 @@ class ContactForm(TailwindFormMixin, UserCategoryFormMixin, forms.ModelForm):
         fields = ["name", "phone", "email", "address", "category", "notes"]
 
 
+class ContactImportForm(TailwindFormMixin, UserCategoryFormMixin, forms.Form):
+    file = forms.FileField(
+        label="Archivo (.vcf o .csv)",
+        help_text="vCard exportada de iPhone/iCloud, o un CSV con columnas nombre/telefono/email/direccion/notas.",
+    )
+    category = forms.ModelChoiceField(
+        queryset=Category.objects.none(),
+        required=False,
+        label="Categoría",
+        help_text="Opcional: se asignará a todos los contactos importados.",
+    )
+
+    def clean_file(self):
+        uploaded_file = self.cleaned_data["file"]
+        if not uploaded_file.name.lower().endswith((".vcf", ".csv")):
+            raise forms.ValidationError("El archivo debe tener extensión .vcf o .csv.")
+        return uploaded_file
+
+
 class VaultPasswordForm(TailwindFormMixin, UserCategoryFormMixin, forms.ModelForm):
     password = forms.CharField(
         label="Password",
@@ -95,9 +114,10 @@ class MediaFileForm(TailwindFormMixin, UserCategoryFormMixin, forms.ModelForm):
 class ReminderForm(TailwindFormMixin, UserCategoryFormMixin, forms.ModelForm):
     class Meta:
         model = Reminder
-        fields = ["title", "description", "category", "remind_at", "is_completed"]
+        fields = ["title", "description", "category", "remind_at", "recipient_email", "is_completed"]
         widgets = {
             "remind_at": forms.DateTimeInput(attrs={"type": "datetime-local"}),
+            "recipient_email": forms.EmailInput(attrs={"placeholder": "Dejar vacío para usar tu correo de cuenta"}),
         }
 
 

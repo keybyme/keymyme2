@@ -33,6 +33,23 @@ CSRF_COOKIE_SECURE = not DEBUG
 # Generar con: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 VAULT_ENCRYPTION_KEY = env("VAULT_ENCRYPTION_KEY", default=None)
 
+# Correo saliente (usado por `manage.py send_due_reminders` para avisar de
+# los recordatorios). Cuenta única del sistema, no la del usuario: así se
+# evitan los problemas de entrega de spoofear el remitente por usuario.
+# En DEBUG, si no se configura EMAIL_BACKEND explícitamente, los correos se
+# imprimen en consola en vez de enviarse de verdad (no requiere SMTP en dev).
+_default_email_backend = (
+    "django.core.mail.backends.console.EmailBackend" if DEBUG
+    else "django.core.mail.backends.smtp.EmailBackend"
+)
+EMAIL_BACKEND = env("EMAIL_BACKEND", default=_default_email_backend)
+EMAIL_HOST = env("EMAIL_HOST", default="")
+EMAIL_PORT = env.int("EMAIL_PORT", default=587)
+EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
+EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="KeyByMe <no-reply@keybyme.com>")
+
 
 # Application definition
 

@@ -180,6 +180,15 @@ class Reminder(models.Model):
     remind_at = models.DateTimeField()
     is_completed = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+    recipient_email = models.EmailField(
+        blank=True,
+        verbose_name="Correo del destinatario",
+        help_text="A quién se le envía el aviso. Si se deja vacío, se usa el correo de tu cuenta.",
+    )
+    email_sent_at = models.DateTimeField(
+        null=True, blank=True, editable=False,
+        help_text="Cuándo se envió el correo de aviso. Vacío = todavía no se ha enviado.",
+    )
 
     class Meta:
         ordering = ["remind_at"]
@@ -188,3 +197,9 @@ class Reminder(models.Model):
 
     def __str__(self):
         return self.title
+
+    @property
+    def notification_email(self):
+        """Correo efectivo al que se enviará el aviso: el explícito del
+        recordatorio, o si no se puso ninguno, el de la cuenta del dueño."""
+        return self.recipient_email or self.owner.email
