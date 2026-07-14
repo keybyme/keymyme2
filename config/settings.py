@@ -22,12 +22,16 @@ DEBUG = env.bool("DEBUG", default=False)
 
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
 
-# Detrás del load balancer de DigitalOcean App Platform, las requests le
-# llegan a Django por HTTP con este header indicando que en realidad son HTTPS.
+# Detrás de un load balancer o reverse proxy (nginx, DigitalOcean App Platform),
+# las requests le llegan a Django por HTTP con este header indicando que en
+# realidad son HTTPS.
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
-SESSION_COOKIE_SECURE = not DEBUG
-CSRF_COOKIE_SECURE = not DEBUG
+# Por default, seguras solo si no es DEBUG — pero si el servidor todavía no
+# tiene HTTPS real (ej. sin dominio/certificado), hay que forzar esto a False
+# en el .env, o el navegador nunca mandará estas cookies y el login fallará.
+SESSION_COOKIE_SECURE = env.bool("SESSION_COOKIE_SECURE", default=not DEBUG)
+CSRF_COOKIE_SECURE = env.bool("CSRF_COOKIE_SECURE", default=not DEBUG)
 
 # Llave de cifrado para los passwords guardados en el vault (VaultPassword).
 # Generar con: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
