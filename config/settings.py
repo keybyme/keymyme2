@@ -132,7 +132,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # Internationalization
 LANGUAGE_CODE = 'es'
-TIME_ZONE = 'America/Mexico_City'
+TIME_ZONE = 'America/New_York'
 USE_I18N = True
 USE_TZ = True
 
