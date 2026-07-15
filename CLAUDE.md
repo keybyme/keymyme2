@@ -72,7 +72,11 @@ Only files with an extension in `ALLOWED_MEDIA_EXTENSIONS` (`vault/models.py`, w
 
 ### Deployment
 
-Built for DigitalOcean App Platform: `Procfile` runs `gunicorn config.wsgi:application`, `whitenoise` serves static files (`STORAGES["staticfiles"]`, no CDN needed), and `SECURE_PROXY_SSL_HEADER`/`CSRF_TRUSTED_ORIGINS` account for TLS terminating at the platform's load balancer. App Platform's container disk is ephemeral, so `MediaFile` uploads must not stay on local disk in production — set `USE_SPACES=True` (+ `SPACES_*` env vars) to switch `STORAGES["default"]` to DigitalOcean Spaces via `django-storages`/`S3Boto3Storage` (private ACL, signed URLs). Local dev is unaffected (`USE_SPACES` defaults to `False`, files stay under `MEDIA_ROOT`).
+Runs on a plain AWS EC2 Ubuntu instance (`~/websites/keymyme2`, venv at `env/`), not a PaaS. nginx listens on :80 and reverse-proxies everything to gunicorn on `127.0.0.1:8000`; gunicorn itself is managed by a systemd unit (`keybyme.service`) rather than a `Procfile` (the `Procfile` is unused there — it's leftover from an earlier DigitalOcean App Platform plan). `whitenoise` still serves static files, but unlike `manage.py runserver`, gunicorn requires `python manage.py collectstatic --noinput` after every deploy or new/changed static assets 404.
+
+Deploy flow on the EC2 box: `git pull`, `pip install -r requirements.txt`, `python manage.py migrate`, `collectstatic`, then `sudo systemctl restart keybyme`. There's no domain/TLS wired up yet (nginx has `server_name _`, plain HTTP by IP) — `SESSION_COOKIE_SECURE`/`CSRF_COOKIE_SECURE` are therefore overridable via env (`.env`) independently of `DEBUG`, since forcing `Secure` cookies without HTTPS breaks login. `MediaFile` uploads currently stay on the instance's local disk (`USE_SPACES=False`); the `django-storages`/S3 path in this codebase talks to DigitalOcean Spaces specifically, not plain AWS S3, so switching it on would need adjusting `SPACES_ENDPOINT_URL` or generalizing that config.
+
+There's no cron/scheduled job on the box itself. `manage.py send_due_reminders` (email + SMS for due Reminders) is triggered externally by a GitHub Actions workflow (`.github/workflows/send-reminders.yml`) that POSTs to `/vault/cron/send-reminders/` every 15 minutes, authenticated via a shared `X-Cron-Token` header checked against `CRON_SECRET`.
 
 ## Localization
 
