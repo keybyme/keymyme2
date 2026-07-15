@@ -27,6 +27,29 @@ class CustomUser(AbstractUser):
         "self", on_delete=models.SET_NULL, null=True, blank=True, related_name="created_users",
         help_text="Admin principal que creó esta cuenta.",
     )
+    phone = models.CharField(
+        max_length=20, blank=True,
+        verbose_name="Teléfono celular",
+        help_text="Tu número de celular, sin espacios (ej. 2407939353).",
+    )
+    carrier = models.CharField(
+        max_length=30, blank=True,
+        verbose_name="Carrier / pasarela SMS",
+        help_text=(
+            "Dominio de correo-a-SMS de tu compañía telefónica, incluyendo la arroba "
+            "(ej. @tmomail.net para T-Mobile, @vtext.com para Verizon, @txt.att.net para AT&T). "
+            "Junto con tu teléfono arma la dirección a la que KeyByMe puede mandarte avisos "
+            "como si fueran un SMS, sin necesitar Twilio ni ningún otro servicio."
+        ),
+    )
+
+    @property
+    def sms_gateway_email(self):
+        """Dirección tipo '2407939353@tmomail.net' armada de phone+carrier,
+        o '' si al usuario le falta configurar alguno de los dos."""
+        if self.phone and self.carrier:
+            return f"{self.phone}{self.carrier}"
+        return ""
 
     @property
     def storage_quota_bytes(self):

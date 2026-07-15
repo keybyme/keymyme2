@@ -123,6 +123,13 @@ class ReminderForm(TailwindFormMixin, UserCategoryFormMixin, forms.ModelForm):
             "recipient_email": forms.EmailInput(attrs={"placeholder": "Dejar vacío para usar tu correo de cuenta"}),
         }
 
+    def __init__(self, *args, user=None, **kwargs):
+        super().__init__(*args, user=user, **kwargs)
+        # Al crear (no editar), prellena con la pasarela SMS del usuario (si la
+        # configuró en su perfil) para que el aviso le llegue como texto por default.
+        if user is not None and self.instance.pk is None and not self.initial.get("recipient_email"):
+            self.fields["recipient_email"].initial = user.sms_gateway_email
+
 
 class StyledAuthenticationForm(TailwindFormMixin, AuthenticationForm):
     """AuthenticationForm de Django con clases Tailwind, usado por la vista de login."""

@@ -221,8 +221,9 @@ class Reminder(models.Model):
     @property
     def notification_email(self):
         """Correo efectivo al que se enviará el aviso: el explícito del
-        recordatorio, o si no se puso ninguno, el de la cuenta del dueño."""
-        return self.recipient_email or self.owner.email
+        recordatorio; si no se puso, la pasarela SMS del dueño (phone+carrier,
+        para que llegue como texto al celular); si tampoco hay, el correo de la cuenta."""
+        return self.recipient_email or self.owner.sms_gateway_email or self.owner.email
 
     def next_occurrence(self):
         """Siguiente remind_at según la frecuencia, o None si no se repite."""

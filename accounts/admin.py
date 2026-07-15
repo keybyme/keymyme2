@@ -16,6 +16,7 @@ class CustomUserAdmin(UserAdmin):
             "fields": (
                 "is_admin_principal", "role", "storage_quota_gb",
                 "storage_used_bytes", "is_suspended", "created_by",
+                "phone", "carrier",
             )
         }),
     )
