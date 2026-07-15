@@ -18,7 +18,7 @@
             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Categoría</th>
             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Fecha</th>
             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Correo</th>
-            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">SMS</th>
+            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Frecuencia</th>
             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Completado</th>
             <th class="px-4 py-3"></th>
         </tr>
@@ -44,16 +44,9 @@
                 </span>
             </td>
             <td class="whitespace-nowrap px-4 py-3 text-sm">
-                {% if reminder.recipient_phone %}
-                <span class="inline-flex items-center gap-1 text-gray-600" title="{% if reminder.sms_sent_at %}Enviado el {{ reminder.sms_sent_at }}{% else %}Pendiente de enviar{% endif %}">
-                    {% if reminder.sms_sent_at %}
-                        {% include "icons/check-circle.html" with class="w-4 h-4 text-emerald-600" %}
-                    {% else %}
-                        {% include "icons/phone.html" with class="w-4 h-4 text-gray-400" %}
-                    {% endif %}
-                    {{ reminder.recipient_phone }}
-                </span>
-                {% else %}<span class="text-gray-400">—</span>{% endif %}
+                {% if reminder.frequency %}
+                <span class="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">{{ reminder.get_frequency_display }}</span>
+                {% else %}<span class="text-gray-400">Única vez</span>{% endif %}
             </td>
             <td class="whitespace-nowrap px-4 py-3 text-sm">
                 {% if reminder.is_completed %}

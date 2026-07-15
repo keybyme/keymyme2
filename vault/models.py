@@ -1,4 +1,6 @@
+import calendar
 import os
+from datetime import timedelta
 
 from cryptography.fernet import Fernet
 from django.conf import settings
@@ -171,6 +173,13 @@ class MediaFile(models.Model):
 
 
 class Reminder(models.Model):
+    FREQUENCY_CHOICES = [
+        ("", "Una sola vez"),
+        ("diario", "Diario"),
+        ("semanal", "Semanal"),
+        ("mensual", "Mensual"),
+    ]
+
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="reminders")
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
@@ -178,6 +187,17 @@ class Reminder(models.Model):
         Category, on_delete=models.SET_NULL, null=True, blank=True, related_name="reminders"
     )
     remind_at = models.DateTimeField()
+    frequency = models.CharField(
+        max_length=10,
+        choices=FREQUENCY_CHOICES,
+        blank=True,
+        default="",
+        verbose_name="Frecuencia",
+        help_text=(
+            "Una sola vez: el recordatorio se borra después de enviarse. Diario/Semanal/Mensual: "
+            "se reprograma automáticamente a la misma hora (mismo día de la semana o del mes según aplique)."
+        ),
+    )
     is_completed = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     recipient_email = models.EmailField(
@@ -188,16 +208,6 @@ class Reminder(models.Model):
     email_sent_at = models.DateTimeField(
         null=True, blank=True, editable=False,
         help_text="Cuándo se envió el correo de aviso. Vacío = todavía no se ha enviado.",
-    )
-    recipient_phone = models.CharField(
-        max_length=20,
-        blank=True,
-        verbose_name="Teléfono del destinatario (SMS)",
-        help_text="Formato internacional, ej. +5215512345678. Vacío = no se manda SMS.",
-    )
-    sms_sent_at = models.DateTimeField(
-        null=True, blank=True, editable=False,
-        help_text="Cuándo se envió el SMS de aviso. Vacío = todavía no se ha enviado.",
     )
 
     class Meta:
@@ -213,3 +223,17 @@ class Reminder(models.Model):
         """Correo efectivo al que se enviará el aviso: el explícito del
         recordatorio, o si no se puso ninguno, el de la cuenta del dueño."""
         return self.recipient_email or self.owner.email
+
+    def next_occurrence(self):
+        """Siguiente remind_at según la frecuencia, o None si no se repite."""
+        if self.frequency == "diario":
+            return self.remind_at + timedelta(days=1)
+        if self.frequency == "semanal":
+            return self.remind_at + timedelta(weeks=1)
+        if self.frequency == "mensual":
+            year = self.remind_at.year + self.remind_at.month // 12
+            month = self.remind_at.month % 12 + 1
+            last_day = calendar.monthrange(year, month)[1]
+            day = min(self.remind_at.day, last_day)
+            return self.remind_at.replace(year=year, month=month, day=day)
+        return None

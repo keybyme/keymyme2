@@ -76,7 +76,7 @@ Runs on a plain AWS EC2 Ubuntu instance (`~/websites/keymyme2`, venv at `env/`),
 
 Deploy flow on the EC2 box: `git pull`, `pip install -r requirements.txt`, `python manage.py migrate`, `collectstatic`, then `sudo systemctl restart keybyme`. There's no domain/TLS wired up yet (nginx has `server_name _`, plain HTTP by IP) — `SESSION_COOKIE_SECURE`/`CSRF_COOKIE_SECURE` are therefore overridable via env (`.env`) independently of `DEBUG`, since forcing `Secure` cookies without HTTPS breaks login. `MediaFile` uploads currently stay on the instance's local disk (`USE_SPACES=False`); the `django-storages`/S3 path in this codebase talks to DigitalOcean Spaces specifically, not plain AWS S3, so switching it on would need adjusting `SPACES_ENDPOINT_URL` or generalizing that config.
 
-There's no cron/scheduled job on the box itself. `manage.py send_due_reminders` (email + SMS for due Reminders) is triggered externally by a GitHub Actions workflow (`.github/workflows/send-reminders.yml`) that POSTs to `/vault/cron/send-reminders/` every 15 minutes, authenticated via a shared `X-Cron-Token` header checked against `CRON_SECRET`.
+There's no cron/scheduled job on the box itself. `manage.py send_due_reminders` (emails due Reminders, then deletes one-off reminders or reschedules recurring ones per `Reminder.frequency`) is triggered externally by a GitHub Actions workflow (`.github/workflows/send-reminders.yml`) that POSTs to `/vault/cron/send-reminders/` every 15 minutes, authenticated via a shared `X-Cron-Token` header checked against `CRON_SECRET`.
 
 ## Localization
 

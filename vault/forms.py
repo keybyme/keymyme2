@@ -115,13 +115,12 @@ class ReminderForm(TailwindFormMixin, UserCategoryFormMixin, forms.ModelForm):
     class Meta:
         model = Reminder
         fields = [
-            "title", "description", "category", "remind_at",
-            "recipient_email", "recipient_phone", "is_completed",
+            "title", "description", "category", "remind_at", "frequency",
+            "recipient_email", "is_completed",
         ]
         widgets = {
             "remind_at": forms.DateTimeInput(attrs={"type": "datetime-local"}),
             "recipient_email": forms.EmailInput(attrs={"placeholder": "Dejar vacío para usar tu correo de cuenta"}),
-            "recipient_phone": forms.TextInput(attrs={"placeholder": "+5215512345678 (opcional, para SMS)"}),
         }
 
 
