@@ -1,6 +1,8 @@
 from django import forms
 from django.contrib.auth.forms import AuthenticationForm
+from django.core.files.uploadedfile import UploadedFile
 
+from .image_compression import compress_image
 from .models import Category, Contact, MediaFile, Reminder, Url, VaultPassword
 
 INPUT_CLASSES = (
@@ -106,9 +108,36 @@ class UrlForm(TailwindFormMixin, UserCategoryFormMixin, forms.ModelForm):
 
 
 class MediaFileForm(TailwindFormMixin, UserCategoryFormMixin, forms.ModelForm):
+    PHOTO_QUALITY_CHOICES = [
+        ("alta", "Alta (sin comprimir)"),
+        ("media", "Media"),
+        ("baja", "Baja (máximo ahorro)"),
+    ]
+    photo_quality = forms.ChoiceField(
+        choices=PHOTO_QUALITY_CHOICES,
+        initial="alta",
+        required=False,
+        label="Calidad de la foto",
+        help_text="Reduce el tamaño (KB) al subir o reemplazar una foto. No aplica a videos ni documentos.",
+    )
+
     class Meta:
         model = MediaFile
         fields = ["file", "file_type", "original_name", "category"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.order_fields(["file", "photo_quality", "file_type", "original_name", "category"])
+
+    def clean(self):
+        cleaned_data = super().clean()
+        uploaded_file = cleaned_data.get("file")
+        quality = cleaned_data.get("photo_quality") or "alta"
+        if isinstance(uploaded_file, UploadedFile):
+            compressed = compress_image(uploaded_file, quality)
+            if compressed is not None:
+                cleaned_data["file"] = compressed
+        return cleaned_data
 
 
 class ReminderForm(TailwindFormMixin, UserCategoryFormMixin, forms.ModelForm):
