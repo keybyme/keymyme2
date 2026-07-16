@@ -58,6 +58,12 @@
                 <a href="{% url 'vault:reminder_list' %}" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-gray-100 hover:text-blue-700">
                     {% include "icons/bell.html" with class="w-4 h-4" %} Recordatorios
                 </a>
+                <a href="{% url 'finanzas:transaccion_list' %}" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-gray-100 hover:text-blue-700">
+                    {% include "icons/banknotes.html" with class="w-4 h-4" %} Transacciones
+                </a>
+                <a href="{% url 'finanzas:cuenta_list' %}" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-gray-100 hover:text-blue-700">
+                    {% include "icons/credit-card.html" with class="w-4 h-4" %} Cuentas
+                </a>
                 <a href="{% url 'vault:category_list' %}" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-gray-100 hover:text-blue-700">
                     {% include "icons/tag.html" with class="w-4 h-4" %} Categorías
                 </a>
@@ -100,6 +106,12 @@
                 </a>
                 <a href="{% url 'vault:reminder_list' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
                     {% include "icons/bell.html" with class="w-5 h-5" %} Recordatorios
+                </a>
+                <a href="{% url 'finanzas:transaccion_list' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
+                    {% include "icons/banknotes.html" with class="w-5 h-5" %} Transacciones
+                </a>
+                <a href="{% url 'finanzas:cuenta_list' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
+                    {% include "icons/credit-card.html" with class="w-5 h-5" %} Cuentas
                 </a>
                 <a href="{% url 'vault:category_list' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
                     {% include "icons/tag.html" with class="w-5 h-5" %} Categorías

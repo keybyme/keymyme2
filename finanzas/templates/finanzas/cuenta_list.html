@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Cuentas{% endblock %}
+{% block content %}
+<div class="mb-6 flex items-center justify-between">
+    <h1 class="text-2xl font-semibold text-gray-900">Cuentas</h1>
+    <a href="{% url 'finanzas:cuenta_create' %}" class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700">
+        {% include "icons/plus.html" with class="w-4 h-4" %} Nueva cuenta
+    </a>
+</div>
+
+<div class="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+<table class="min-w-full divide-y divide-gray-100">
+    <thead class="bg-gray-50">
+        <tr>
+            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Nombre</th>
+            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Número</th>
+            <th class="px-4 py-3"></th>
+        </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100">
+        {% for cuenta in cuentas %}
+        <tr class="hover:bg-gray-50">
+            <td class="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900">{{ cuenta.name }}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-600">{{ cuenta.numero }}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-right text-sm">
+                <div class="flex justify-end gap-3">
+                    <a href="{% url 'finanzas:cuenta_update' cuenta.pk %}" class="text-gray-400 hover:text-blue-600" title="Editar">
+                        {% include "icons/pencil.html" with class="w-5 h-5" %}
+                    </a>
+                    <a href="{% url 'finanzas:cuenta_delete' cuenta.pk %}" class="text-gray-400 hover:text-red-600" title="Borrar">
+                        {% include "icons/trash.html" with class="w-5 h-5" %}
+                    </a>
+                </div>
+            </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="3" class="px-4 py-6 text-center text-sm text-gray-500">No tienes cuentas registradas.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+
+{% if is_paginated %}
+<div class="mt-4 flex items-center justify-center gap-4 text-sm text-gray-600">
+    {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}" class="hover:text-blue-600">Anterior</a>{% endif %}
+    <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}" class="hover:text-blue-600">Siguiente</a>{% endif %}
+</div>
+{% endif %}
+{% endblock %}

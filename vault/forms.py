@@ -148,7 +148,10 @@ class ReminderForm(TailwindFormMixin, UserCategoryFormMixin, forms.ModelForm):
             "recipient_email", "is_completed",
         ]
         widgets = {
-            "remind_at": forms.DateTimeInput(attrs={"type": "datetime-local"}),
+            # format="%Y-%m-%dT%H:%M" fuerza ISO en vez del formato localizado
+            # ("05/03/2026 14:30:00"): un <input type="datetime-local"> solo
+            # reconoce "YYYY-MM-DDTHH:MM" en su value, si no se ve vacío.
+            "remind_at": forms.DateTimeInput(format="%Y-%m-%dT%H:%M", attrs={"type": "datetime-local"}),
             "recipient_email": forms.EmailInput(attrs={"placeholder": "Dejar vacío para usar tu correo de cuenta"}),
         }
 

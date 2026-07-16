@@ -74,6 +74,7 @@ INSTALLED_APPS = [
     'accounts',
     'menus',
     'vault',
+    'finanzas',
 ]
 
 MIDDLEWARE = [
