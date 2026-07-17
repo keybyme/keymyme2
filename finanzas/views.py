@@ -119,6 +119,15 @@ class TransaccionListView(SearchableListMixin, OwnerQuerysetMixin, ListView):
         (9, "Septiembre"), (10, "Octubre"), (11, "Noviembre"), (12, "Diciembre"),
     ]
 
+    def _get_periodo(self):
+        # Si no viene 'periodo' en absoluto (primera carga de la página), se
+        # asume el mes en curso. Si viene vacío ("Todo el tiempo" elegido a
+        # propósito en el dropdown), se respeta y no se filtra por fecha.
+        periodo = self.request.GET.get("periodo")
+        if periodo is None:
+            periodo = str(timezone.localdate().month)
+        return periodo
+
     def get_queryset(self):
         queryset = super().get_queryset()
 
@@ -131,7 +140,7 @@ class TransaccionListView(SearchableListMixin, OwnerQuerysetMixin, ListView):
             queryset = queryset.filter(cuenta_id=cuenta_id)
 
         hoy = timezone.localdate()
-        periodo = self.request.GET.get("periodo")
+        periodo = self._get_periodo()
         if periodo == "ytd":
             queryset = queryset.filter(fecha__year=hoy.year, fecha__lte=hoy)
         elif periodo and periodo.isdigit() and 1 <= int(periodo) <= 12:
@@ -155,7 +164,7 @@ class TransaccionListView(SearchableListMixin, OwnerQuerysetMixin, ListView):
         context["selected_tipo"] = self.request.GET.get("tipo", "")
         context["selected_cuenta"] = self.request.GET.get("cuenta", "")
         context["meses"] = self.MESES
-        context["selected_periodo"] = self.request.GET.get("periodo", "")
+        context["selected_periodo"] = self._get_periodo()
         return context
 
 
