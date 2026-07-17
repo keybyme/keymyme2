@@ -9,8 +9,9 @@ from django.contrib import messages
 from django.core.management import call_command
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import redirect
-from django.urls import reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django.utils.decorators import method_decorator
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import CreateView, DeleteView, DetailView, FormView, ListView, UpdateView, View
 
@@ -160,9 +161,10 @@ class PasswordDeleteView(OwnerQuerysetMixin, DeleteView):
 
 class PasswordRevealView(OwnerQuerysetMixin, DetailView):
     """
-    Vista separada solo para revelar el password en texto plano.
-    Al ser una vista aparte (no parte del list/detail normal), es más fácil
-    auditar o restringir después (por ejemplo, exigir re-autenticación).
+    Vista separada para mostrar el detalle de un password. El valor en texto
+    plano ya no se imprime aquí directamente: el template lo pide bajo demanda
+    a PasswordRevealJSONView (mismo patrón que la lista), así que esta vista
+    ni siquiera llama a get_password().
     """
     model = VaultPassword
     template_name = "vault/password_reveal.html"
@@ -170,7 +172,13 @@ class PasswordRevealView(OwnerQuerysetMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["revealed_password"] = self.object.get_password()
+        next_url = self.request.GET.get("next")
+        if next_url and url_has_allowed_host_and_scheme(
+            next_url, allowed_hosts={self.request.get_host()}, require_https=self.request.is_secure()
+        ):
+            context["volver_url"] = next_url
+        else:
+            context["volver_url"] = reverse("vault:password_list")
         return context
 
 

@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Deudas{% endblock %}
 {% block content %}
+{% url 'finanzas:deuda_list' as deuda_list_url %}
 <div class="mb-6 flex items-center justify-between">
     <h1 class="text-2xl font-semibold text-gray-900">Deudas</h1>
     <a href="{% url 'finanzas:deuda_create' %}" class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700">
@@ -53,7 +54,7 @@
             <td class="max-w-xs truncate px-4 py-3 text-sm text-gray-600" title="{{ deuda.remarks }}">{{ deuda.remarks|default:"—" }}</td>
             <td class="whitespace-nowrap px-4 py-3 text-sm">
                 {% if deuda.password %}
-                <a href="{% url 'vault:password_reveal' deuda.password.pk %}" class="font-medium text-blue-600 hover:text-blue-800 hover:underline">Ir ahí</a>
+                <a href="{% url 'vault:password_reveal' deuda.password.pk %}?next={{ deuda_list_url|urlencode }}" class="font-medium text-blue-600 hover:text-blue-800 hover:underline">Ir ahí</a>
                 {% else %}<span class="text-gray-400">—</span>{% endif %}
             </td>
             <td class="whitespace-nowrap px-4 py-3 text-right text-sm">
