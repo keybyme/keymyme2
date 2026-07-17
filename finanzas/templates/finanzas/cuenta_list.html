@@ -35,15 +35,15 @@
     </thead>
     <tbody class="divide-y divide-gray-100">
         {% for cuenta in cuentas %}
-        <tr class="odd:bg-white even:bg-blue-100 hover:bg-blue-200">
-            <td class="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900">{{ cuenta.name }}</td>
-            <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-600">{{ cuenta.numero }}</td>
+        <tr class="group odd:bg-blue-600 even:bg-white odd:hover:bg-blue-700 even:hover:bg-blue-50">
+            <td class="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900 group-odd:text-white group-even:text-blue-800">{{ cuenta.name }}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-600 group-odd:text-white group-even:text-blue-800">{{ cuenta.numero }}</td>
             <td class="whitespace-nowrap px-4 py-3 text-right text-sm">
                 <div class="flex justify-end gap-3">
-                    <a href="{% url 'finanzas:cuenta_update' cuenta.pk %}" class="text-gray-400 hover:text-blue-600" title="Editar">
+                    <a href="{% url 'finanzas:cuenta_update' cuenta.pk %}" class="text-gray-400 hover:text-blue-600 group-odd:text-blue-200 group-odd:hover:text-white" title="Editar">
                         {% include "icons/pencil.html" with class="w-5 h-5" %}
                     </a>
-                    <a href="{% url 'finanzas:cuenta_delete' cuenta.pk %}" class="text-gray-400 hover:text-red-600" title="Borrar">
+                    <a href="{% url 'finanzas:cuenta_delete' cuenta.pk %}" class="text-gray-400 hover:text-red-600 group-odd:text-blue-200 group-odd:hover:text-white" title="Borrar">
                         {% include "icons/trash.html" with class="w-5 h-5" %}
                     </a>
                 </div>

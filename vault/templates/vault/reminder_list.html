@@ -28,16 +28,16 @@
     </thead>
     <tbody class="divide-y divide-gray-100">
         {% for reminder in reminders %}
-        <tr class="odd:bg-white even:bg-blue-100 hover:bg-blue-200">
-            <td class="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900">{{ reminder.title }}</td>
+        <tr class="group odd:bg-blue-600 even:bg-white odd:hover:bg-blue-700 even:hover:bg-blue-50">
+            <td class="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900 group-odd:text-white group-even:text-blue-800">{{ reminder.title }}</td>
             <td class="whitespace-nowrap px-4 py-3 text-sm">
                 {% if reminder.category %}
                 <span class="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">{{ reminder.category.name }}</span>
-                {% else %}<span class="text-gray-400">—</span>{% endif %}
+                {% else %}<span class="text-gray-400 group-odd:text-blue-200">—</span>{% endif %}
             </td>
-            <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-600">{{ reminder.remind_at }}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-600 group-odd:text-white group-even:text-blue-800">{{ reminder.remind_at }}</td>
             <td class="whitespace-nowrap px-4 py-3 text-sm">
-                <span class="inline-flex items-center gap-1 text-gray-600" title="{% if reminder.email_sent_at %}Enviado el {{ reminder.email_sent_at }}{% else %}Pendiente de enviar{% endif %}">
+                <span class="inline-flex items-center gap-1 text-gray-600 group-odd:text-white group-even:text-blue-800" title="{% if reminder.email_sent_at %}Enviado el {{ reminder.email_sent_at }}{% else %}Pendiente de enviar{% endif %}">
                     {% if reminder.email_sent_at %}
                         {% include "icons/check-circle.html" with class="w-4 h-4 text-emerald-600" %}
                     {% else %}
@@ -49,19 +49,19 @@
             <td class="whitespace-nowrap px-4 py-3 text-sm">
                 {% if reminder.frequency %}
                 <span class="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">{{ reminder.get_frequency_display }}</span>
-                {% else %}<span class="text-gray-400">Única vez</span>{% endif %}
+                {% else %}<span class="text-gray-400 group-odd:text-blue-200">Única vez</span>{% endif %}
             </td>
             <td class="whitespace-nowrap px-4 py-3 text-sm">
                 {% if reminder.is_completed %}
-                <span class="inline-flex items-center gap-1 text-emerald-600">{% include "icons/check-circle.html" with class="w-4 h-4" %}</span>
-                {% else %}<span class="text-gray-400">—</span>{% endif %}
+                <span class="inline-flex items-center gap-1 text-emerald-600 group-odd:text-emerald-300">{% include "icons/check-circle.html" with class="w-4 h-4" %}</span>
+                {% else %}<span class="text-gray-400 group-odd:text-blue-200">—</span>{% endif %}
             </td>
             <td class="whitespace-nowrap px-4 py-3 text-right text-sm">
                 <div class="flex justify-end gap-3">
-                    <a href="{% url 'vault:reminder_update' reminder.pk %}" class="text-gray-400 hover:text-blue-600" title="Editar">
+                    <a href="{% url 'vault:reminder_update' reminder.pk %}" class="text-gray-400 hover:text-blue-600 group-odd:text-blue-200 group-odd:hover:text-white" title="Editar">
                         {% include "icons/pencil.html" with class="w-5 h-5" %}
                     </a>
-                    <a href="{% url 'vault:reminder_delete' reminder.pk %}" class="text-gray-400 hover:text-red-600" title="Borrar">
+                    <a href="{% url 'vault:reminder_delete' reminder.pk %}" class="text-gray-400 hover:text-red-600 group-odd:text-blue-200 group-odd:hover:text-white" title="Borrar">
                         {% include "icons/trash.html" with class="w-5 h-5" %}
                     </a>
                 </div>

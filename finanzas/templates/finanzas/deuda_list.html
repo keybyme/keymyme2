@@ -29,23 +29,23 @@
     </thead>
     <tbody class="divide-y divide-gray-100">
         {% for deuda in deudas %}
-        <tr class="odd:bg-white even:bg-blue-100 hover:bg-blue-200">
-            <td class="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900">{{ deuda.deuda }}</td>
-            <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-600">{{ deuda.get_tipo_display }}</td>
-            <td class="whitespace-nowrap px-4 py-3 text-right text-sm text-gray-900">
-                {% if deuda.monto is not None %}${{ deuda.monto }}{% else %}<span class="text-gray-400">—</span>{% endif %}
+        <tr class="group odd:bg-blue-600 even:bg-white odd:hover:bg-blue-700 even:hover:bg-blue-50">
+            <td class="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900 group-odd:text-white group-even:text-blue-800">{{ deuda.deuda }}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-600 group-odd:text-white group-even:text-blue-800">{{ deuda.get_tipo_display }}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-right text-sm text-gray-900 group-odd:text-white group-even:text-blue-800">
+                {% if deuda.monto is not None %}${{ deuda.monto }}{% else %}<span class="text-gray-400 group-odd:text-blue-200">—</span>{% endif %}
             </td>
-            <td class="whitespace-nowrap px-4 py-3 text-right text-sm text-gray-600">
-                {% if deuda.saldo is not None %}${{ deuda.saldo }}{% else %}<span class="text-gray-400">—</span>{% endif %}
+            <td class="whitespace-nowrap px-4 py-3 text-right text-sm text-gray-600 group-odd:text-white group-even:text-blue-800">
+                {% if deuda.saldo is not None %}${{ deuda.saldo }}{% else %}<span class="text-gray-400 group-odd:text-blue-200">—</span>{% endif %}
             </td>
-            <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-600">{{ deuda.cuenta.numero }}</td>
-            <td class="whitespace-nowrap px-4 py-3 text-right text-sm text-gray-600">
-                {% if deuda.credito is not None %}${{ deuda.credito }}{% else %}<span class="text-gray-400">—</span>{% endif %}
+            <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-600 group-odd:text-white group-even:text-blue-800">{{ deuda.cuenta.numero }}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-right text-sm text-gray-600 group-odd:text-white group-even:text-blue-800">
+                {% if deuda.credito is not None %}${{ deuda.credito }}{% else %}<span class="text-gray-400 group-odd:text-blue-200">—</span>{% endif %}
             </td>
-            <td class="whitespace-nowrap px-4 py-3 text-right text-sm text-gray-600">
-                {% if deuda.credito_disponible is not None %}${{ deuda.credito_disponible }}{% else %}<span class="text-gray-400">—</span>{% endif %}
+            <td class="whitespace-nowrap px-4 py-3 text-right text-sm text-gray-600 group-odd:text-white group-even:text-blue-800">
+                {% if deuda.credito_disponible is not None %}${{ deuda.credito_disponible }}{% else %}<span class="text-gray-400 group-odd:text-blue-200">—</span>{% endif %}
             </td>
-            <td class="whitespace-nowrap px-4 py-3 text-center text-sm text-gray-600">{{ deuda.dia }}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-center text-sm text-gray-600 group-odd:text-white group-even:text-blue-800">{{ deuda.dia }}</td>
             <td class="whitespace-nowrap px-4 py-3 text-center text-sm">
                 {% if deuda.flag == 'P' %}
                 <span class="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">P</span>
@@ -53,18 +53,18 @@
                 <span class="inline-flex items-center rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-medium text-red-700">N</span>
                 {% endif %}
             </td>
-            <td class="max-w-xs truncate px-4 py-3 text-sm text-gray-600" title="{{ deuda.remarks }}">{{ deuda.remarks|default:"—" }}</td>
+            <td class="max-w-xs truncate px-4 py-3 text-sm text-gray-600 group-odd:text-white group-even:text-blue-800" title="{{ deuda.remarks }}">{{ deuda.remarks|default:"—" }}</td>
             <td class="whitespace-nowrap px-4 py-3 text-sm">
                 {% if deuda.password %}
-                <a href="{% url 'vault:password_reveal' deuda.password.pk %}?next={{ deuda_list_url|urlencode }}" class="font-medium text-blue-600 hover:text-blue-800 hover:underline">Ir ahí</a>
-                {% else %}<span class="text-gray-400">—</span>{% endif %}
+                <a href="{% url 'vault:password_reveal' deuda.password.pk %}?next={{ deuda_list_url|urlencode }}" class="font-medium text-blue-600 hover:text-blue-800 hover:underline group-odd:text-white group-odd:hover:text-blue-100">Ir ahí</a>
+                {% else %}<span class="text-gray-400 group-odd:text-blue-200">—</span>{% endif %}
             </td>
             <td class="whitespace-nowrap px-4 py-3 text-right text-sm">
                 <div class="flex justify-end gap-3">
-                    <a href="{% url 'finanzas:deuda_update' deuda.pk %}" class="text-gray-400 hover:text-blue-600" title="Editar">
+                    <a href="{% url 'finanzas:deuda_update' deuda.pk %}" class="text-gray-400 hover:text-blue-600 group-odd:text-blue-200 group-odd:hover:text-white" title="Editar">
                         {% include "icons/pencil.html" with class="w-5 h-5" %}
                     </a>
-                    <a href="{% url 'finanzas:deuda_delete' deuda.pk %}" class="text-gray-400 hover:text-red-600" title="Borrar">
+                    <a href="{% url 'finanzas:deuda_delete' deuda.pk %}" class="text-gray-400 hover:text-red-600 group-odd:text-blue-200 group-odd:hover:text-white" title="Borrar">
                         {% include "icons/trash.html" with class="w-5 h-5" %}
                     </a>
                 </div>
