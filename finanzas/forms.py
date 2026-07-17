@@ -5,13 +5,18 @@ from django.utils import timezone
 from vault.forms import TailwindFormMixin, UserCategoryFormMixin
 from vault.models import ALLOWED_MEDIA_EXTENSIONS
 
-from .models import Cuenta, Transaccion
+from .models import Cuenta, Deuda, Transaccion
 
 
 class CuentaForm(TailwindFormMixin, forms.ModelForm):
     class Meta:
         model = Cuenta
         fields = ["numero", "name"]
+        widgets = {
+            # inputmode/pattern son solo UX (teclado numérico, feedback del navegador);
+            # la validación real la hace numero_cuenta_validator en el modelo.
+            "numero": forms.TextInput(attrs={"inputmode": "numeric", "pattern": r"\d*"}),
+        }
 
     def __init__(self, *args, user=None, **kwargs):
         # `user` no se usa aquí (Cuenta no tiene un choice que filtrar por
@@ -46,3 +51,16 @@ class TransaccionForm(TailwindFormMixin, UserCategoryFormMixin, forms.ModelForm)
         if self.instance.pk is None and not self.initial.get("fecha"):
             self.fields["fecha"].initial = timezone.localdate()
         self.order_fields(["tipo", "cuenta", "monto", "fecha", "concepto", "category", "recibo_file"])
+
+
+class DeudaForm(TailwindFormMixin, forms.ModelForm):
+    class Meta:
+        model = Deuda
+        fields = ["deuda", "tipo", "monto", "saldo", "cuenta", "credito", "dia", "flag", "remarks"]
+
+    def __init__(self, *args, user=None, **kwargs):
+        # `user` lo pasan siempre OwnerCreateMixin/UserFormKwargsMixin; se usa
+        # para limitar el dropdown de 'cuenta' a las cuentas del dueño.
+        super().__init__(*args, **kwargs)
+        if user is not None:
+            self.fields["cuenta"].queryset = Cuenta.objects.filter(owner=user)

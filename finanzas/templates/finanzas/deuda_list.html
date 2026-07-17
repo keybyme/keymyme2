@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Deudas{% endblock %}
+{% block content %}
+<div class="mb-6 flex items-center justify-between">
+    <h1 class="text-2xl font-semibold text-gray-900">Deudas</h1>
+    <a href="{% url 'finanzas:deuda_create' %}" class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700">
+        {% include "icons/plus.html" with class="w-4 h-4" %} Nueva deuda
+    </a>
+</div>
+
+<div class="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+<table class="min-w-full divide-y divide-gray-100">
+    <thead class="bg-gray-50">
+        <tr>
+            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Deuda</th>
+            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Tipo</th>
+            <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Monto</th>
+            <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Saldo</th>
+            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Cuenta #</th>
+            <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Crédito</th>
+            <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500">Crédito disponible</th>
+            <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500">Día</th>
+            <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500">Flag</th>
+            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Remarks</th>
+            <th class="px-4 py-3"></th>
+        </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100">
+        {% for deuda in deudas %}
+        <tr class="hover:bg-gray-50">
+            <td class="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900">{{ deuda.deuda }}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-600">{{ deuda.get_tipo_display }}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-right text-sm text-gray-900">${{ deuda.monto }}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-right text-sm text-gray-600">
+                {% if deuda.saldo is not None %}${{ deuda.saldo }}{% else %}<span class="text-gray-400">—</span>{% endif %}
+            </td>
+            <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-600">{{ deuda.cuenta.numero }}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-right text-sm text-gray-600">
+                {% if deuda.credito is not None %}${{ deuda.credito }}{% else %}<span class="text-gray-400">—</span>{% endif %}
+            </td>
+            <td class="whitespace-nowrap px-4 py-3 text-right text-sm text-gray-600">
+                {% if deuda.credito_disponible is not None %}${{ deuda.credito_disponible }}{% else %}<span class="text-gray-400">—</span>{% endif %}
+            </td>
+            <td class="whitespace-nowrap px-4 py-3 text-center text-sm text-gray-600">{{ deuda.dia }}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-center text-sm">
+                {% if deuda.flag == 'P' %}
+                <span class="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">P</span>
+                {% else %}
+                <span class="inline-flex items-center rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-medium text-red-700">N</span>
+                {% endif %}
+            </td>
+            <td class="max-w-xs truncate px-4 py-3 text-sm text-gray-600" title="{{ deuda.remarks }}">{{ deuda.remarks|default:"—" }}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-right text-sm">
+                <div class="flex justify-end gap-3">
+                    <a href="{% url 'finanzas:deuda_update' deuda.pk %}" class="text-gray-400 hover:text-blue-600" title="Editar">
+                        {% include "icons/pencil.html" with class="w-5 h-5" %}
+                    </a>
+                    <a href="{% url 'finanzas:deuda_delete' deuda.pk %}" class="text-gray-400 hover:text-red-600" title="Borrar">
+                        {% include "icons/trash.html" with class="w-5 h-5" %}
+                    </a>
+                </div>
+            </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="11" class="px-4 py-6 text-center text-sm text-gray-500">No tienes deudas registradas.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+
+{% if is_paginated %}
+<div class="mt-4 flex items-center justify-center gap-4 text-sm text-gray-600">
+    {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}" class="hover:text-blue-600">Anterior</a>{% endif %}
+    <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}" class="hover:text-blue-600">Siguiente</a>{% endif %}
+</div>
+{% endif %}
+{% endblock %}

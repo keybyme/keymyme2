@@ -58,12 +58,23 @@
                 <a href="{% url 'vault:reminder_list' %}" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-gray-100 hover:text-blue-700">
                     {% include "icons/bell.html" with class="w-4 h-4" %} Recordatorios
                 </a>
-                <a href="{% url 'finanzas:transaccion_list' %}" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-gray-100 hover:text-blue-700">
-                    {% include "icons/banknotes.html" with class="w-4 h-4" %} Transacciones
-                </a>
-                <a href="{% url 'finanzas:cuenta_list' %}" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-gray-100 hover:text-blue-700">
-                    {% include "icons/credit-card.html" with class="w-4 h-4" %} Cuentas
-                </a>
+                <details class="finanzas-menu relative">
+                    <summary class="flex list-none items-center gap-1.5 rounded-md px-3 py-1.5 cursor-pointer hover:bg-gray-100 hover:text-blue-700 [&::-webkit-details-marker]:hidden">
+                        {% include "icons/banknotes.html" with class="w-4 h-4" %} Finanzas
+                        {% include "icons/chevron-down.html" with class="w-3.5 h-3.5" %}
+                    </summary>
+                    <div class="absolute left-0 z-10 mt-1 w-44 rounded-md border border-gray-100 bg-white py-1 shadow-lg">
+                        <a href="{% url 'finanzas:transaccion_list' %}" class="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 hover:text-blue-700">
+                            {% include "icons/banknotes.html" with class="w-4 h-4" %} Transacciones
+                        </a>
+                        <a href="{% url 'finanzas:cuenta_list' %}" class="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 hover:text-blue-700">
+                            {% include "icons/credit-card.html" with class="w-4 h-4" %} Cuentas
+                        </a>
+                        <a href="{% url 'finanzas:deuda_list' %}" class="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 hover:text-blue-700">
+                            {% include "icons/credit-card.html" with class="w-4 h-4" %} Deudas
+                        </a>
+                    </div>
+                </details>
                 <a href="{% url 'vault:category_list' %}" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-gray-100 hover:text-blue-700">
                     {% include "icons/tag.html" with class="w-4 h-4" %} Categorías
                 </a>
@@ -107,12 +118,23 @@
                 <a href="{% url 'vault:reminder_list' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
                     {% include "icons/bell.html" with class="w-5 h-5" %} Recordatorios
                 </a>
-                <a href="{% url 'finanzas:transaccion_list' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
-                    {% include "icons/banknotes.html" with class="w-5 h-5" %} Transacciones
-                </a>
-                <a href="{% url 'finanzas:cuenta_list' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
-                    {% include "icons/credit-card.html" with class="w-5 h-5" %} Cuentas
-                </a>
+                <details class="finanzas-menu">
+                    <summary class="flex list-none items-center gap-2 rounded-md px-3 py-2.5 cursor-pointer hover:bg-gray-100 hover:text-blue-700 [&::-webkit-details-marker]:hidden">
+                        {% include "icons/banknotes.html" with class="w-5 h-5" %} Finanzas
+                        {% include "icons/chevron-down.html" with class="w-4 h-4" %}
+                    </summary>
+                    <div class="flex flex-col gap-1 pl-6">
+                        <a href="{% url 'finanzas:transaccion_list' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
+                            {% include "icons/banknotes.html" with class="w-5 h-5" %} Transacciones
+                        </a>
+                        <a href="{% url 'finanzas:cuenta_list' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
+                            {% include "icons/credit-card.html" with class="w-5 h-5" %} Cuentas
+                        </a>
+                        <a href="{% url 'finanzas:deuda_list' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
+                            {% include "icons/credit-card.html" with class="w-5 h-5" %} Deudas
+                        </a>
+                    </div>
+                </details>
                 <a href="{% url 'vault:category_list' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
                     {% include "icons/tag.html" with class="w-5 h-5" %} Categorías
                 </a>
@@ -176,6 +198,14 @@
             menuIconOpen.classList.toggle('hidden');
             menuIconClose.classList.toggle('hidden');
             menuToggle.setAttribute('aria-expanded', String(!isOpen));
+        });
+
+        document.addEventListener('click', (event) => {
+            document.querySelectorAll('details.finanzas-menu[open]').forEach((menu) => {
+                if (!menu.contains(event.target)) {
+                    menu.removeAttribute('open');
+                }
+            });
         });
     </script>
     {% endif %}

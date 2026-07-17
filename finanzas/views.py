@@ -10,8 +10,8 @@ from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 from vault.mixins import OwnerCreateMixin, OwnerQuerysetMixin, SearchableListMixin, UserFormKwargsMixin
 from vault.models import MediaFile
 
-from .forms import CuentaForm, TransaccionForm
-from .models import Cuenta, Transaccion
+from .forms import CuentaForm, DeudaForm, TransaccionForm
+from .models import Cuenta, Deuda, Transaccion
 
 # Mismas extensiones de foto que vault/models.py (ALLOWED_MEDIA_EXTENSIONS),
 # para clasificar el recibo subido aquí como MediaFile.FileType.PHOTO o DOCUMENT.
@@ -56,6 +56,19 @@ class CuentaListView(OwnerQuerysetMixin, ListView):
     template_name = "finanzas/cuenta_list.html"
     context_object_name = "cuentas"
     paginate_by = 20
+    SORTABLE_FIELDS = ("name", "numero")
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        sort = self.request.GET.get("sort", "")
+        if sort.lstrip("-") in self.SORTABLE_FIELDS:
+            queryset = queryset.order_by(sort)
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["current_sort"] = self.request.GET.get("sort", "")
+        return context
 
 
 class CuentaCreateView(OwnerCreateMixin, CreateView):
@@ -168,3 +181,32 @@ class TransaccionDeleteView(OwnerQuerysetMixin, DeleteView):
     # OJO: el recibo (MediaFile) NO se borra aquí a propósito — sigue viviendo
     # en Archivos aunque se borre la transacción, por si el usuario lo quiere
     # conservar.
+
+
+# ---------- Deudas ----------
+
+class DeudaListView(OwnerQuerysetMixin, ListView):
+    model = Deuda
+    template_name = "finanzas/deuda_list.html"
+    context_object_name = "deudas"
+    paginate_by = 20
+
+
+class DeudaCreateView(OwnerCreateMixin, CreateView):
+    model = Deuda
+    form_class = DeudaForm
+    template_name = "finanzas/deuda_form.html"
+    success_url = reverse_lazy("finanzas:deuda_list")
+
+
+class DeudaUpdateView(UserFormKwargsMixin, OwnerQuerysetMixin, UpdateView):
+    model = Deuda
+    form_class = DeudaForm
+    template_name = "finanzas/deuda_form.html"
+    success_url = reverse_lazy("finanzas:deuda_list")
+
+
+class DeudaDeleteView(OwnerQuerysetMixin, DeleteView):
+    model = Deuda
+    template_name = "finanzas/deuda_confirm_delete.html"
+    success_url = reverse_lazy("finanzas:deuda_list")

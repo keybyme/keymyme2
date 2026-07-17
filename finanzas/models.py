@@ -1,14 +1,22 @@
 from django.conf import settings
+from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import models
 
 from vault.models import Category, MediaFile
+
+numero_cuenta_validator = RegexValidator(
+    regex=r"^\d+$",
+    message="El número de cuenta solo debe contener dígitos, sin espacios ni caracteres especiales.",
+)
 
 
 class Cuenta(models.Model):
     """Cuenta o medio donde se mueve el dinero (ej: Efectivo, BBVA Débito, Amex)."""
 
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="cuentas")
-    numero = models.CharField(max_length=50, verbose_name="Número de cuenta")
+    numero = models.CharField(
+        max_length=50, verbose_name="Número de cuenta", validators=[numero_cuenta_validator]
+    )
     name = models.CharField(max_length=100, verbose_name="Nombre")
 
     class Meta:
@@ -64,3 +72,55 @@ class Transaccion(models.Model):
 
     def __str__(self):
         return f"{self.get_tipo_display()}: {self.concepto} ({self.monto})"
+
+
+class Deuda(models.Model):
+    """Deuda recurrente (tarjeta, préstamo, etc.) con su pago mensual y estatus del mes en curso."""
+
+    class Tipo(models.TextChoices):
+        FIJA = "fija", "Fija"
+        VARIABLE = "variable", "Variable"
+
+    class Flag(models.TextChoices):
+        PAGADO = "P", "Pagado"
+        NO_PAGADO = "N", "Aún sin pagar"
+
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="deudas")
+    deuda = models.CharField(max_length=150, verbose_name="Deuda")
+    tipo = models.CharField(max_length=10, choices=Tipo.choices, verbose_name="Tipo")
+    monto = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Monto a pagar cada mes")
+    saldo = models.DecimalField(
+        max_digits=12, decimal_places=2, null=True, blank=True, verbose_name="Saldo"
+    )
+    cuenta = models.ForeignKey(
+        Cuenta, on_delete=models.PROTECT, related_name="deudas", verbose_name="Cuenta #"
+    )
+    credito = models.DecimalField(
+        max_digits=12, decimal_places=2, null=True, blank=True, verbose_name="Crédito"
+    )
+    dia = models.PositiveSmallIntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(31)],
+        verbose_name="Día de pago",
+        help_text="Día del mes en que vence el pago (1-31).",
+    )
+    flag = models.CharField(
+        max_length=1, choices=Flag.choices, default=Flag.NO_PAGADO,
+        verbose_name="Flag", help_text="Estatus de pago del mes en curso.",
+    )
+    remarks = models.TextField(blank=True, verbose_name="Observaciones")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["deuda"]
+        verbose_name = "Deuda"
+        verbose_name_plural = "Deudas"
+
+    @property
+    def credito_disponible(self):
+        if self.credito is None:
+            return None
+        return self.credito - (self.saldo or 0)
+
+    def __str__(self):
+        return self.deuda

@@ -12,8 +12,24 @@
 <table class="min-w-full divide-y divide-gray-100">
     <thead class="bg-gray-50">
         <tr>
-            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Nombre</th>
-            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Número</th>
+            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                {% if current_sort == 'name' %}
+                <a href="?sort=-name" class="inline-flex items-center gap-1 hover:text-blue-700">Nombre {% include "icons/chevron-down.html" with class="w-3 h-3" %}</a>
+                {% elif current_sort == '-name' %}
+                <a href="?sort=name" class="inline-flex items-center gap-1 hover:text-blue-700">Nombre {% include "icons/chevron-up.html" with class="w-3 h-3" %}</a>
+                {% else %}
+                <a href="?sort=name" class="hover:text-blue-700">Nombre</a>
+                {% endif %}
+            </th>
+            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                {% if current_sort == 'numero' %}
+                <a href="?sort=-numero" class="inline-flex items-center gap-1 hover:text-blue-700">Número {% include "icons/chevron-down.html" with class="w-3 h-3" %}</a>
+                {% elif current_sort == '-numero' %}
+                <a href="?sort=numero" class="inline-flex items-center gap-1 hover:text-blue-700">Número {% include "icons/chevron-up.html" with class="w-3 h-3" %}</a>
+                {% else %}
+                <a href="?sort=numero" class="hover:text-blue-700">Número</a>
+                {% endif %}
+            </th>
             <th class="px-4 py-3"></th>
         </tr>
     </thead>
@@ -42,9 +58,9 @@
 
 {% if is_paginated %}
 <div class="mt-4 flex items-center justify-center gap-4 text-sm text-gray-600">
-    {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}" class="hover:text-blue-600">Anterior</a>{% endif %}
+    {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}{% if current_sort %}&sort={{ current_sort }}{% endif %}" class="hover:text-blue-600">Anterior</a>{% endif %}
     <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
-    {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}" class="hover:text-blue-600">Siguiente</a>{% endif %}
+    {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}{% if current_sort %}&sort={{ current_sort }}{% endif %}" class="hover:text-blue-600">Siguiente</a>{% endif %}
 </div>
 {% endif %}
 {% endblock %}
