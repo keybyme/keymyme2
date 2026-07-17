@@ -21,7 +21,7 @@
     </thead>
     <tbody class="divide-y divide-gray-100">
         {% for url_obj in urls %}
-        <tr class="hover:bg-gray-50">
+        <tr class="odd:bg-white even:bg-gray-50 hover:bg-gray-100">
             <td class="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900">
                 <a href="{{ url_obj.url }}" target="_blank" class="inline-flex items-center gap-1 text-blue-600 hover:underline">
                     {% include "icons/link.html" with class="w-4 h-4" %} {{ url_obj.name }}

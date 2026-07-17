@@ -29,7 +29,7 @@
     </thead>
     <tbody class="divide-y divide-gray-100">
         {% for contact in contacts %}
-        <tr class="hover:bg-gray-50">
+        <tr class="odd:bg-white even:bg-gray-50 hover:bg-gray-100">
             <td class="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900">{{ contact.name }}</td>
             <td class="whitespace-nowrap px-4 py-3 text-sm">
                 {% if contact.category %}
