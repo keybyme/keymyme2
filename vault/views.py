@@ -135,7 +135,7 @@ class PasswordListView(SearchableListMixin, OwnerQuerysetMixin, ListView):
     paginate_by = 20
     search_fields = ("site_name", "username", "site_url", "notes")
     # OJO: el template NUNCA debe imprimir get_password() aquí.
-    # La lista solo debe mostrar site_name, username, site_url.
+    # El password se revela client-side vía fetch a password_reveal_json.
 
 
 class PasswordCreateView(OwnerCreateMixin, CreateView):
@@ -172,6 +172,17 @@ class PasswordRevealView(OwnerQuerysetMixin, DetailView):
         context = super().get_context_data(**kwargs)
         context["revealed_password"] = self.object.get_password()
         return context
+
+
+class PasswordRevealJSONView(OwnerQuerysetMixin, DetailView):
+    """Endpoint AJAX que usa la lista de passwords para mostrar/copiar el
+    valor inline sin navegar a PasswordRevealView. Sigue siendo la única otra
+    vía que llama a get_password(): el template de la lista nunca lo imprime."""
+    model = VaultPassword
+
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        return JsonResponse({"password": self.object.get_password()})
 
 
 # ---------- URLs ----------

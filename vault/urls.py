@@ -24,6 +24,7 @@ urlpatterns = [
     path("passwords/<int:pk>/edit/", views.PasswordUpdateView.as_view(), name="password_update"),
     path("passwords/<int:pk>/delete/", views.PasswordDeleteView.as_view(), name="password_delete"),
     path("passwords/<int:pk>/reveal/", views.PasswordRevealView.as_view(), name="password_reveal"),
+    path("passwords/<int:pk>/reveal.json", views.PasswordRevealJSONView.as_view(), name="password_reveal_json"),
 
     # URLs
     path("urls/", views.UrlListView.as_view(), name="url_list"),
