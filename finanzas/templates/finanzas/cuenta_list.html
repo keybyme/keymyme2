@@ -10,24 +10,24 @@
 
 <div class="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
 <table class="min-w-full divide-y divide-gray-100">
-    <thead class="bg-gray-50">
+    <thead class="bg-navy">
         <tr>
-            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">
                 {% if current_sort == 'name' %}
-                <a href="?sort=-name" class="inline-flex items-center gap-1 hover:text-blue-700">Nombre {% include "icons/chevron-down.html" with class="w-3 h-3" %}</a>
+                <a href="?sort=-name" class="inline-flex items-center gap-1 hover:text-gold">Nombre {% include "icons/chevron-down.html" with class="w-3 h-3" %}</a>
                 {% elif current_sort == '-name' %}
-                <a href="?sort=name" class="inline-flex items-center gap-1 hover:text-blue-700">Nombre {% include "icons/chevron-up.html" with class="w-3 h-3" %}</a>
+                <a href="?sort=name" class="inline-flex items-center gap-1 hover:text-gold">Nombre {% include "icons/chevron-up.html" with class="w-3 h-3" %}</a>
                 {% else %}
-                <a href="?sort=name" class="hover:text-blue-700">Nombre</a>
+                <a href="?sort=name" class="hover:text-gold">Nombre</a>
                 {% endif %}
             </th>
-            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">
                 {% if current_sort == 'numero' %}
-                <a href="?sort=-numero" class="inline-flex items-center gap-1 hover:text-blue-700">Número {% include "icons/chevron-down.html" with class="w-3 h-3" %}</a>
+                <a href="?sort=-numero" class="inline-flex items-center gap-1 hover:text-gold">Número {% include "icons/chevron-down.html" with class="w-3 h-3" %}</a>
                 {% elif current_sort == '-numero' %}
-                <a href="?sort=numero" class="inline-flex items-center gap-1 hover:text-blue-700">Número {% include "icons/chevron-up.html" with class="w-3 h-3" %}</a>
+                <a href="?sort=numero" class="inline-flex items-center gap-1 hover:text-gold">Número {% include "icons/chevron-up.html" with class="w-3 h-3" %}</a>
                 {% else %}
-                <a href="?sort=numero" class="hover:text-blue-700">Número</a>
+                <a href="?sort=numero" class="hover:text-gold">Número</a>
                 {% endif %}
             </th>
             <th class="px-4 py-3"></th>
