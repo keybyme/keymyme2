@@ -19,9 +19,27 @@ class CuentaForm(TailwindFormMixin, forms.ModelForm):
         }
 
     def __init__(self, *args, user=None, **kwargs):
-        # `user` no se usa aquí (Cuenta no tiene un choice que filtrar por
-        # dueño), pero OwnerCreateMixin/UserFormKwargsMixin siempre lo pasan.
+        # `owner` no es un campo del form, así que Django excluye la
+        # unique_together (owner, name)/(owner, numero) de su validación
+        # automática — por eso se revalida a mano en clean() usando `user`.
         super().__init__(*args, **kwargs)
+        self._user = user
+
+    def clean_name(self):
+        name = self.cleaned_data["name"]
+        if self._user is not None:
+            duplicado = Cuenta.objects.filter(owner=self._user, name=name).exclude(pk=self.instance.pk)
+            if duplicado.exists():
+                raise forms.ValidationError("Ya tienes una cuenta con este nombre.")
+        return name
+
+    def clean_numero(self):
+        numero = self.cleaned_data["numero"]
+        if self._user is not None:
+            duplicado = Cuenta.objects.filter(owner=self._user, numero=numero).exclude(pk=self.instance.pk)
+            if duplicado.exists():
+                raise forms.ValidationError("Ya tienes una cuenta con este número.")
+        return numero
 
 
 class TransaccionForm(TailwindFormMixin, UserCategoryFormMixin, forms.ModelForm):
