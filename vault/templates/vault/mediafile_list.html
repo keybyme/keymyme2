@@ -28,7 +28,7 @@
     </thead>
     <tbody class="divide-y divide-gray-100">
         {% for file in files %}
-        <tr class="odd:bg-white even:bg-gray-50 hover:bg-gray-100">
+        <tr class="odd:bg-white even:bg-blue-100 hover:bg-blue-200">
             <td class="whitespace-nowrap px-4 py-3 text-sm font-medium">
                 <a href="{{ file.file.url }}" target="_blank" class="inline-flex items-center gap-1 text-blue-600 hover:underline">
                     {% include "icons/paper-clip.html" with class="w-4 h-4" %} {{ file.original_name }}
