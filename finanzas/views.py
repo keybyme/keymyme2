@@ -5,6 +5,7 @@ from django.db.models import Sum
 from django.db.models.deletion import ProtectedError
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
+from django.utils import timezone
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
 from vault.mixins import OwnerCreateMixin, OwnerQuerysetMixin, SearchableListMixin, UserFormKwargsMixin
@@ -112,6 +113,12 @@ class TransaccionListView(SearchableListMixin, OwnerQuerysetMixin, ListView):
     paginate_by = 20
     search_fields = ("concepto",)
 
+    MESES = [
+        (1, "Enero"), (2, "Febrero"), (3, "Marzo"), (4, "Abril"),
+        (5, "Mayo"), (6, "Junio"), (7, "Julio"), (8, "Agosto"),
+        (9, "Septiembre"), (10, "Octubre"), (11, "Noviembre"), (12, "Diciembre"),
+    ]
+
     def get_queryset(self):
         queryset = super().get_queryset()
 
@@ -122,6 +129,13 @@ class TransaccionListView(SearchableListMixin, OwnerQuerysetMixin, ListView):
         cuenta_id = self.request.GET.get("cuenta")
         if cuenta_id:
             queryset = queryset.filter(cuenta_id=cuenta_id)
+
+        hoy = timezone.localdate()
+        periodo = self.request.GET.get("periodo")
+        if periodo == "ytd":
+            queryset = queryset.filter(fecha__year=hoy.year, fecha__lte=hoy)
+        elif periodo and periodo.isdigit() and 1 <= int(periodo) <= 12:
+            queryset = queryset.filter(fecha__year=hoy.year, fecha__month=int(periodo))
 
         return queryset
 
@@ -140,6 +154,8 @@ class TransaccionListView(SearchableListMixin, OwnerQuerysetMixin, ListView):
         context["cuentas"] = Cuenta.objects.filter(owner=self.request.user)
         context["selected_tipo"] = self.request.GET.get("tipo", "")
         context["selected_cuenta"] = self.request.GET.get("cuenta", "")
+        context["meses"] = self.MESES
+        context["selected_periodo"] = self.request.GET.get("periodo", "")
         return context
 
 

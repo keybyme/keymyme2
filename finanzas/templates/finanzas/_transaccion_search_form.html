@@ -23,6 +23,13 @@
         <option value="{{ cat.pk }}" {% if selected_category == cat.pk|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
         {% endfor %}
     </select>
+    <select name="periodo" class="rounded-lg border border-gray-300 py-2 px-3 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+        <option value="">Todo el tiempo</option>
+        <option value="ytd" {% if selected_periodo == "ytd" %}selected{% endif %}>Lo que va del año</option>
+        {% for num, nombre in meses %}
+        <option value="{{ num }}" {% if selected_periodo == num|stringformat:"s" %}selected{% endif %}>{{ nombre }}</option>
+        {% endfor %}
+    </select>
     <button type="submit" class="inline-flex items-center gap-1.5 rounded-lg bg-gray-800 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-gray-900">
         {% include "icons/search.html" with class="w-4 h-4" %} Buscar
     </button>
