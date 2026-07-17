@@ -6,7 +6,7 @@
         <input type="text" name="q" value="{{ query }}" placeholder="Buscar..."
                class="w-full rounded-lg border border-gray-300 py-2 pl-9 pr-3 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
     </div>
-    <select name="category" class="rounded-lg border border-gray-300 py-2 px-3 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+    <select name="category" onchange="this.form.submit()" class="rounded-lg border border-gray-300 py-2 px-3 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
         <option value="">Todas las categorías</option>
         {% for cat in categories %}
         <option value="{{ cat.pk }}" {% if selected_category == cat.pk|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
