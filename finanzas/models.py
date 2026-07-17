@@ -88,7 +88,11 @@ class Deuda(models.Model):
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="deudas")
     deuda = models.CharField(max_length=150, verbose_name="Deuda")
     tipo = models.CharField(max_length=10, choices=Tipo.choices, verbose_name="Tipo")
-    monto = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Monto a pagar cada mes")
+    monto = models.DecimalField(
+        max_digits=12, decimal_places=2, null=True, blank=True,
+        verbose_name="Monto a pagar cada mes",
+        help_text="Obligatorio si la deuda es Fija; opcional si es Variable.",
+    )
     saldo = models.DecimalField(
         max_digits=12, decimal_places=2, null=True, blank=True, verbose_name="Saldo"
     )

@@ -83,8 +83,15 @@ class DeudaForm(TailwindFormMixin, forms.ModelForm):
         # `user` lo pasan siempre OwnerCreateMixin/UserFormKwargsMixin; se usa
         # para limitar los dropdowns de 'cuenta' y 'password' a los del dueño.
         super().__init__(*args, **kwargs)
+        self.fields["monto"].required = False
         if user is not None:
             self.fields["cuenta"].queryset = Cuenta.objects.filter(owner=user)
             self.fields["password"].queryset = VaultPassword.objects.filter(owner=user).order_by("site_name")
             self.fields["password"].label_from_instance = lambda obj: obj.site_name
             self.fields["password"].empty_label = "Ninguno"
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if cleaned_data.get("tipo") == Deuda.Tipo.FIJA and cleaned_data.get("monto") is None:
+            self.add_error("monto", "El monto es obligatorio para una deuda de tipo Fija.")
+        return cleaned_data

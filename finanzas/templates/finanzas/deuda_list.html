@@ -32,7 +32,9 @@
         <tr class="hover:bg-gray-50">
             <td class="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900">{{ deuda.deuda }}</td>
             <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-600">{{ deuda.get_tipo_display }}</td>
-            <td class="whitespace-nowrap px-4 py-3 text-right text-sm text-gray-900">${{ deuda.monto }}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-right text-sm text-gray-900">
+                {% if deuda.monto is not None %}${{ deuda.monto }}{% else %}<span class="text-gray-400">—</span>{% endif %}
+            </td>
             <td class="whitespace-nowrap px-4 py-3 text-right text-sm text-gray-600">
                 {% if deuda.saldo is not None %}${{ deuda.saldo }}{% else %}<span class="text-gray-400">—</span>{% endif %}
             </td>
