@@ -23,6 +23,7 @@
             <th class="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500">Flag</th>
             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">Remarks</th>
             <th class="px-4 py-3"></th>
+            <th class="px-4 py-3"></th>
         </tr>
     </thead>
     <tbody class="divide-y divide-gray-100">
@@ -50,6 +51,11 @@
                 {% endif %}
             </td>
             <td class="max-w-xs truncate px-4 py-3 text-sm text-gray-600" title="{{ deuda.remarks }}">{{ deuda.remarks|default:"—" }}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-sm">
+                {% if deuda.password %}
+                <a href="{% url 'vault:password_reveal' deuda.password.pk %}" class="font-medium text-blue-600 hover:text-blue-800 hover:underline">Ir ahí</a>
+                {% else %}<span class="text-gray-400">—</span>{% endif %}
+            </td>
             <td class="whitespace-nowrap px-4 py-3 text-right text-sm">
                 <div class="flex justify-end gap-3">
                     <a href="{% url 'finanzas:deuda_update' deuda.pk %}" class="text-gray-400 hover:text-blue-600" title="Editar">
@@ -62,7 +68,7 @@
             </td>
         </tr>
         {% empty %}
-        <tr><td colspan="11" class="px-4 py-6 text-center text-sm text-gray-500">No tienes deudas registradas.</td></tr>
+        <tr><td colspan="12" class="px-4 py-6 text-center text-sm text-gray-500">No tienes deudas registradas.</td></tr>
         {% endfor %}
     </tbody>
 </table>

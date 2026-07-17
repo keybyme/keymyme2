@@ -2,7 +2,7 @@ from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import models
 
-from vault.models import Category, MediaFile
+from vault.models import Category, MediaFile, VaultPassword
 
 numero_cuenta_validator = RegexValidator(
     regex=r"^\d+$",
@@ -108,6 +108,11 @@ class Deuda(models.Model):
         verbose_name="Flag", help_text="Estatus de pago del mes en curso.",
     )
     remarks = models.TextField(blank=True, verbose_name="Observaciones")
+    password = models.ForeignKey(
+        VaultPassword, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="deudas", verbose_name="Password relacionado",
+        help_text="Registro de Passwords donde inicias sesión para pagar esta deuda.",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

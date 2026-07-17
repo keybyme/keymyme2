@@ -3,7 +3,7 @@ from django.core.validators import FileExtensionValidator
 from django.utils import timezone
 
 from vault.forms import TailwindFormMixin, UserCategoryFormMixin
-from vault.models import ALLOWED_MEDIA_EXTENSIONS
+from vault.models import ALLOWED_MEDIA_EXTENSIONS, VaultPassword
 
 from .models import Cuenta, Deuda, Transaccion
 
@@ -74,11 +74,17 @@ class TransaccionForm(TailwindFormMixin, UserCategoryFormMixin, forms.ModelForm)
 class DeudaForm(TailwindFormMixin, forms.ModelForm):
     class Meta:
         model = Deuda
-        fields = ["deuda", "tipo", "monto", "saldo", "cuenta", "credito", "dia", "flag", "remarks"]
+        fields = [
+            "deuda", "tipo", "monto", "saldo", "cuenta", "credito", "dia", "flag",
+            "password", "remarks",
+        ]
 
     def __init__(self, *args, user=None, **kwargs):
         # `user` lo pasan siempre OwnerCreateMixin/UserFormKwargsMixin; se usa
-        # para limitar el dropdown de 'cuenta' a las cuentas del dueño.
+        # para limitar los dropdowns de 'cuenta' y 'password' a los del dueño.
         super().__init__(*args, **kwargs)
         if user is not None:
             self.fields["cuenta"].queryset = Cuenta.objects.filter(owner=user)
+            self.fields["password"].queryset = VaultPassword.objects.filter(owner=user).order_by("site_name")
+            self.fields["password"].label_from_instance = lambda obj: obj.site_name
+            self.fields["password"].empty_label = "Ninguno"
