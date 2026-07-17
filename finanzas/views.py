@@ -128,6 +128,14 @@ class TransaccionListView(SearchableListMixin, OwnerQuerysetMixin, ListView):
             periodo = str(timezone.localdate().month)
         return periodo
 
+    def _get_periodo_label(self):
+        periodo = self._get_periodo()
+        if periodo == "ytd":
+            return "Lo que va del año"
+        if periodo and periodo.isdigit() and 1 <= int(periodo) <= 12:
+            return dict(self.MESES)[int(periodo)]
+        return ""
+
     def get_queryset(self):
         queryset = super().get_queryset()
 
@@ -165,6 +173,7 @@ class TransaccionListView(SearchableListMixin, OwnerQuerysetMixin, ListView):
         context["selected_cuenta"] = self.request.GET.get("cuenta", "")
         context["meses"] = self.MESES
         context["selected_periodo"] = self._get_periodo()
+        context["periodo_label"] = self._get_periodo_label()
         return context
 
 
