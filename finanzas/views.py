@@ -226,6 +226,11 @@ class DeudaListView(OwnerQuerysetMixin, ListView):
     context_object_name = "deudas"
     paginate_by = 15
 
+    def get_queryset(self):
+        # "N" (Aún sin pagar) < "P" (Pagado) alfabéticamente, así que ordenar
+        # por flag ya deja las deudas sin pagar primero.
+        return super().get_queryset().order_by("flag", "dia")
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["total_saldo"] = self.get_queryset().aggregate(total=Sum("saldo"))["total"] or Decimal("0")

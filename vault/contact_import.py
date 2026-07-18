@@ -5,6 +5,7 @@ es simple (RFC 6350 con "line folding") y así evitamos una dependencia nueva.
 """
 import csv
 import io
+import re
 
 CONTACT_FIELDS = ("name", "phone", "email", "address", "notes")
 
@@ -15,6 +16,21 @@ CSV_FIELD_ALIASES = {
     "address": {"direccion", "dirección", "address"},
     "notes": {"notas", "notes", "nota", "comentarios"},
 }
+
+# Exportadores tipo Covve/iOS Contacts no traen una sola columna "name"/"phone"/etc.:
+# separan el nombre en columnas y numeran teléfono/email/dirección
+# ("Phone - 1", "Phone - 2", ...). Se detectan aparte y se usa el primer valor no
+# vacío de cada grupo numerado.
+GIVEN_NAME_ALIASES = {"given name", "first name"}
+FAMILY_NAME_ALIASES = {"family name", "last name"}
+ADDRESS_PART_ORDER = (
+    "address street", "address city", "address state", "address postal code", "address country",
+)
+_NUMBER_SUFFIX = re.compile(r"\s*-\s*\d+$")
+
+
+def _strip_index(header):
+    return _NUMBER_SUFFIX.sub("", (header or "")).strip().lower()
 
 
 def _empty_contact():
@@ -93,18 +109,39 @@ def parse_vcard(text):
 
 def parse_csv(text):
     """Regresa una lista de dicts a partir de un .csv, aceptando encabezados
-    en español o inglés (ver CSV_FIELD_ALIASES)."""
+    en español o inglés (ver CSV_FIELD_ALIASES), o el formato numerado tipo
+    Covve/iOS Contacts (Given Name/Family Name, Phone - 1, Email - 1, ...)."""
     reader = csv.DictReader(io.StringIO(text))
     if not reader.fieldnames:
         return []
 
     column_map = {}
+    given_name_col = family_name_col = None
+    phone_cols, email_cols = [], []
+    address_cols = {}
+
     for field in reader.fieldnames:
         key = (field or "").strip().lower()
+        matched = False
         for target, aliases in CSV_FIELD_ALIASES.items():
             if key in aliases:
                 column_map[field] = target
+                matched = True
                 break
+        if matched:
+            continue
+
+        base_key = _strip_index(field)
+        if base_key in GIVEN_NAME_ALIASES:
+            given_name_col = field
+        elif base_key in FAMILY_NAME_ALIASES:
+            family_name_col = field
+        elif base_key == "phone":
+            phone_cols.append(field)
+        elif base_key == "email":
+            email_cols.append(field)
+        elif base_key in ADDRESS_PART_ORDER:
+            address_cols.setdefault(base_key, []).append(field)
 
     contacts = []
     for row in reader:
@@ -113,6 +150,38 @@ def parse_csv(text):
             target = column_map.get(field)
             if target and value:
                 data[target] = value.strip()
+
+        if not data["name"] and (given_name_col or family_name_col):
+            given = (row.get(given_name_col) or "").strip() if given_name_col else ""
+            family = (row.get(family_name_col) or "").strip() if family_name_col else ""
+            data["name"] = " ".join(part for part in (given, family) if part)
+
+        if not data["phone"]:
+            for field in phone_cols:
+                value = (row.get(field) or "").strip()
+                if value:
+                    data["phone"] = value
+                    break
+
+        if not data["email"]:
+            for field in email_cols:
+                value = (row.get(field) or "").strip()
+                if value:
+                    data["email"] = value
+                    break
+
+        if not data["address"] and address_cols:
+            # Junta el primer grupo de dirección (calle/ciudad/edo/cp/país - 1).
+            parts = []
+            for part_key in ADDRESS_PART_ORDER:
+                fields = address_cols.get(part_key)
+                if not fields:
+                    continue
+                value = (row.get(fields[0]) or "").strip()
+                if value:
+                    parts.append(value.replace("\n", " "))
+            data["address"] = ", ".join(parts)
+
         if data["name"]:
             contacts.append(data)
 
