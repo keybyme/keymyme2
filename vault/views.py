@@ -36,7 +36,7 @@ class CategoryListView(OwnerQuerysetMixin, ListView):
     model = Category
     template_name = "vault/category_list.html"
     context_object_name = "categories"
-    paginate_by = 20
+    paginate_by = 15
 
 
 class CategoryCreateView(OwnerCreateMixin, CreateView):
@@ -65,7 +65,7 @@ class ContactListView(SearchableListMixin, OwnerQuerysetMixin, ListView):
     model = Contact
     template_name = "vault/contact_list.html"
     context_object_name = "contacts"
-    paginate_by = 20
+    paginate_by = 15
     search_fields = ("name", "phone", "email", "address", "notes")
 
 
@@ -133,7 +133,7 @@ class PasswordListView(SearchableListMixin, OwnerQuerysetMixin, ListView):
     model = VaultPassword
     template_name = "vault/password_list.html"
     context_object_name = "passwords"
-    paginate_by = 20
+    paginate_by = 15
     search_fields = ("site_name", "username", "site_url", "notes")
     # OJO: el template NUNCA debe imprimir get_password() aquí.
     # El password se revela client-side vía fetch a password_reveal_json.
@@ -199,7 +199,7 @@ class UrlListView(SearchableListMixin, OwnerQuerysetMixin, ListView):
     model = Url
     template_name = "vault/url_list.html"
     context_object_name = "urls"
-    paginate_by = 20
+    paginate_by = 15
     search_fields = ("name", "url", "notes")
 
 
@@ -229,7 +229,7 @@ class MediaFileListView(SearchableListMixin, OwnerQuerysetMixin, ListView):
     model = MediaFile
     template_name = "vault/mediafile_list.html"
     context_object_name = "files"
-    paginate_by = 20
+    paginate_by = 15
     search_fields = ("original_name",)
 
 
@@ -238,7 +238,7 @@ class MediaFilePhotoGalleryView(SearchableListMixin, OwnerQuerysetMixin, ListVie
     model = MediaFile
     template_name = "vault/mediafile_gallery.html"
     context_object_name = "files"
-    paginate_by = 24
+    paginate_by = 15
     search_fields = ("original_name",)
 
     def get_queryset(self):
@@ -315,7 +315,7 @@ class ReminderListView(SearchableListMixin, OwnerQuerysetMixin, ListView):
     model = Reminder
     template_name = "vault/reminder_list.html"
     context_object_name = "reminders"
-    paginate_by = 20
+    paginate_by = 15
     search_fields = ("title", "description")
 
 

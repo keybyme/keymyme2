@@ -56,7 +56,7 @@ class CuentaListView(OwnerQuerysetMixin, ListView):
     model = Cuenta
     template_name = "finanzas/cuenta_list.html"
     context_object_name = "cuentas"
-    paginate_by = 20
+    paginate_by = 15
     SORTABLE_FIELDS = ("name", "numero")
 
     def get_queryset(self):
@@ -110,7 +110,7 @@ class TransaccionListView(SearchableListMixin, OwnerQuerysetMixin, ListView):
     model = Transaccion
     template_name = "finanzas/transaccion_list.html"
     context_object_name = "transacciones"
-    paginate_by = 20
+    paginate_by = 15
     search_fields = ("concepto",)
 
     MESES = [
@@ -223,7 +223,7 @@ class DeudaListView(OwnerQuerysetMixin, ListView):
     model = Deuda
     template_name = "finanzas/deuda_list.html"
     context_object_name = "deudas"
-    paginate_by = 20
+    paginate_by = 15
 
 
 class DeudaCreateView(OwnerCreateMixin, CreateView):
