@@ -1,12 +1,13 @@
 from decimal import Decimal
 
 from django.contrib import messages
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Sum
 from django.db.models.deletion import ProtectedError
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
 from django.utils import timezone
-from django.views.generic import CreateView, DeleteView, ListView, UpdateView
+from django.views.generic import CreateView, DeleteView, ListView, UpdateView, View
 
 from vault.mixins import OwnerCreateMixin, OwnerQuerysetMixin, SearchableListMixin, UserFormKwargsMixin
 from vault.models import MediaFile
@@ -225,6 +226,11 @@ class DeudaListView(OwnerQuerysetMixin, ListView):
     context_object_name = "deudas"
     paginate_by = 15
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["total_saldo"] = self.get_queryset().aggregate(total=Sum("saldo"))["total"] or Decimal("0")
+        return context
+
 
 class DeudaCreateView(OwnerCreateMixin, CreateView):
     model = Deuda
@@ -244,3 +250,18 @@ class DeudaDeleteView(OwnerQuerysetMixin, DeleteView):
     model = Deuda
     template_name = "finanzas/deuda_confirm_delete.html"
     success_url = reverse_lazy("finanzas:deuda_list")
+
+
+class DeudaResetFlagsView(LoginRequiredMixin, View):
+    """Reinicia el flag de pago (a 'Aún sin pagar') de todas las deudas del
+    usuario, para arrancar el mes en curso. Pide confirmación en GET porque
+    afecta todos los registros a la vez."""
+    template_name = "finanzas/deuda_confirm_reset_flags.html"
+
+    def get(self, request):
+        return render(request, self.template_name)
+
+    def post(self, request):
+        updated = Deuda.objects.filter(owner=request.user).update(flag=Deuda.Flag.NO_PAGADO)
+        messages.success(request, f"Se reinició el flag de pago de {updated} deuda(s).")
+        return redirect("finanzas:deuda_list")

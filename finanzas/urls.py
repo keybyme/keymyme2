@@ -19,6 +19,7 @@ urlpatterns = [
 
     # Deudas
     path("deudas/", views.DeudaListView.as_view(), name="deuda_list"),
+    path("deudas/reset-flags/", views.DeudaResetFlagsView.as_view(), name="deuda_reset_flags"),
     path("deudas/new/", views.DeudaCreateView.as_view(), name="deuda_create"),
     path("deudas/<int:pk>/edit/", views.DeudaUpdateView.as_view(), name="deuda_update"),
     path("deudas/<int:pk>/delete/", views.DeudaDeleteView.as_view(), name="deuda_delete"),
