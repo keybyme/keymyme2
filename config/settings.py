@@ -137,6 +137,12 @@ TIME_ZONE = 'America/New_York'
 USE_I18N = True
 USE_TZ = True
 
+# Formato de números "es" de Django usa espacio como separador de miles;
+# este proyecto usa punto de miles y coma decimal (ej. 9.999.999,99), definido
+# en config/formats/es/formats.py.
+FORMAT_MODULE_PATH = 'config.formats'
+USE_THOUSAND_SEPARATOR = True
+
 
 # Static & media files
 STATIC_URL = 'static/'
