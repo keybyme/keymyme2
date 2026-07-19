@@ -4,7 +4,7 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.core.files.uploadedfile import UploadedFile
 
 from .image_compression import compress_image
-from .models import Category, Contact, MediaFile, Reminder, Url, VaultPassword
+from .models import Category, Contact, LocationCheckIn, MediaFile, Reminder, Url, VaultPassword
 
 INPUT_CLASSES = (
     "block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 "
@@ -181,4 +181,13 @@ class LocationAlertEmailForm(TailwindFormMixin, forms.ModelForm):
         fields = ["location_alert_email"]
         widgets = {
             "location_alert_email": forms.EmailInput(attrs={"placeholder": "you@example.com"}),
+        }
+
+
+class LocationCheckInForm(TailwindFormMixin, forms.ModelForm):
+    class Meta:
+        model = LocationCheckIn
+        fields = ["remarks"]
+        widgets = {
+            "remarks": forms.Textarea(attrs={"rows": 3}),
         }

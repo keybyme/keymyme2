@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib import admin
 
-from .models import Category, Contact, VaultPassword, MediaFile, Reminder, Url
+from .models import Category, Contact, LocationCheckIn, VaultPassword, MediaFile, Reminder, Url
 
 
 @admin.register(Category)
@@ -66,3 +66,9 @@ class MediaFileAdmin(admin.ModelAdmin):
 class ReminderAdmin(admin.ModelAdmin):
     list_display = ("title", "owner", "category", "remind_at", "is_completed")
     list_filter = ("is_completed", "owner", "category")
+
+
+@admin.register(LocationCheckIn)
+class LocationCheckInAdmin(admin.ModelAdmin):
+    list_display = ("owner", "created_at", "latitude", "longitude", "remarks")
+    list_filter = ("owner",)

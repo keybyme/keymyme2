@@ -51,6 +51,8 @@ urlpatterns = [
     # I am here
     path("im-here/", views.ImHereView.as_view(), name="im_here"),
     path("im-here/send/", views.ImHereSendLocationView.as_view(), name="im_here_send"),
+    path("im-here/checkins/<int:pk>/edit/", views.LocationCheckInUpdateView.as_view(), name="location_checkin_update"),
+    path("im-here/checkins/<int:pk>/delete/", views.LocationCheckInDeleteView.as_view(), name="location_checkin_delete"),
 
     # Cron externo (ver config/settings.py CRON_SECRET)
     path("cron/send-reminders/", views.SendDueRemindersCronView.as_view(), name="cron_send_reminders"),

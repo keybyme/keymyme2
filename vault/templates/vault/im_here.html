@@ -5,7 +5,7 @@
 
 <div class="max-w-lg rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
     <h2 class="mb-1 text-sm font-semibold text-gray-900">Notification email</h2>
-    <p class="mb-4 text-sm text-gray-500">Register the address that should receive your location. This is required before the button below will work.</p>
+    <p class="mb-4 text-sm text-gray-500">Optional: register an address to also get your location by email each time you tap the button below. Every click is logged in the table further down regardless.</p>
     <form method="post">
         {% csrf_token %}
         {% include "_form_fields.html" %}
@@ -27,6 +27,54 @@
 
     <p id="im-here-status" class="mt-3 text-sm"></p>
 </div>
+
+<div class="mt-6 overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+<table class="min-w-full divide-y divide-gray-100">
+    <thead class="bg-cafe-dark">
+        <tr>
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Date</th>
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Time</th>
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Location</th>
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Remarks</th>
+            <th class="px-4 py-3"></th>
+        </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100">
+        {% for checkin in page_obj %}
+        <tr class="group odd:bg-white even:bg-cream-soft hover:bg-beige">
+            <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-900">{{ checkin.created_at|date:"m/d/Y" }}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-900">{{ checkin.created_at|time:"g:i A" }}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-sm">
+                <a href="{{ checkin.maps_url }}" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-800">
+                    {% include "icons/map-pin.html" with class="w-4 h-4" %} Open GPS
+                </a>
+            </td>
+            <td class="max-w-xs px-4 py-3 text-sm text-gray-600">{{ checkin.remarks|default:"—" }}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-right text-sm">
+                <div class="flex justify-end gap-3">
+                    <a href="{% url 'vault:location_checkin_update' checkin.pk %}" class="text-cafe hover:text-cafe-darker" title="Edit">
+                        {% include "icons/pencil.html" with class="w-5 h-5" %}
+                    </a>
+                    <a href="{% url 'vault:location_checkin_delete' checkin.pk %}" class="text-crimson hover:text-red-800" title="Delete">
+                        {% include "icons/trash.html" with class="w-5 h-5" %}
+                    </a>
+                </div>
+            </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="px-4 py-6 text-center text-sm text-gray-500">No check-ins yet. Tap "I am here" above to log one.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+
+{% if page_obj.has_other_pages %}
+<div class="mt-4 flex items-center justify-center gap-4 text-sm text-gray-600">
+    {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}" class="hover:text-blue-600">Previous</a>{% endif %}
+    <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}" class="hover:text-blue-600">Next</a>{% endif %}
+</div>
+{% endif %}
 
 <script>
 (function () {
@@ -77,15 +125,15 @@
                     })
                     .then(function (result) {
                         if (result.ok) {
-                            setStatus('Location sent.', false);
+                            window.location.reload();
                         } else {
                             setStatus(result.data.error || 'Could not send your location.', true);
+                            button.disabled = false;
+                            label.textContent = 'I am here';
                         }
                     })
                     .catch(function () {
                         setStatus('Could not send your location.', true);
-                    })
-                    .finally(function () {
                         button.disabled = false;
                         label.textContent = 'I am here';
                     });

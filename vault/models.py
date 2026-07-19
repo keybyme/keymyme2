@@ -238,3 +238,25 @@ class Reminder(models.Model):
             day = min(self.remind_at.day, last_day)
             return self.remind_at.replace(year=year, month=month, day=day)
         return None
+
+
+class LocationCheckIn(models.Model):
+    """Un registro por cada click en el botón 'I am here', con las
+    coordenadas que el navegador capturó en ese momento."""
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="location_checkins")
+    latitude = models.DecimalField(max_digits=9, decimal_places=6)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6)
+    remarks = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Location check-in"
+        verbose_name_plural = "Location check-ins"
+
+    def __str__(self):
+        return f"{self.owner} @ {self.created_at:%Y-%m-%d %H:%M}"
+
+    @property
+    def maps_url(self):
+        return f"https://www.google.com/maps?q={self.latitude},{self.longitude}"
