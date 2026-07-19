@@ -7,6 +7,7 @@ from django.db.models.deletion import ProtectedError
 from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
 from django.utils import timezone
+from django.utils.dateparse import parse_date
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView, View
 
 from vault.mixins import OwnerCreateMixin, OwnerQuerysetMixin, SearchableListMixin, UserFormKwargsMixin
@@ -120,16 +121,33 @@ class TransaccionListView(SearchableListMixin, OwnerQuerysetMixin, ListView):
         (9, "September"), (10, "October"), (11, "November"), (12, "December"),
     ]
 
+    def _get_rango_fechas(self):
+        desde = parse_date(self.request.GET.get("desde") or "")
+        hasta = parse_date(self.request.GET.get("hasta") or "")
+        return desde, hasta
+
     def _get_periodo(self):
         # Si no viene 'periodo' en absoluto (primera carga de la página), se
         # asume el mes en curso. Si viene vacío ("Todo el tiempo" elegido a
         # propósito en el dropdown), se respeta y no se filtra por fecha.
+        # Un rango de fechas (desde/hasta) explícito siempre gana sobre 'periodo'.
+        desde, hasta = self._get_rango_fechas()
+        if desde or hasta:
+            return ""
         periodo = self.request.GET.get("periodo")
         if periodo is None:
             periodo = str(timezone.localdate().month)
         return periodo
 
     def _get_periodo_label(self):
+        desde, hasta = self._get_rango_fechas()
+        if desde and hasta:
+            return f"{desde} to {hasta}"
+        if desde:
+            return f"From {desde}"
+        if hasta:
+            return f"Until {hasta}"
+
         periodo = self._get_periodo()
         if periodo == "ytd":
             return "Year to date"
@@ -147,6 +165,12 @@ class TransaccionListView(SearchableListMixin, OwnerQuerysetMixin, ListView):
         cuenta_id = self.request.GET.get("cuenta")
         if cuenta_id:
             queryset = queryset.filter(cuenta_id=cuenta_id)
+
+        desde, hasta = self._get_rango_fechas()
+        if desde:
+            queryset = queryset.filter(fecha__gte=desde)
+        if hasta:
+            queryset = queryset.filter(fecha__lte=hasta)
 
         hoy = timezone.localdate()
         periodo = self._get_periodo()
@@ -175,6 +199,8 @@ class TransaccionListView(SearchableListMixin, OwnerQuerysetMixin, ListView):
         context["meses"] = self.MESES
         context["selected_periodo"] = self._get_periodo()
         context["periodo_label"] = self._get_periodo_label()
+        context["selected_desde"] = self.request.GET.get("desde", "")
+        context["selected_hasta"] = self.request.GET.get("hasta", "")
         return context
 
 

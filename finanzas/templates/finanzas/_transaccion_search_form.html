@@ -30,6 +30,14 @@
         <option value="{{ num }}" {% if selected_periodo == num|stringformat:"s" %}selected{% endif %}>{{ nombre }}</option>
         {% endfor %}
     </select>
+    <div class="flex items-center gap-1.5 text-sm text-gray-600">
+        <label for="id_desde">From</label>
+        <input type="date" id="id_desde" name="desde" value="{{ selected_desde }}"
+               class="rounded-lg border border-gray-300 py-2 px-3 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+        <label for="id_hasta">to</label>
+        <input type="date" id="id_hasta" name="hasta" value="{{ selected_hasta }}"
+               class="rounded-lg border border-gray-300 py-2 px-3 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+    </div>
     <button type="submit" class="inline-flex items-center gap-1.5 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
         {% include "icons/search.html" with class="w-4 h-4" %} Search
     </button>
