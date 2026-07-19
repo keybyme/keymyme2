@@ -17,7 +17,7 @@
 
 <div class="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
 <table class="min-w-full divide-y divide-gray-100">
-    <thead class="bg-navy">
+    <thead class="bg-cafe-dark">
         <tr>
             <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Nombre</th>
             <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Categoría</th>
@@ -29,35 +29,35 @@
     </thead>
     <tbody class="divide-y divide-gray-100">
         {% for contact in contacts %}
-        <tr class="group odd:bg-blue-600 even:bg-white odd:hover:bg-blue-700 even:hover:bg-blue-50">
-            <td class="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900 group-odd:text-white group-even:text-blue-800">{{ contact.name }}</td>
+        <tr class="group odd:bg-white even:bg-cream-soft hover:bg-beige">
+            <td class="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900">{{ contact.name }}</td>
             <td class="whitespace-nowrap px-4 py-3 text-sm">
                 {% if contact.category %}
-                <span class="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">{{ contact.category.name }}</span>
-                {% else %}<span class="text-gray-400 group-odd:text-blue-200">—</span>{% endif %}
+                <span class="inline-flex items-center rounded-full bg-[#E9DDD0] px-2.5 py-0.5 text-xs font-medium text-cafe-dark">{{ contact.category.name }}</span>
+                {% else %}<span class="text-gray-400">—</span>{% endif %}
             </td>
             <td class="whitespace-nowrap px-4 py-3 text-sm">
                 {% if contact.phone %}
-                <a href="tel:{{ contact.phone }}" class="inline-flex items-center gap-1 text-gray-600 hover:text-blue-600 group-odd:text-white group-odd:hover:text-blue-100 group-even:text-blue-800">
+                <a href="tel:{{ contact.phone }}" class="inline-flex items-center gap-1 text-gray-600 hover:text-blue-600">
                     {% include "icons/phone.html" with class="w-4 h-4" %} {{ contact.phone }}
                 </a>
                 {% endif %}
             </td>
-            <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-600 group-odd:text-white group-even:text-blue-800">{{ contact.email }}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-600">{{ contact.email }}</td>
             <td class="px-4 py-3 text-sm">
                 {% if contact.address %}
                 <a href="https://www.google.com/maps/search/?api=1&query={{ contact.address|urlencode }}" target="_blank"
-                   class="inline-flex items-center gap-1 text-gray-600 hover:text-blue-600 group-odd:text-white group-odd:hover:text-blue-100 group-even:text-blue-800">
+                   class="inline-flex items-center gap-1 text-gray-600 hover:text-blue-600">
                     {% include "icons/map-pin.html" with class="w-4 h-4" %} {{ contact.address }}
                 </a>
                 {% endif %}
             </td>
             <td class="whitespace-nowrap px-4 py-3 text-right text-sm">
                 <div class="flex justify-end gap-3">
-                    <a href="{% url 'vault:contact_update' contact.pk %}" class="text-gray-400 hover:text-blue-600 group-odd:text-blue-200 group-odd:hover:text-white" title="Editar">
+                    <a href="{% url 'vault:contact_update' contact.pk %}" class="text-cafe hover:text-cafe-darker" title="Editar">
                         {% include "icons/pencil.html" with class="w-5 h-5" %}
                     </a>
-                    <a href="{% url 'vault:contact_delete' contact.pk %}" class="text-gray-400 hover:text-red-600 group-odd:text-blue-200 group-odd:hover:text-white" title="Borrar">
+                    <a href="{% url 'vault:contact_delete' contact.pk %}" class="text-crimson hover:text-red-800" title="Borrar">
                         {% include "icons/trash.html" with class="w-5 h-5" %}
                     </a>
                 </div>

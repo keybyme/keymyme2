@@ -30,7 +30,7 @@
         <option value="{{ num }}" {% if selected_periodo == num|stringformat:"s" %}selected{% endif %}>{{ nombre }}</option>
         {% endfor %}
     </select>
-    <button type="submit" class="inline-flex items-center gap-1.5 rounded-lg bg-gray-800 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-gray-900">
+    <button type="submit" class="inline-flex items-center gap-1.5 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
         {% include "icons/search.html" with class="w-4 h-4" %} Buscar
     </button>
 </form>

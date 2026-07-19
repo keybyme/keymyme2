@@ -30,7 +30,7 @@
 
 <div class="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
 <table class="min-w-full divide-y divide-gray-100">
-    <thead class="bg-navy">
+    <thead class="bg-cafe-dark">
         <tr>
             <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Fecha</th>
             <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Concepto</th>
@@ -43,32 +43,32 @@
     </thead>
     <tbody class="divide-y divide-gray-100">
         {% for transaccion in transacciones %}
-        <tr class="group odd:bg-blue-600 even:bg-white odd:hover:bg-blue-700 even:hover:bg-blue-50">
-            <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-600 group-odd:text-white group-even:text-blue-800">{{ transaccion.fecha }}</td>
-            <td class="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900 group-odd:text-white group-even:text-blue-800">{{ transaccion.concepto }}</td>
-            <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-600 group-odd:text-white group-even:text-blue-800">{{ transaccion.cuenta.name }}</td>
+        <tr class="group odd:bg-white even:bg-cream-soft hover:bg-beige">
+            <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-600">{{ transaccion.fecha }}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900">{{ transaccion.concepto }}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-600">{{ transaccion.cuenta.name }}</td>
             <td class="whitespace-nowrap px-4 py-3 text-sm">
                 {% if transaccion.category %}
-                <span class="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">{{ transaccion.category.name }}</span>
-                {% else %}<span class="text-gray-400 group-odd:text-blue-200">—</span>{% endif %}
+                <span class="inline-flex items-center rounded-full bg-[#E9DDD0] px-2.5 py-0.5 text-xs font-medium text-cafe-dark">{{ transaccion.category.name }}</span>
+                {% else %}<span class="text-gray-400">—</span>{% endif %}
             </td>
             <td class="whitespace-nowrap px-4 py-3 text-right text-sm font-semibold
-                {% if transaccion.tipo == 'ingreso' %}text-emerald-600 group-odd:text-emerald-300{% else %}text-red-600 group-odd:text-red-200{% endif %}">
+                {% if transaccion.tipo == 'ingreso' %}text-emerald-600{% else %}text-red-600{% endif %}">
                 {% if transaccion.tipo == 'ingreso' %}+{% else %}-{% endif %}${{ transaccion.monto }}
             </td>
             <td class="whitespace-nowrap px-4 py-3 text-sm">
                 {% if transaccion.recibo %}
-                <a href="{{ transaccion.recibo.file.url }}" target="_blank" class="text-gray-400 hover:text-blue-600 group-odd:text-blue-200 group-odd:hover:text-white" title="Ver recibo">
+                <a href="{{ transaccion.recibo.file.url }}" target="_blank" class="text-cafe hover:text-cafe-darker" title="Ver recibo">
                     {% include "icons/paper-clip.html" with class="w-5 h-5" %}
                 </a>
-                {% else %}<span class="text-gray-400 group-odd:text-blue-200">—</span>{% endif %}
+                {% else %}<span class="text-gray-400">—</span>{% endif %}
             </td>
             <td class="whitespace-nowrap px-4 py-3 text-right text-sm">
                 <div class="flex justify-end gap-3">
-                    <a href="{% url 'finanzas:transaccion_update' transaccion.pk %}" class="text-gray-400 hover:text-blue-600 group-odd:text-blue-200 group-odd:hover:text-white" title="Editar">
+                    <a href="{% url 'finanzas:transaccion_update' transaccion.pk %}" class="text-cafe hover:text-cafe-darker" title="Editar">
                         {% include "icons/pencil.html" with class="w-5 h-5" %}
                     </a>
-                    <a href="{% url 'finanzas:transaccion_delete' transaccion.pk %}" class="text-gray-400 hover:text-red-600 group-odd:text-blue-200 group-odd:hover:text-white" title="Borrar">
+                    <a href="{% url 'finanzas:transaccion_delete' transaccion.pk %}" class="text-crimson hover:text-red-800" title="Borrar">
                         {% include "icons/trash.html" with class="w-5 h-5" %}
                     </a>
                 </div>
