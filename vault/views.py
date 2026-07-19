@@ -426,14 +426,12 @@ class ImHereSendLocationView(LoginRequiredMixin, View):
         except (KeyError, TypeError, ValueError, json.JSONDecodeError):
             return JsonResponse({"error": "Invalid location data."}, status=400)
 
-        maps_url = f"https://www.google.com/maps?q={latitude},{longitude}"
         send_mail(
             subject=f"{request.user.username} shared their location via KeyByMe",
             message=(
                 f"{request.user.username} tapped \"I am here\" in KeyByMe.\n\n"
                 f"Coordinates: {latitude}, {longitude}\n"
-                f"Local time at that location: {local_time}\n"
-                f"Map: {maps_url}"
+                f"Local time at that location: {local_time}"
             ),
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[recipient],
