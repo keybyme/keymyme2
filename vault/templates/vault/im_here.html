@@ -3,29 +3,24 @@
 {% block content %}
 <h1 class="mb-6 text-2xl font-semibold text-gray-900">I am here</h1>
 
-<div class="max-w-lg rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-    <h2 class="mb-1 text-sm font-semibold text-gray-900">Notification email</h2>
-    <p class="mb-4 text-sm text-gray-500">Optional: register an address to also get your location by email each time you tap the button below. Every click is logged in the table further down regardless.</p>
-    <form method="post">
+<div class="mb-6 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+    <form method="post" class="flex flex-wrap items-center gap-3">
         {% csrf_token %}
-        {% include "_form_fields.html" %}
-        <div class="mt-4 flex items-center gap-3">
-            <button type="submit" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700">Save email</button>
+        <label for="{{ form.location_alert_email.id_for_label }}" class="whitespace-nowrap text-sm font-medium text-gray-700">Email</label>
+        <div class="min-w-[200px] flex-1">
+            {{ form.location_alert_email }}
         </div>
+        <button type="submit" class="whitespace-nowrap rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700">Save email</button>
+        <button type="button" id="im-here-btn"
+                class="inline-flex items-center gap-2 whitespace-nowrap rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60">
+            {% include "icons/map-pin.html" with class="w-4 h-4" %}
+            <span id="im-here-btn-label">I am here</span>
+        </button>
     </form>
-</div>
-
-<div class="mt-6 max-w-lg rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-    <h2 class="mb-1 text-sm font-semibold text-gray-900">Send my location</h2>
-    <p class="mb-4 text-sm text-gray-500">Sends your current coordinates and local time to the email above.</p>
-
-    <button type="button" id="im-here-btn"
-            class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60">
-        {% include "icons/map-pin.html" with class="w-4 h-4" %}
-        <span id="im-here-btn-label">I am here</span>
-    </button>
-
-    <p id="im-here-status" class="mt-3 text-sm"></p>
+    {% for error in form.location_alert_email.errors %}
+    <p class="mt-2 text-xs font-medium text-red-600">{{ error }}</p>
+    {% endfor %}
+    <p id="im-here-status" class="mt-2 text-sm"></p>
 </div>
 
 <div class="mt-6 overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
