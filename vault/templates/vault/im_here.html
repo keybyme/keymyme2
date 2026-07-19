@@ -27,10 +27,24 @@
 <table class="min-w-full divide-y divide-gray-100">
     <thead class="bg-cafe-dark">
         <tr>
-            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Date</th>
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">
+                <a href="?sort={{ date_sort_next }}" class="inline-flex items-center gap-1 hover:text-gold">
+                    Date
+                    {% if sort_key == "date" %}
+                        {% if sort_reverse %}{% include "icons/chevron-down.html" with class="w-3.5 h-3.5" %}{% else %}{% include "icons/chevron-up.html" with class="w-3.5 h-3.5" %}{% endif %}
+                    {% endif %}
+                </a>
+            </th>
             <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Time</th>
             <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Location</th>
-            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Remarks</th>
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">
+                <a href="?sort={{ remarks_sort_next }}" class="inline-flex items-center gap-1 hover:text-gold">
+                    Remarks
+                    {% if sort_key == "remarks" %}
+                        {% if sort_reverse %}{% include "icons/chevron-down.html" with class="w-3.5 h-3.5" %}{% else %}{% include "icons/chevron-up.html" with class="w-3.5 h-3.5" %}{% endif %}
+                    {% endif %}
+                </a>
+            </th>
             <th class="px-4 py-3"></th>
         </tr>
     </thead>
@@ -65,9 +79,9 @@
 
 {% if page_obj.has_other_pages %}
 <div class="mt-4 flex items-center justify-center gap-4 text-sm text-gray-600">
-    {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}" class="hover:text-blue-600">Previous</a>{% endif %}
+    {% if page_obj.has_previous %}<a href="?sort={{ sort }}&page={{ page_obj.previous_page_number }}" class="hover:text-blue-600">Previous</a>{% endif %}
     <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-    {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}" class="hover:text-blue-600">Next</a>{% endif %}
+    {% if page_obj.has_next %}<a href="?sort={{ sort }}&page={{ page_obj.next_page_number }}" class="hover:text-blue-600">Next</a>{% endif %}
 </div>
 {% endif %}
 

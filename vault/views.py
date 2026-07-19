@@ -408,12 +408,27 @@ class ImHereView(LoginRequiredMixin, FormView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Universo limitado a los últimos 20 check-ins, paginados sobre ese subconjunto.
+        # Universo limitado a los últimos 20 check-ins (siempre por fecha), el
+        # orden de visualización dentro de ese subconjunto lo elige ?sort=.
         checkins = list(
             LocationCheckIn.objects.filter(owner=self.request.user).order_by("-created_at")[:20]
         )
+        sort = self.request.GET.get("sort", "-date")
+        reverse = sort.startswith("-")
+        sort_key = sort.lstrip("-")
+        if sort_key == "remarks":
+            checkins.sort(key=lambda c: c.remarks.lower(), reverse=reverse)
+        else:
+            sort_key = "date"
+            checkins.sort(key=lambda c: c.created_at, reverse=reverse)
+
         paginator = Paginator(checkins, 10)
         context["page_obj"] = paginator.get_page(self.request.GET.get("page"))
+        context["sort"] = sort
+        context["sort_key"] = sort_key
+        context["sort_reverse"] = reverse
+        context["date_sort_next"] = "date" if sort == "-date" else "-date"
+        context["remarks_sort_next"] = "-remarks" if sort == "remarks" else "remarks"
         return context
 
 
