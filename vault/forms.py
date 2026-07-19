@@ -55,20 +55,20 @@ class ContactForm(TailwindFormMixin, UserCategoryFormMixin, forms.ModelForm):
 
 class ContactImportForm(TailwindFormMixin, UserCategoryFormMixin, forms.Form):
     file = forms.FileField(
-        label="Archivo (.vcf o .csv)",
-        help_text="vCard exportada de iPhone/iCloud, o un CSV con columnas nombre/telefono/email/direccion/notas.",
+        label="File (.vcf or .csv)",
+        help_text="vCard exported from iPhone/iCloud, or a CSV with name/phone/email/address/notes columns.",
     )
     category = forms.ModelChoiceField(
         queryset=Category.objects.none(),
         required=False,
-        label="Categoría",
-        help_text="Opcional: se asignará a todos los contactos importados.",
+        label="Category",
+        help_text="Optional: will be assigned to all imported contacts.",
     )
 
     def clean_file(self):
         uploaded_file = self.cleaned_data["file"]
         if not uploaded_file.name.lower().endswith((".vcf", ".csv")):
-            raise forms.ValidationError("El archivo debe tener extensión .vcf o .csv.")
+            raise forms.ValidationError("The file must have a .vcf or .csv extension.")
         return uploaded_file
 
 
@@ -77,7 +77,7 @@ class VaultPasswordForm(TailwindFormMixin, UserCategoryFormMixin, forms.ModelFor
         label="Password",
         required=False,
         widget=forms.PasswordInput(render_value=False),
-        help_text="Dejar en blanco para no modificar el password actual.",
+        help_text="Leave blank to keep the current password unchanged.",
     )
 
     class Meta:
@@ -88,7 +88,7 @@ class VaultPasswordForm(TailwindFormMixin, UserCategoryFormMixin, forms.ModelFor
         cleaned_data = super().clean()
         # En creación (instance sin pk todavía), el password es obligatorio
         if not self.instance.pk and not cleaned_data.get("password"):
-            self.add_error("password", "Este campo es obligatorio al crear un nuevo registro.")
+            self.add_error("password", "This field is required when creating a new record.")
         return cleaned_data
 
     def save(self, commit=True):
@@ -109,16 +109,16 @@ class UrlForm(TailwindFormMixin, UserCategoryFormMixin, forms.ModelForm):
 
 class MediaFileForm(TailwindFormMixin, UserCategoryFormMixin, forms.ModelForm):
     PHOTO_QUALITY_CHOICES = [
-        ("alta", "Alta (sin comprimir)"),
-        ("media", "Media"),
-        ("baja", "Baja (máximo ahorro)"),
+        ("alta", "High (uncompressed)"),
+        ("media", "Medium"),
+        ("baja", "Low (maximum savings)"),
     ]
     photo_quality = forms.ChoiceField(
         choices=PHOTO_QUALITY_CHOICES,
         initial="alta",
         required=False,
-        label="Calidad de la foto",
-        help_text="Reduce el tamaño (KB) al subir o reemplazar una foto. No aplica a videos ni documentos.",
+        label="Photo quality",
+        help_text="Reduces the size (KB) when uploading or replacing a photo. Does not apply to videos or documents.",
     )
 
     class Meta:
@@ -152,7 +152,7 @@ class ReminderForm(TailwindFormMixin, UserCategoryFormMixin, forms.ModelForm):
             # ("05/03/2026 14:30:00"): un <input type="datetime-local"> solo
             # reconoce "YYYY-MM-DDTHH:MM" en su value, si no se ve vacío.
             "remind_at": forms.DateTimeInput(format="%Y-%m-%dT%H:%M", attrs={"type": "datetime-local"}),
-            "recipient_email": forms.EmailInput(attrs={"placeholder": "Dejar vacío para usar tu correo de cuenta"}),
+            "recipient_email": forms.EmailInput(attrs={"placeholder": "Leave empty to use your account email"}),
         }
 
     def __init__(self, *args, user=None, **kwargs):
@@ -170,5 +170,5 @@ class StyledAuthenticationForm(TailwindFormMixin, AuthenticationForm):
 class QRCodeForm(TailwindFormMixin, forms.Form):
     url = forms.URLField(
         label="URL",
-        widget=forms.URLInput(attrs={"placeholder": "https://ejemplo.com"}),
+        widget=forms.URLInput(attrs={"placeholder": "https://example.com"}),
     )

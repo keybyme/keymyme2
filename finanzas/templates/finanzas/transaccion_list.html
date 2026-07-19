@@ -1,23 +1,23 @@
 {% extends "base.html" %}
-{% block title %}Transacciones{% endblock %}
+{% block title %}Transactions{% endblock %}
 {% block content %}
 <div class="mb-6 flex items-center justify-between">
     <h1 class="text-2xl font-semibold text-gray-900">
-        Transacciones
+        Transactions
         {% if periodo_label %}<span class="text-lg font-normal text-gray-500">— {{ periodo_label }}</span>{% endif %}
     </h1>
     <a href="{% url 'finanzas:transaccion_create' %}" class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700">
-        {% include "icons/plus.html" with class="w-4 h-4" %} Nueva transacción
+        {% include "icons/plus.html" with class="w-4 h-4" %} New transaction
     </a>
 </div>
 
 <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
     <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-        <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Ingresos</p>
+        <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Income</p>
         <p class="mt-1 text-xl font-semibold text-emerald-600">${{ total_ingresos }}</p>
     </div>
     <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-        <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Egresos</p>
+        <p class="text-xs font-medium uppercase tracking-wide text-gray-500">Expenses</p>
         <p class="mt-1 text-xl font-semibold text-red-600">${{ total_egresos }}</p>
     </div>
     <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
@@ -32,12 +32,12 @@
 <table class="min-w-full divide-y divide-gray-100">
     <thead class="bg-cafe-dark">
         <tr>
-            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Fecha</th>
-            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Concepto</th>
-            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Cuenta</th>
-            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Categoría</th>
-            <th class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wide text-white">Monto</th>
-            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Recibo</th>
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Date</th>
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Description</th>
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Account</th>
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Category</th>
+            <th class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wide text-white">Amount</th>
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Receipt</th>
             <th class="px-4 py-3"></th>
         </tr>
     </thead>
@@ -58,24 +58,24 @@
             </td>
             <td class="whitespace-nowrap px-4 py-3 text-sm">
                 {% if transaccion.recibo %}
-                <a href="{{ transaccion.recibo.file.url }}" target="_blank" class="text-cafe hover:text-cafe-darker" title="Ver recibo">
+                <a href="{{ transaccion.recibo.file.url }}" target="_blank" class="text-cafe hover:text-cafe-darker" title="View receipt">
                     {% include "icons/paper-clip.html" with class="w-5 h-5" %}
                 </a>
                 {% else %}<span class="text-gray-400">—</span>{% endif %}
             </td>
             <td class="whitespace-nowrap px-4 py-3 text-right text-sm">
                 <div class="flex justify-end gap-3">
-                    <a href="{% url 'finanzas:transaccion_update' transaccion.pk %}" class="text-cafe hover:text-cafe-darker" title="Editar">
+                    <a href="{% url 'finanzas:transaccion_update' transaccion.pk %}" class="text-cafe hover:text-cafe-darker" title="Edit">
                         {% include "icons/pencil.html" with class="w-5 h-5" %}
                     </a>
-                    <a href="{% url 'finanzas:transaccion_delete' transaccion.pk %}" class="text-crimson hover:text-red-800" title="Borrar">
+                    <a href="{% url 'finanzas:transaccion_delete' transaccion.pk %}" class="text-crimson hover:text-red-800" title="Delete">
                         {% include "icons/trash.html" with class="w-5 h-5" %}
                     </a>
                 </div>
             </td>
         </tr>
         {% empty %}
-        <tr><td colspan="7" class="px-4 py-6 text-center text-sm text-gray-500">No tienes transacciones registradas.</td></tr>
+        <tr><td colspan="7" class="px-4 py-6 text-center text-sm text-gray-500">You have no transactions on record.</td></tr>
         {% endfor %}
     </tbody>
 </table>
@@ -83,9 +83,9 @@
 
 {% if is_paginated %}
 <div class="mt-4 flex items-center justify-center gap-4 text-sm text-gray-600">
-    {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}" class="hover:text-blue-600">Anterior</a>{% endif %}
-    <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
-    {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}" class="hover:text-blue-600">Siguiente</a>{% endif %}
+    {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}" class="hover:text-blue-600">Previous</a>{% endif %}
+    <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}" class="hover:text-blue-600">Next</a>{% endif %}
 </div>
 {% endif %}
 {% endblock %}

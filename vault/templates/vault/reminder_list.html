@@ -1,13 +1,13 @@
 {% extends "base.html" %}
-{% block title %}Recordatorios{% endblock %}
+{% block title %}Reminders{% endblock %}
 {% block content %}
 <div class="mb-2 flex justify-end">
     <span id="local-datetime" class="text-xs text-gray-500"></span>
 </div>
 <div class="mb-6 flex items-center justify-between">
-    <h1 class="text-2xl font-semibold text-gray-900">Recordatorios</h1>
+    <h1 class="text-2xl font-semibold text-gray-900">Reminders</h1>
     <a href="{% url 'vault:reminder_create' %}" class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700">
-        {% include "icons/plus.html" with class="w-4 h-4" %} Nuevo recordatorio
+        {% include "icons/plus.html" with class="w-4 h-4" %} New reminder
     </a>
 </div>
 
@@ -17,12 +17,12 @@
 <table class="min-w-full divide-y divide-gray-100">
     <thead class="bg-cafe-dark">
         <tr>
-            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Título</th>
-            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Categoría</th>
-            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Fecha</th>
-            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Correo</th>
-            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Frecuencia</th>
-            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Completado</th>
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Title</th>
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Category</th>
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Date</th>
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Email</th>
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Frequency</th>
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Completed</th>
             <th class="px-4 py-3"></th>
         </tr>
     </thead>
@@ -37,7 +37,7 @@
             </td>
             <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-600">{{ reminder.remind_at }}</td>
             <td class="whitespace-nowrap px-4 py-3 text-sm">
-                <span class="inline-flex items-center gap-1 text-gray-600" title="{% if reminder.email_sent_at %}Enviado el {{ reminder.email_sent_at }}{% else %}Pendiente de enviar{% endif %}">
+                <span class="inline-flex items-center gap-1 text-gray-600" title="{% if reminder.email_sent_at %}Sent on {{ reminder.email_sent_at }}{% else %}Pending{% endif %}">
                     {% if reminder.email_sent_at %}
                         {% include "icons/check-circle.html" with class="w-4 h-4 text-emerald-600" %}
                     {% else %}
@@ -49,7 +49,7 @@
             <td class="whitespace-nowrap px-4 py-3 text-sm">
                 {% if reminder.frequency %}
                 <span class="inline-flex items-center rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-700">{{ reminder.get_frequency_display }}</span>
-                {% else %}<span class="text-gray-400">Única vez</span>{% endif %}
+                {% else %}<span class="text-gray-400">One-time</span>{% endif %}
             </td>
             <td class="whitespace-nowrap px-4 py-3 text-sm">
                 {% if reminder.is_completed %}
@@ -58,17 +58,17 @@
             </td>
             <td class="whitespace-nowrap px-4 py-3 text-right text-sm">
                 <div class="flex justify-end gap-3">
-                    <a href="{% url 'vault:reminder_update' reminder.pk %}" class="text-cafe hover:text-cafe-darker" title="Editar">
+                    <a href="{% url 'vault:reminder_update' reminder.pk %}" class="text-cafe hover:text-cafe-darker" title="Edit">
                         {% include "icons/pencil.html" with class="w-5 h-5" %}
                     </a>
-                    <a href="{% url 'vault:reminder_delete' reminder.pk %}" class="text-crimson hover:text-red-800" title="Borrar">
+                    <a href="{% url 'vault:reminder_delete' reminder.pk %}" class="text-crimson hover:text-red-800" title="Delete">
                         {% include "icons/trash.html" with class="w-5 h-5" %}
                     </a>
                 </div>
             </td>
         </tr>
         {% empty %}
-        <tr><td colspan="7" class="px-4 py-6 text-center text-sm text-gray-500">No tienes recordatorios.</td></tr>
+        <tr><td colspan="7" class="px-4 py-6 text-center text-sm text-gray-500">You don't have any reminders.</td></tr>
         {% endfor %}
     </tbody>
 </table>
@@ -76,16 +76,16 @@
 
 {% if is_paginated %}
 <div class="mt-4 flex items-center justify-center gap-4 text-sm text-gray-600">
-    {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}" class="hover:text-blue-600">Anterior</a>{% endif %}
-    <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
-    {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}" class="hover:text-blue-600">Siguiente</a>{% endif %}
+    {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}" class="hover:text-blue-600">Previous</a>{% endif %}
+    <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}" class="hover:text-blue-600">Next</a>{% endif %}
 </div>
 {% endif %}
 
 <script>
     const localDatetimeEl = document.getElementById('local-datetime');
     function updateLocalDatetime() {
-        localDatetimeEl.textContent = new Date().toLocaleString('es-MX', {
+        localDatetimeEl.textContent = new Date().toLocaleString('en-US', {
             dateStyle: 'medium',
             timeStyle: 'medium',
         });

@@ -120,9 +120,9 @@ class ContactImportView(UserFormKwargsMixin, LoginRequiredMixin, FormView):
         Contact.objects.bulk_create(new_contacts)
 
         if new_contacts:
-            messages.success(self.request, f"Se importaron {len(new_contacts)} contacto(s).")
+            messages.success(self.request, f"Imported {len(new_contacts)} contact(s).")
         else:
-            messages.warning(self.request, "No se encontró ningún contacto válido en el archivo.")
+            messages.warning(self.request, "No valid contacts were found in the file.")
 
         return super().form_valid(form)
 
@@ -257,7 +257,7 @@ class MediaFileCreateView(OwnerCreateMixin, CreateView):
         user = self.request.user
         quota_bytes = int(user.storage_quota_gb * 1024 ** 3)
         if uploaded_file and (user.storage_used_bytes + uploaded_file.size) > quota_bytes:
-            form.add_error("file", "No tienes espacio suficiente en tu cuota de almacenamiento.")
+            form.add_error("file", "Not enough storage space available in your quota.")
             return self.form_invalid(form)
 
         response = super().form_valid(form)
@@ -286,7 +286,7 @@ class MediaFileUpdateView(UserFormKwargsMixin, OwnerQuerysetMixin, UpdateView):
             new_file = form.cleaned_data.get("file")
             quota_bytes = int(user.storage_quota_gb * 1024 ** 3)
             if (user.storage_used_bytes - old_size + new_file.size) > quota_bytes:
-                form.add_error("file", "No tienes espacio suficiente en tu cuota de almacenamiento.")
+                form.add_error("file", "Not enough storage space available in your quota.")
                 return self.form_invalid(form)
 
         response = super().form_valid(form)

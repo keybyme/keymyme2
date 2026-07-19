@@ -8,11 +8,10 @@ from vault.models import Reminder
 
 class Command(BaseCommand):
     help = (
-        "Envía por correo los recordatorios pendientes (remind_at ya llegó, no completados "
-        "y sin correo enviado todavía). Los recordatorios sin frecuencia se borran después de "
-        "enviarse; los que tienen frecuencia (diario/semanal/mensual) se reprograman a la "
-        "siguiente ocurrencia. Pensado para correr periódicamente vía cron / Scheduled Job "
-        "(ej. cada 5-15 minutos)."
+        "Emails pending reminders (remind_at already reached, not completed, and no email sent "
+        "yet). Reminders with no frequency are deleted after being sent; those with a frequency "
+        "(daily/weekly/monthly) are rescheduled for the next occurrence. Meant to run "
+        "periodically via cron / Scheduled Job (e.g. every 5-15 minutes)."
     )
 
     def handle(self, *args, **options):
@@ -29,24 +28,24 @@ class Command(BaseCommand):
             recipient = reminder.notification_email
             if not recipient:
                 self.stderr.write(
-                    f"Recordatorio #{reminder.pk} ({reminder.title!r}) sin correo de destino, se omite."
+                    f"Reminder #{reminder.pk} ({reminder.title!r}) has no destination email, skipping."
                 )
                 continue
 
             try:
                 send_mail(
-                    subject=f"Recordatorio: {reminder.title}",
+                    subject=f"Reminder: {reminder.title}",
                     message=(
                         f"{reminder.title}\n\n"
                         f"{reminder.description}\n\n"
-                        f"Fecha: {timezone.localtime(reminder.remind_at):%d/%m/%Y %H:%M}"
+                        f"Date: {timezone.localtime(reminder.remind_at):%m/%d/%Y %I:%M %p}"
                     ),
                     from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=[recipient],
                     fail_silently=False,
                 )
             except Exception as exc:
-                self.stderr.write(f"Error enviando recordatorio #{reminder.pk} a {recipient}: {exc}")
+                self.stderr.write(f"Error sending reminder #{reminder.pk} to {recipient}: {exc}")
                 continue
 
             sent_count += 1
@@ -60,5 +59,5 @@ class Command(BaseCommand):
                 reminder.save(update_fields=["remind_at", "email_sent_at"])
 
         self.stdout.write(self.style.SUCCESS(
-            f"Correos enviados: {sent_count}. Recordatorios borrados (sin frecuencia): {deleted_count}."
+            f"Emails sent: {sent_count}. Reminders deleted (no frequency): {deleted_count}."
         ))

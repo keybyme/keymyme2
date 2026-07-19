@@ -1,6 +1,6 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -19,39 +19,39 @@
 
             <div class="hidden flex-1 flex-wrap items-center gap-1 text-sm font-medium text-gray-600 md:flex">
                 <a href="{% url 'vault:contact_list' %}" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-gray-100 hover:text-blue-700">
-                    {% include "icons/users.html" with class="w-4 h-4" %} Contactos
+                    {% include "icons/users.html" with class="w-4 h-4" %} Contacts
                 </a>
                 <a href="{% url 'vault:password_list' %}" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-gray-100 hover:text-blue-700">
                     {% include "icons/key.html" with class="w-4 h-4" %} Passwords
                 </a>
                 <a href="{% url 'vault:url_list' %}" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-gray-100 hover:text-blue-700">
-                    {% include "icons/link.html" with class="w-4 h-4" %} Enlaces
+                    {% include "icons/link.html" with class="w-4 h-4" %} Links
                 </a>
                 <a href="{% url 'vault:mediafile_list' %}" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-gray-100 hover:text-blue-700">
-                    {% include "icons/paper-clip.html" with class="w-4 h-4" %} Archivos
+                    {% include "icons/paper-clip.html" with class="w-4 h-4" %} Files
                 </a>
                 <a href="{% url 'vault:reminder_list' %}" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-gray-100 hover:text-blue-700">
-                    {% include "icons/bell.html" with class="w-4 h-4" %} Recordatorios
+                    {% include "icons/bell.html" with class="w-4 h-4" %} Reminders
                 </a>
                 <details class="finanzas-menu relative">
                     <summary class="flex list-none items-center gap-1.5 rounded-md px-3 py-1.5 cursor-pointer hover:bg-gray-100 hover:text-blue-700 [&::-webkit-details-marker]:hidden">
-                        {% include "icons/banknotes.html" with class="w-4 h-4" %} Finanzas
+                        {% include "icons/banknotes.html" with class="w-4 h-4" %} Finances
                         {% include "icons/chevron-down.html" with class="w-3.5 h-3.5" %}
                     </summary>
                     <div class="absolute left-0 z-10 mt-1 w-44 rounded-md border border-gray-100 bg-white py-1 shadow-lg">
                         <a href="{% url 'finanzas:transaccion_list' %}" class="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 hover:text-blue-700">
-                            {% include "icons/banknotes.html" with class="w-4 h-4" %} Transacciones
+                            {% include "icons/banknotes.html" with class="w-4 h-4" %} Transactions
                         </a>
                         <a href="{% url 'finanzas:cuenta_list' %}" class="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 hover:text-blue-700">
-                            {% include "icons/credit-card.html" with class="w-4 h-4" %} Cuentas
+                            {% include "icons/credit-card.html" with class="w-4 h-4" %} Accounts
                         </a>
                         <a href="{% url 'finanzas:deuda_list' %}" class="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 hover:text-blue-700">
-                            {% include "icons/credit-card.html" with class="w-4 h-4" %} Deudas
+                            {% include "icons/credit-card.html" with class="w-4 h-4" %} Debts
                         </a>
                     </div>
                 </details>
                 <a href="{% url 'vault:category_list' %}" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-gray-100 hover:text-blue-700">
-                    {% include "icons/tag.html" with class="w-4 h-4" %} Categorías
+                    {% include "icons/tag.html" with class="w-4 h-4" %} Categories
                 </a>
                 <a href="{% url 'vault:qrcode_generate' %}" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-gray-100 hover:text-blue-700">
                     {% include "icons/qr-code.html" with class="w-4 h-4" %} QR
@@ -63,14 +63,14 @@
                 <form method="post" action="{% url 'logout' %}">
                     {% csrf_token %}
                     <button type="submit" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 font-medium text-gray-600 hover:bg-red-50 hover:text-red-600">
-                        {% include "icons/logout.html" with class="w-4 h-4" %} Salir
+                        {% include "icons/logout.html" with class="w-4 h-4" %} Sign out
                     </button>
                 </form>
             </div>
 
             <button type="button" id="menu-toggle" aria-controls="mobile-menu" aria-expanded="false"
                     class="flex items-center justify-center rounded-md p-2 text-gray-600 hover:bg-gray-100 hover:text-blue-700 md:hidden">
-                <span class="sr-only">Abrir menú</span>
+                <span class="sr-only">Open menu</span>
                 <span id="menu-icon-open">{% include "icons/bars-3.html" with class="w-6 h-6" %}</span>
                 <span id="menu-icon-close" class="hidden">{% include "icons/x-mark.html" with class="w-6 h-6" %}</span>
             </button>
@@ -79,39 +79,39 @@
         <div id="mobile-menu" class="hidden border-t border-gray-100 md:hidden">
             <div class="flex flex-col gap-1 px-4 py-3 text-sm font-medium text-gray-600">
                 <a href="{% url 'vault:contact_list' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
-                    {% include "icons/users.html" with class="w-5 h-5" %} Contactos
+                    {% include "icons/users.html" with class="w-5 h-5" %} Contacts
                 </a>
                 <a href="{% url 'vault:password_list' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
                     {% include "icons/key.html" with class="w-5 h-5" %} Passwords
                 </a>
                 <a href="{% url 'vault:url_list' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
-                    {% include "icons/link.html" with class="w-5 h-5" %} Enlaces
+                    {% include "icons/link.html" with class="w-5 h-5" %} Links
                 </a>
                 <a href="{% url 'vault:mediafile_list' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
-                    {% include "icons/paper-clip.html" with class="w-5 h-5" %} Archivos
+                    {% include "icons/paper-clip.html" with class="w-5 h-5" %} Files
                 </a>
                 <a href="{% url 'vault:reminder_list' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
-                    {% include "icons/bell.html" with class="w-5 h-5" %} Recordatorios
+                    {% include "icons/bell.html" with class="w-5 h-5" %} Reminders
                 </a>
                 <details class="finanzas-menu">
                     <summary class="flex list-none items-center gap-2 rounded-md px-3 py-2.5 cursor-pointer hover:bg-gray-100 hover:text-blue-700 [&::-webkit-details-marker]:hidden">
-                        {% include "icons/banknotes.html" with class="w-5 h-5" %} Finanzas
+                        {% include "icons/banknotes.html" with class="w-5 h-5" %} Finances
                         {% include "icons/chevron-down.html" with class="w-4 h-4" %}
                     </summary>
                     <div class="flex flex-col gap-1 pl-6">
                         <a href="{% url 'finanzas:transaccion_list' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
-                            {% include "icons/banknotes.html" with class="w-5 h-5" %} Transacciones
+                            {% include "icons/banknotes.html" with class="w-5 h-5" %} Transactions
                         </a>
                         <a href="{% url 'finanzas:cuenta_list' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
-                            {% include "icons/credit-card.html" with class="w-5 h-5" %} Cuentas
+                            {% include "icons/credit-card.html" with class="w-5 h-5" %} Accounts
                         </a>
                         <a href="{% url 'finanzas:deuda_list' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
-                            {% include "icons/credit-card.html" with class="w-5 h-5" %} Deudas
+                            {% include "icons/credit-card.html" with class="w-5 h-5" %} Debts
                         </a>
                     </div>
                 </details>
                 <a href="{% url 'vault:category_list' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
-                    {% include "icons/tag.html" with class="w-5 h-5" %} Categorías
+                    {% include "icons/tag.html" with class="w-5 h-5" %} Categories
                 </a>
                 <a href="{% url 'vault:qrcode_generate' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
                     {% include "icons/qr-code.html" with class="w-5 h-5" %} QR
@@ -122,7 +122,7 @@
                 <form method="post" action="{% url 'logout' %}">
                     {% csrf_token %}
                     <button type="submit" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 font-medium text-gray-600 hover:bg-red-50 hover:text-red-600">
-                        {% include "icons/logout.html" with class="w-4 h-4" %} Salir
+                        {% include "icons/logout.html" with class="w-4 h-4" %} Sign out
                     </button>
                 </form>
             </div>
@@ -132,7 +132,7 @@
         <div class="mx-auto flex max-w-6xl items-center gap-3 text-xs text-gray-500">
             {% widthratio user.storage_used_bytes user.storage_quota_bytes 100 as storage_percent %}
             <span class="whitespace-nowrap">
-                Almacenamiento: {{ user.storage_used_bytes|filesizeformat }} de {{ user.storage_quota_bytes|filesizeformat }}
+                Storage: {{ user.storage_used_bytes|filesizeformat }} of {{ user.storage_quota_bytes|filesizeformat }}
             </span>
             <div class="h-2 flex-1 overflow-hidden rounded-full bg-gray-100">
                 <div class="h-full rounded-full {% if storage_percent >= 90 %}bg-red-500{% elif storage_percent >= 70 %}bg-amber-500{% else %}bg-emerald-500{% endif %}"

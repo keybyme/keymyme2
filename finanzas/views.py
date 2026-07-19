@@ -31,7 +31,7 @@ def _attach_recibo(form, request, old_recibo=None):
 
     user = request.user
     if not user.has_space_for(uploaded_file.size):
-        form.add_error("recibo_file", "No tienes espacio suficiente en tu cuota de almacenamiento.")
+        form.add_error("recibo_file", "You don't have enough space left in your storage quota.")
         return False
 
     extension = uploaded_file.name.rsplit(".", 1)[-1].lower()
@@ -99,8 +99,8 @@ class CuentaDeleteView(OwnerQuerysetMixin, DeleteView):
         except ProtectedError:
             messages.error(
                 self.request,
-                "No se puede borrar esta cuenta: tiene transacciones asociadas. "
-                "Reasigna o borra esas transacciones primero.",
+                "This account can't be deleted: it has associated transactions. "
+                "Reassign or delete those transactions first.",
             )
             return redirect(self.success_url)
 
@@ -115,9 +115,9 @@ class TransaccionListView(SearchableListMixin, OwnerQuerysetMixin, ListView):
     search_fields = ("concepto",)
 
     MESES = [
-        (1, "Enero"), (2, "Febrero"), (3, "Marzo"), (4, "Abril"),
-        (5, "Mayo"), (6, "Junio"), (7, "Julio"), (8, "Agosto"),
-        (9, "Septiembre"), (10, "Octubre"), (11, "Noviembre"), (12, "Diciembre"),
+        (1, "January"), (2, "February"), (3, "March"), (4, "April"),
+        (5, "May"), (6, "June"), (7, "July"), (8, "August"),
+        (9, "September"), (10, "October"), (11, "November"), (12, "December"),
     ]
 
     def _get_periodo(self):
@@ -132,7 +132,7 @@ class TransaccionListView(SearchableListMixin, OwnerQuerysetMixin, ListView):
     def _get_periodo_label(self):
         periodo = self._get_periodo()
         if periodo == "ytd":
-            return "Lo que va del año"
+            return "Year to date"
         if periodo and periodo.isdigit() and 1 <= int(periodo) <= 12:
             return dict(self.MESES)[int(periodo)]
         return ""
@@ -268,5 +268,5 @@ class DeudaResetFlagsView(LoginRequiredMixin, View):
 
     def post(self, request):
         updated = Deuda.objects.filter(owner=request.user).update(flag=Deuda.Flag.NO_PAGADO)
-        messages.success(request, f"Se reinició el flag de pago de {updated} deuda(s).")
+        messages.success(request, f"Reset the payment status of {updated} debt(s).")
         return redirect("finanzas:deuda_list")

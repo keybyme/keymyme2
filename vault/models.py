@@ -46,8 +46,8 @@ class Category(models.Model):
     class Meta:
         ordering = ["name"]
         unique_together = ("owner", "name")
-        verbose_name = "Categoría"
-        verbose_name_plural = "Categorías"
+        verbose_name = "Category"
+        verbose_name_plural = "Categories"
 
     def __str__(self):
         return self.name
@@ -68,8 +68,8 @@ class Contact(models.Model):
 
     class Meta:
         ordering = ["name"]
-        verbose_name = "Contacto"
-        verbose_name_plural = "Contactos"
+        verbose_name = "Contact"
+        verbose_name_plural = "Contacts"
 
     def __str__(self):
         return self.name
@@ -131,8 +131,8 @@ class MediaFile(models.Model):
     para simplificar; se puede filtrar por tipo en las vistas."""
 
     class FileType(models.TextChoices):
-        DOCUMENT = "document", "Documento"
-        PHOTO = "photo", "Foto"
+        DOCUMENT = "document", "Document"
+        PHOTO = "photo", "Photo"
         VIDEO = "video", "Video"
 
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="media_files")
@@ -150,8 +150,8 @@ class MediaFile(models.Model):
 
     class Meta:
         ordering = ["-uploaded_at"]
-        verbose_name = "Archivo"
-        verbose_name_plural = "Archivos"
+        verbose_name = "File"
+        verbose_name_plural = "Files"
 
     def save(self, *args, **kwargs):
         if self.file and not self.file_size_bytes:
@@ -174,10 +174,10 @@ class MediaFile(models.Model):
 
 class Reminder(models.Model):
     FREQUENCY_CHOICES = [
-        ("", "Una sola vez"),
-        ("diario", "Diario"),
-        ("semanal", "Semanal"),
-        ("mensual", "Mensual"),
+        ("", "One time"),
+        ("diario", "Daily"),
+        ("semanal", "Weekly"),
+        ("mensual", "Monthly"),
     ]
 
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="reminders")
@@ -192,28 +192,28 @@ class Reminder(models.Model):
         choices=FREQUENCY_CHOICES,
         blank=True,
         default="",
-        verbose_name="Frecuencia",
+        verbose_name="Frequency",
         help_text=(
-            "Una sola vez: el recordatorio se borra después de enviarse. Diario/Semanal/Mensual: "
-            "se reprograma automáticamente a la misma hora (mismo día de la semana o del mes según aplique)."
+            "One time: the reminder is deleted after it is sent. Daily/Weekly/Monthly: "
+            "it is automatically rescheduled for the same time (same day of the week or month as applicable)."
         ),
     )
     is_completed = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     recipient_email = models.EmailField(
         blank=True,
-        verbose_name="Correo del destinatario",
-        help_text="A quién se le envía el aviso. Si se deja vacío, se usa el correo de tu cuenta.",
+        verbose_name="Recipient email",
+        help_text="Who the notification is sent to. If left empty, your account email is used.",
     )
     email_sent_at = models.DateTimeField(
         null=True, blank=True, editable=False,
-        help_text="Cuándo se envió el correo de aviso. Vacío = todavía no se ha enviado.",
+        help_text="When the notification email was sent. Empty = not sent yet.",
     )
 
     class Meta:
         ordering = ["remind_at"]
-        verbose_name = "Recordatorio"
-        verbose_name_plural = "Recordatorios"
+        verbose_name = "Reminder"
+        verbose_name_plural = "Reminders"
 
     def __str__(self):
         return self.title

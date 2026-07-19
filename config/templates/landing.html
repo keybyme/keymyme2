@@ -1,10 +1,10 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>KeyByMe — Tu Asistente Personal</title>
+    <title>KeyByMe — Your Personal Assistant</title>
     <link rel="icon" type="image/png" href="{% static 'images/logo_keybyme.png' %}">
     {% include "_tailwind_config.html" %}
 </head>
@@ -16,26 +16,26 @@
                 <img src="{% static 'images/logo_keybyme.png' %}" alt="KeyByMe" class="h-12 w-12 rounded-full object-cover shadow-sm">
                 <span class="leading-tight">
                     <span class="block text-xl font-extrabold tracking-tight text-cafe-dark">KeyByMe</span>
-                    <span class="block text-xs text-gray-500">Tu Asistente Personal</span>
+                    <span class="block text-xs text-gray-500">Your Personal Assistant</span>
                 </span>
             </a>
 
             <nav class="hidden items-center gap-1 text-sm font-medium text-gray-600 lg:flex">
-                <a href="#top" class="border-b-2 border-gold px-3 py-1.5 text-cafe-dark">Inicio</a>
-                <a href="#caracteristicas" class="rounded-md px-3 py-1.5 hover:text-cafe">Características</a>
-                <a href="#" class="rounded-md px-3 py-1.5 hover:text-cafe">Precios</a>
-                <a href="#" class="rounded-md px-3 py-1.5 hover:text-cafe">Seguridad</a>
-                <a href="#" class="rounded-md px-3 py-1.5 hover:text-cafe">Acerca de</a>
-                <a href="#" class="rounded-md px-3 py-1.5 hover:text-cafe">Contacto</a>
+                <a href="#top" class="border-b-2 border-gold px-3 py-1.5 text-cafe-dark">Home</a>
+                <a href="#caracteristicas" class="rounded-md px-3 py-1.5 hover:text-cafe">Features</a>
+                <a href="#" class="rounded-md px-3 py-1.5 hover:text-cafe">Pricing</a>
+                <a href="#" class="rounded-md px-3 py-1.5 hover:text-cafe">Security</a>
+                <a href="#" class="rounded-md px-3 py-1.5 hover:text-cafe">About</a>
+                <a href="#" class="rounded-md px-3 py-1.5 hover:text-cafe">Contact</a>
             </nav>
 
             <div class="flex items-center gap-3">
-                <button type="button" title="Español (único idioma disponible)"
+                <button type="button" title="English (only language available)"
                         class="hidden items-center gap-1 rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-600 sm:flex">
-                    ES {% include "icons/chevron-down.html" with class="w-3.5 h-3.5" %}
+                    EN {% include "icons/chevron-down.html" with class="w-3.5 h-3.5" %}
                 </button>
                 <a href="{% url 'login' %}" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-cafe-darker">
-                    {% include "icons/key.html" with class="w-4 h-4" %} Iniciar sesión
+                    {% include "icons/key.html" with class="w-4 h-4" %} Log in
                 </a>
             </div>
         </div>
@@ -45,26 +45,26 @@
         <div class="mx-auto grid max-w-7xl gap-12 px-4 py-16 sm:px-6 lg:grid-cols-2 lg:items-center lg:px-8 lg:py-24">
             <div>
                 <span class="inline-flex items-center gap-2 rounded-full bg-[#E9DDD0] px-4 py-1.5 text-sm font-medium text-cafe-dark">
-                    {% include "icons/shield-check.html" with class="w-4 h-4" %} Más que una bóveda. Tu asistente personal.
+                    {% include "icons/shield-check.html" with class="w-4 h-4" %} More than a vault. Your personal assistant.
                 </span>
                 <h1 class="mt-6 text-4xl font-extrabold leading-tight text-ink sm:text-5xl">
-                    Todo lo importante de tu vida, siempre a tu lado.
+                    Everything important in your life, always by your side.
                 </h1>
                 <p class="mt-6 max-w-xl text-lg text-gray-600">
-                    KeyByMe te ayuda a organizar, proteger y tener siempre a la mano lo que más importa: tu información, tus contactos, tus accesos y mucho más.
+                    KeyByMe helps you organize, protect, and always have on hand what matters most: your information, your contacts, your access, and much more.
                 </p>
                 <div class="mt-8">
                     <a href="{% url 'login' %}" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-cafe-darker">
-                        {% include "icons/key.html" with class="w-4 h-4" %} Iniciar sesión
+                        {% include "icons/key.html" with class="w-4 h-4" %} Log in
                     </a>
                 </div>
                 <p class="mt-6 flex items-center gap-2 text-sm text-gray-600">
-                    {% include "icons/check-circle.html" with class="w-4 h-4 text-emerald-600" %} Seguro. Privado. Siempre contigo.
+                    {% include "icons/check-circle.html" with class="w-4 h-4 text-emerald-600" %} Secure. Private. Always with you.
                 </p>
             </div>
 
             <div>
-                <img src="{% static 'images/hero_dashboard.jpg' %}" alt="KeyByMe en laptop y celular"
+                <img src="{% static 'images/hero_dashboard.jpg' %}" alt="KeyByMe on laptop and phone"
                      class="w-full rounded-2xl shadow-xl">
             </div>
         </div>
@@ -77,8 +77,8 @@
                     {% include "icons/users.html" with class="w-5 h-5" %}
                 </span>
                 <div>
-                    <p class="font-semibold text-gray-900">Contactos</p>
-                    <p class="text-sm text-gray-600">Organiza y ten siempre a tu gente importante.</p>
+                    <p class="font-semibold text-gray-900">Contacts</p>
+                    <p class="text-sm text-gray-600">Organize and always have your important people on hand.</p>
                 </div>
             </div>
             <div class="flex items-start gap-3">
@@ -86,8 +86,8 @@
                     {% include "icons/key.html" with class="w-5 h-5" %}
                 </span>
                 <div>
-                    <p class="font-semibold text-gray-900">Claves</p>
-                    <p class="text-sm text-gray-600">Guarda tus contraseñas de forma segura.</p>
+                    <p class="font-semibold text-gray-900">Passwords</p>
+                    <p class="text-sm text-gray-600">Keep your passwords stored securely.</p>
                 </div>
             </div>
             <div class="flex items-start gap-3">
@@ -95,8 +95,8 @@
                     {% include "icons/link.html" with class="w-5 h-5" %}
                 </span>
                 <div>
-                    <p class="font-semibold text-gray-900">Enlaces</p>
-                    <p class="text-sm text-gray-600">Accede rápido a tus sitios web favoritos.</p>
+                    <p class="font-semibold text-gray-900">Links</p>
+                    <p class="text-sm text-gray-600">Quick access to your favorite websites.</p>
                 </div>
             </div>
             <div class="flex items-start gap-3">
@@ -104,8 +104,8 @@
                     {% include "icons/paper-clip.html" with class="w-5 h-5" %}
                 </span>
                 <div>
-                    <p class="font-semibold text-gray-900">Archivos</p>
-                    <p class="text-sm text-gray-600">Tus documentos importantes siempre protegidos.</p>
+                    <p class="font-semibold text-gray-900">Files</p>
+                    <p class="text-sm text-gray-600">Your important documents, always protected.</p>
                 </div>
             </div>
             <div class="flex items-start gap-3">
@@ -113,8 +113,8 @@
                     {% include "icons/bell.html" with class="w-5 h-5" %}
                 </span>
                 <div>
-                    <p class="font-semibold text-gray-900">Recordatorios</p>
-                    <p class="text-sm text-gray-600">No olvides lo que realmente importa.</p>
+                    <p class="font-semibold text-gray-900">Reminders</p>
+                    <p class="text-sm text-gray-600">Never forget what really matters.</p>
                 </div>
             </div>
             <div class="flex items-start gap-3">
@@ -122,8 +122,8 @@
                     {% include "icons/banknotes.html" with class="w-5 h-5" %}
                 </span>
                 <div>
-                    <p class="font-semibold text-gray-900">Finanzas</p>
-                    <p class="text-sm text-gray-600">Lleva control de tus finanzas y presupuestos.</p>
+                    <p class="font-semibold text-gray-900">Finances</p>
+                    <p class="text-sm text-gray-600">Keep track of your finances and budgets.</p>
                 </div>
             </div>
         </div>
@@ -135,16 +135,16 @@
                 <img src="{% static 'images/logo_keybyme.png' %}" alt="KeyByMe" class="h-10 w-10 rounded-full object-cover">
                 <span class="leading-tight">
                     <span class="block text-sm font-extrabold text-cafe-dark">KeyByMe</span>
-                    <span class="block text-xs text-gray-500">Tu Asistente Personal</span>
+                    <span class="block text-xs text-gray-500">Your Personal Assistant</span>
                 </span>
             </a>
 
-            <p class="text-sm text-gray-500">© {% now "Y" %} KeyByMe. Todos los derechos reservados.</p>
+            <p class="text-sm text-gray-500">© {% now "Y" %} KeyByMe. All rights reserved.</p>
 
             <div class="flex items-center gap-4 text-sm text-gray-500">
-                <a href="#" class="hover:text-cafe">Términos de uso</a>
-                <a href="#" class="hover:text-cafe">Privacidad</a>
-                <a href="#" class="hover:text-cafe">Ayuda</a>
+                <a href="#" class="hover:text-cafe">Terms of use</a>
+                <a href="#" class="hover:text-cafe">Privacy</a>
+                <a href="#" class="hover:text-cafe">Help</a>
             </div>
 
             <div class="flex items-center gap-3">
@@ -154,7 +154,7 @@
                 <a href="#" class="flex h-9 w-9 items-center justify-center rounded-full bg-cream-soft text-cafe-dark hover:bg-beige" title="Instagram">
                     {% include "icons/instagram.html" with class="w-4 h-4" %}
                 </a>
-                <a href="#" class="flex h-9 w-9 items-center justify-center rounded-full bg-cream-soft text-cafe-dark hover:bg-beige" title="Correo">
+                <a href="#" class="flex h-9 w-9 items-center justify-center rounded-full bg-cream-soft text-cafe-dark hover:bg-beige" title="Email">
                     {% include "icons/envelope.html" with class="w-4 h-4" %}
                 </a>
             </div>

@@ -1,18 +1,18 @@
 {% extends "base.html" %}
-{% block title %}Deudas{% endblock %}
+{% block title %}Debts{% endblock %}
 {% block content %}
 {% url 'finanzas:deuda_list' as deuda_list_url %}
 <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
     <div class="flex items-baseline gap-3">
-        <h1 class="text-2xl font-semibold text-gray-900">Deudas</h1>
-        <span class="text-sm text-gray-500">Saldo total: <span class="font-semibold text-gray-900">${{ total_saldo }}</span></span>
+        <h1 class="text-2xl font-semibold text-gray-900">Debts</h1>
+        <span class="text-sm text-gray-500">Total balance: <span class="font-semibold text-gray-900">${{ total_saldo }}</span></span>
     </div>
     <div class="flex items-center gap-3">
         <a href="{% url 'finanzas:deuda_reset_flags' %}" class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">
-            {% include "icons/arrow-path.html" with class="w-4 h-4" %} Reiniciar flags
+            {% include "icons/arrow-path.html" with class="w-4 h-4" %} Reset flags
         </a>
         <a href="{% url 'finanzas:deuda_create' %}" class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700">
-            {% include "icons/plus.html" with class="w-4 h-4" %} Nueva deuda
+            {% include "icons/plus.html" with class="w-4 h-4" %} New debt
         </a>
     </div>
 </div>
@@ -21,15 +21,15 @@
 <table class="min-w-full divide-y divide-gray-100">
     <thead class="bg-cafe-dark">
         <tr>
-            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Deuda</th>
-            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Tipo</th>
-            <th class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wide text-white">Monto</th>
-            <th class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wide text-white">Saldo</th>
-            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Cuenta #</th>
-            <th class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wide text-white">Crédito</th>
-            <th class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wide text-white">Crédito disponible</th>
-            <th class="px-4 py-3 text-center text-xs font-bold uppercase tracking-wide text-white">Día</th>
-            <th class="px-4 py-3 text-center text-xs font-bold uppercase tracking-wide text-white">Flag</th>
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Debt</th>
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Type</th>
+            <th class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wide text-white">Amount</th>
+            <th class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wide text-white">Balance</th>
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Account #</th>
+            <th class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wide text-white">Credit limit</th>
+            <th class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wide text-white">Available credit</th>
+            <th class="px-4 py-3 text-center text-xs font-bold uppercase tracking-wide text-white">Day</th>
+            <th class="px-4 py-3 text-center text-xs font-bold uppercase tracking-wide text-white">Paid</th>
             <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Remarks</th>
             <th class="px-4 py-3"></th>
             <th class="px-4 py-3"></th>
@@ -64,22 +64,22 @@
             <td class="max-w-xs truncate px-4 py-3 text-sm text-gray-600" title="{{ deuda.remarks }}">{{ deuda.remarks|default:"—" }}</td>
             <td class="whitespace-nowrap px-4 py-3 text-sm">
                 {% if deuda.password %}
-                <a href="{% url 'vault:password_reveal' deuda.password.pk %}?next={{ deuda_list_url|urlencode }}" class="font-medium text-blue-600 hover:text-blue-800 hover:underline">Ir ahí</a>
+                <a href="{% url 'vault:password_reveal' deuda.password.pk %}?next={{ deuda_list_url|urlencode }}" class="font-medium text-blue-600 hover:text-blue-800 hover:underline">Go there</a>
                 {% else %}<span class="text-gray-400">—</span>{% endif %}
             </td>
             <td class="whitespace-nowrap px-4 py-3 text-right text-sm">
                 <div class="flex justify-end gap-3">
-                    <a href="{% url 'finanzas:deuda_update' deuda.pk %}" class="text-cafe hover:text-cafe-darker" title="Editar">
+                    <a href="{% url 'finanzas:deuda_update' deuda.pk %}" class="text-cafe hover:text-cafe-darker" title="Edit">
                         {% include "icons/pencil.html" with class="w-5 h-5" %}
                     </a>
-                    <a href="{% url 'finanzas:deuda_delete' deuda.pk %}" class="text-crimson hover:text-red-800" title="Borrar">
+                    <a href="{% url 'finanzas:deuda_delete' deuda.pk %}" class="text-crimson hover:text-red-800" title="Delete">
                         {% include "icons/trash.html" with class="w-5 h-5" %}
                     </a>
                 </div>
             </td>
         </tr>
         {% empty %}
-        <tr><td colspan="12" class="px-4 py-6 text-center text-sm text-gray-500">No tienes deudas registradas.</td></tr>
+        <tr><td colspan="12" class="px-4 py-6 text-center text-sm text-gray-500">You have no debts on record.</td></tr>
         {% endfor %}
     </tbody>
 </table>
@@ -87,9 +87,9 @@
 
 {% if is_paginated %}
 <div class="mt-4 flex items-center justify-center gap-4 text-sm text-gray-600">
-    {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}" class="hover:text-blue-600">Anterior</a>{% endif %}
-    <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
-    {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}" class="hover:text-blue-600">Siguiente</a>{% endif %}
+    {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}" class="hover:text-blue-600">Previous</a>{% endif %}
+    <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}" class="hover:text-blue-600">Next</a>{% endif %}
 </div>
 {% endif %}
 {% endblock %}

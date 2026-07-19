@@ -24,8 +24,8 @@ class CustomUserAdmin(UserAdmin):
 
     def storage_used_display(self, obj):
         gb = obj.storage_used_bytes / (1024 ** 3)
-        return f"{gb:.3f} GB de {obj.storage_quota_gb} GB"
-    storage_used_display.short_description = "Espacio usado"
+        return f"{gb:.3f} GB of {obj.storage_quota_gb} GB"
+    storage_used_display.short_description = "Storage used"
 
     def save_model(self, request, obj, form, change):
         if not change:

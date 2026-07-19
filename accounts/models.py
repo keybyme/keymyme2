@@ -3,50 +3,50 @@ from django.db import models
 
 
 class CustomUser(AbstractUser):
-    """Usuario del sistema. El Admin Principal puede crear y administrar
-    todas las demás cuentas."""
+    """System user. The Main Admin can create and manage
+    all other accounts."""
 
     is_admin_principal = models.BooleanField(
         default=False,
-        help_text="Si es True, este usuario puede crear/administrar otras cuentas y sus permisos.",
+        help_text="If True, this user can create/manage other accounts and their permissions.",
     )
     role = models.ForeignKey(
         "menus.Role", on_delete=models.SET_NULL, null=True, blank=True, related_name="users"
     )
     storage_quota_gb = models.DecimalField(
         max_digits=10, decimal_places=2, default=5.0,
-        help_text="Cuota de espacio asignada al usuario, en GB.",
+        help_text="Storage quota assigned to the user, in GB.",
     )
     storage_used_bytes = models.BigIntegerField(
-        default=0, help_text="Espacio usado actualmente, en bytes. Se recalcula al subir/borrar archivos.",
+        default=0, help_text="Space currently used, in bytes. Recalculated when files are uploaded/deleted.",
     )
     is_suspended = models.BooleanField(
-        default=False, help_text="Si es True, el usuario no puede iniciar sesión aunque is_active sea True.",
+        default=False, help_text="If True, the user cannot log in even if is_active is True.",
     )
     created_by = models.ForeignKey(
         "self", on_delete=models.SET_NULL, null=True, blank=True, related_name="created_users",
-        help_text="Admin principal que creó esta cuenta.",
+        help_text="Main admin who created this account.",
     )
     phone = models.CharField(
         max_length=20, blank=True,
-        verbose_name="Teléfono celular",
-        help_text="Tu número de celular, sin espacios (ej. 2407939353).",
+        verbose_name="Mobile phone",
+        help_text="Your mobile number, without spaces (e.g. 2407939353).",
     )
     carrier = models.CharField(
         max_length=30, blank=True,
-        verbose_name="Carrier / pasarela SMS",
+        verbose_name="Carrier / SMS gateway",
         help_text=(
-            "Dominio de correo-a-SMS de tu compañía telefónica, incluyendo la arroba "
-            "(ej. @tmomail.net para T-Mobile, @vtext.com para Verizon, @txt.att.net para AT&T). "
-            "Junto con tu teléfono arma la dirección a la que KeyByMe puede mandarte avisos "
-            "como si fueran un SMS, sin necesitar Twilio ni ningún otro servicio."
+            "Your phone carrier's email-to-SMS domain, including the at sign "
+            "(e.g. @tmomail.net for T-Mobile, @vtext.com for Verizon, @txt.att.net for AT&T). "
+            "Combined with your phone number, this builds the address KeyByMe can use to send you "
+            "notifications as if they were an SMS, without needing Twilio or any other service."
         ),
     )
 
     @property
     def sms_gateway_email(self):
-        """Dirección tipo '2407939353@tmomail.net' armada de phone+carrier,
-        o '' si al usuario le falta configurar alguno de los dos."""
+        """Address like '2407939353@tmomail.net' built from phone+carrier,
+        or '' if the user is missing either setting."""
         if self.phone and self.carrier:
             return f"{self.phone}{self.carrier}"
         return ""
@@ -63,8 +63,8 @@ class CustomUser(AbstractUser):
         return (self.storage_used_bytes + additional_bytes) <= self.storage_quota_bytes
 
     def has_permission(self, submodule_codename: str) -> bool:
-        """Chequea si el usuario tiene acceso a un submódulo, respetando
-        primero las excepciones individuales y luego el rol."""
+        """Checks whether the user has access to a submodule, honoring
+        per-user overrides first, then falling back to the role."""
         override = self.permission_overrides.filter(submodule__codename=submodule_codename).first()
         if override is not None:
             return override.granted

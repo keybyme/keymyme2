@@ -1,20 +1,20 @@
 {% extends "base.html" %}
-{% block title %}Transacción{% endblock %}
+{% block title %}Transaction{% endblock %}
 {% block content %}
-<h1 class="mb-6 text-2xl font-semibold text-gray-900">{% if object %}Editar{% else %}Nueva{% endif %} transacción</h1>
+<h1 class="mb-6 text-2xl font-semibold text-gray-900">{% if object %}Edit{% else %}New{% endif %} transaction</h1>
 <form method="post" enctype="multipart/form-data" class="max-w-lg rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
     {% csrf_token %}
     {% include "_form_fields.html" %}
     {% if object.recibo %}
     <p class="mb-4 text-xs text-gray-500">
-        Recibo actual:
+        Current receipt:
         <a href="{{ object.recibo.file.url }}" target="_blank" class="text-blue-600 hover:underline">{{ object.recibo.original_name }}</a>
-        — sube un archivo nuevo arriba para reemplazarlo.
+        — upload a new file above to replace it.
     </p>
     {% endif %}
     <div class="mt-6 flex items-center gap-3">
-        <button type="submit" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700">Guardar</button>
-        <a href="{% url 'finanzas:transaccion_list' %}" class="text-sm font-medium text-gray-600 hover:text-gray-900">Cancelar</a>
+        <button type="submit" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700">Save</button>
+        <a href="{% url 'finanzas:transaccion_list' %}" class="text-sm font-medium text-gray-600 hover:text-gray-900">Cancel</a>
     </div>
 </form>
 {% endblock %}

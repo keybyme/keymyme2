@@ -80,4 +80,4 @@ Deploy flow on the EC2 box: `git pull`, `pip install -r requirements.txt`, `pyth
 
 ## Localization
 
-User-facing strings, model `verbose_name`s, help text, and comments are in Spanish (`LANGUAGE_CODE = 'es'`, `TIME_ZONE = 'America/Mexico_City'`). Match this convention for new user-facing text and Django admin config.
+User-facing strings, model `verbose_name`s, help text, and Django admin config are in English (`LANGUAGE_CODE = 'en-us'`, `TIME_ZONE = 'America/New_York'`) — the app targets a US-based user. Match this convention for new user-facing text: templates, form labels/help_text/error messages, `messages.success/error(...)` calls, model `verbose_name`/`verbose_name_plural`/`help_text`/`choices`, and admin labels should all be written in English. Number formatting is US style (comma thousands, dot decimal) via Django's built-in `en-us` locale — there is no custom format module. Internal code comments and docstrings may remain in Spanish; only text that actually renders to the end user (browser, admin, email) needs to be English.

@@ -23,7 +23,7 @@ class VaultPasswordAdminForm(forms.ModelForm):
         label="Password",
         required=False,
         widget=forms.PasswordInput(render_value=False),
-        help_text="Dejar en blanco para no modificar el password actual.",
+        help_text="Leave blank to keep the current password unchanged.",
     )
 
     class Meta:

@@ -1,10 +1,10 @@
 {% extends "base.html" %}
-{% block title %}Galería de fotos{% endblock %}
+{% block title %}Photo gallery{% endblock %}
 {% block content %}
 <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
-    <h1 class="text-2xl font-semibold text-gray-900">Galería de fotos</h1>
+    <h1 class="text-2xl font-semibold text-gray-900">Photo gallery</h1>
     <a href="{% url 'vault:mediafile_list' %}" class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">
-        {% include "icons/paper-clip.html" with class="w-4 h-4" %} Ver lista de archivos
+        {% include "icons/paper-clip.html" with class="w-4 h-4" %} View file list
     </a>
 </div>
 
@@ -29,18 +29,18 @@
 {% if is_paginated %}
 <div class="mt-6 flex items-center justify-center gap-2 text-sm">
     {% if page_obj.has_previous %}
-    <a href="?page={{ page_obj.previous_page_number }}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if query %}&q={{ query }}{% endif %}" class="rounded-lg border border-gray-300 bg-white px-3 py-1.5 font-medium text-gray-700 hover:bg-gray-50">Anterior</a>
+    <a href="?page={{ page_obj.previous_page_number }}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if query %}&q={{ query }}{% endif %}" class="rounded-lg border border-gray-300 bg-white px-3 py-1.5 font-medium text-gray-700 hover:bg-gray-50">Previous</a>
     {% endif %}
-    <span class="px-2 text-gray-500">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+    <span class="px-2 text-gray-500">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
     {% if page_obj.has_next %}
-    <a href="?page={{ page_obj.next_page_number }}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if query %}&q={{ query }}{% endif %}" class="rounded-lg border border-gray-300 bg-white px-3 py-1.5 font-medium text-gray-700 hover:bg-gray-50">Siguiente</a>
+    <a href="?page={{ page_obj.next_page_number }}{% if selected_category %}&category={{ selected_category }}{% endif %}{% if query %}&q={{ query }}{% endif %}" class="rounded-lg border border-gray-300 bg-white px-3 py-1.5 font-medium text-gray-700 hover:bg-gray-50">Next</a>
     {% endif %}
 </div>
 {% endif %}
 
 {% else %}
 <div class="rounded-xl border border-gray-200 bg-white px-4 py-12 text-center text-sm text-gray-500 shadow-sm">
-    No tienes fotos todavía{% if selected_category %} en esta categoría{% endif %}.
+    You don't have any photos yet{% if selected_category %} in this category{% endif %}.
 </div>
 {% endif %}
 {% endblock %}

@@ -30,7 +30,7 @@ class CuentaForm(TailwindFormMixin, forms.ModelForm):
         if self._user is not None:
             duplicado = Cuenta.objects.filter(owner=self._user, name=name).exclude(pk=self.instance.pk)
             if duplicado.exists():
-                raise forms.ValidationError("Ya tienes una cuenta con este nombre.")
+                raise forms.ValidationError("You already have an account with this name.")
         return name
 
     def clean_numero(self):
@@ -38,16 +38,16 @@ class CuentaForm(TailwindFormMixin, forms.ModelForm):
         if self._user is not None:
             duplicado = Cuenta.objects.filter(owner=self._user, numero=numero).exclude(pk=self.instance.pk)
             if duplicado.exists():
-                raise forms.ValidationError("Ya tienes una cuenta con este número.")
+                raise forms.ValidationError("You already have an account with this number.")
         return numero
 
 
 class TransaccionForm(TailwindFormMixin, UserCategoryFormMixin, forms.ModelForm):
     recibo_file = forms.FileField(
         required=False,
-        label="Foto del recibo",
+        label="Receipt photo",
         validators=[FileExtensionValidator(allowed_extensions=ALLOWED_MEDIA_EXTENSIONS)],
-        help_text="Opcional: adjunta una foto o documento del recibo (se guarda junto con tus Archivos).",
+        help_text="Optional: attach a photo or document of the receipt (saved alongside your Files).",
     )
 
     class Meta:
@@ -88,10 +88,10 @@ class DeudaForm(TailwindFormMixin, forms.ModelForm):
             self.fields["cuenta"].queryset = Cuenta.objects.filter(owner=user)
             self.fields["password"].queryset = VaultPassword.objects.filter(owner=user).order_by("site_name")
             self.fields["password"].label_from_instance = lambda obj: obj.site_name
-            self.fields["password"].empty_label = "Ninguno"
+            self.fields["password"].empty_label = "None"
 
     def clean(self):
         cleaned_data = super().clean()
         if cleaned_data.get("tipo") == Deuda.Tipo.FIJA and cleaned_data.get("monto") is None:
-            self.add_error("monto", "El monto es obligatorio para una deuda de tipo Fija.")
+            self.add_error("monto", "The amount is required for a Fixed debt.")
         return cleaned_data

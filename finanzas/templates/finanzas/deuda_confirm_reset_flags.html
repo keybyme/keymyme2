@@ -1,18 +1,18 @@
 {% extends "base.html" %}
-{% block title %}Reiniciar flags de pago{% endblock %}
+{% block title %}Reset payment status{% endblock %}
 {% block content %}
 <div class="mx-auto max-w-md rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
     <div class="mb-4 flex items-center gap-3 text-amber-600">
         {% include "icons/exclamation-triangle.html" with class="w-8 h-8" %}
-        <h1 class="text-lg font-semibold text-gray-900">¿Reiniciar el flag de pago de todas las deudas?</h1>
+        <h1 class="text-lg font-semibold text-gray-900">Reset the payment status of all debts?</h1>
     </div>
     <p class="mb-6 text-sm text-gray-600">
-        Todas tus deudas quedarán marcadas como "Aún sin pagar". Úsalo al arrancar un mes nuevo.
+        All your debts will be marked as "Not paid yet". Use this at the start of a new month.
     </p>
     <form method="post" class="flex gap-3">
         {% csrf_token %}
-        <button type="submit" class="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-amber-700">Sí, reiniciar</button>
-        <a href="{% url 'finanzas:deuda_list' %}" class="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100">Cancelar</a>
+        <button type="submit" class="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-amber-700">Yes, reset</button>
+        <a href="{% url 'finanzas:deuda_list' %}" class="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100">Cancel</a>
     </form>
 </div>
 {% endblock %}

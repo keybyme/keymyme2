@@ -6,7 +6,7 @@ from vault.models import Category, MediaFile, VaultPassword
 
 numero_cuenta_validator = RegexValidator(
     regex=r"^\d+$",
-    message="El número de cuenta solo debe contener dígitos, sin espacios ni caracteres especiales.",
+    message="The account number must contain only digits, no spaces or special characters.",
 )
 
 
@@ -15,15 +15,15 @@ class Cuenta(models.Model):
 
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="cuentas")
     numero = models.CharField(
-        max_length=50, verbose_name="Número de cuenta", validators=[numero_cuenta_validator]
+        max_length=50, verbose_name="Account number", validators=[numero_cuenta_validator]
     )
-    name = models.CharField(max_length=100, verbose_name="Nombre")
+    name = models.CharField(max_length=100, verbose_name="Name")
 
     class Meta:
         ordering = ["name"]
         unique_together = [("owner", "name"), ("owner", "numero")]
-        verbose_name = "Cuenta"
-        verbose_name_plural = "Cuentas"
+        verbose_name = "Account"
+        verbose_name_plural = "Accounts"
 
     def __str__(self):
         return self.name
@@ -33,42 +33,42 @@ class Transaccion(models.Model):
     """Registro de un ingreso o egreso de dinero, ligado a una Cuenta."""
 
     class Tipo(models.TextChoices):
-        INGRESO = "ingreso", "Ingreso"
-        EGRESO = "egreso", "Egreso"
+        INGRESO = "ingreso", "Income"
+        EGRESO = "egreso", "Expense"
 
     class MetodoCaptura(models.TextChoices):
         MANUAL = "manual", "Manual"
-        FOTO = "foto", "Foto de recibo"
-        VOZ = "voz", "Voz"
+        FOTO = "foto", "Receipt photo"
+        VOZ = "voz", "Voice"
 
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="transacciones")
     cuenta = models.ForeignKey(
-        Cuenta, on_delete=models.PROTECT, related_name="transacciones", verbose_name="Cuenta"
+        Cuenta, on_delete=models.PROTECT, related_name="transacciones", verbose_name="Account"
     )
-    tipo = models.CharField(max_length=10, choices=Tipo.choices, verbose_name="Tipo")
-    monto = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Monto")
-    fecha = models.DateField(verbose_name="Fecha")
-    concepto = models.CharField(max_length=200, verbose_name="Concepto")
+    tipo = models.CharField(max_length=10, choices=Tipo.choices, verbose_name="Type")
+    monto = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Amount")
+    fecha = models.DateField(verbose_name="Date")
+    concepto = models.CharField(max_length=200, verbose_name="Description")
     category = models.ForeignKey(
         Category, on_delete=models.SET_NULL, null=True, blank=True, related_name="transacciones",
-        verbose_name="Categoría",
+        verbose_name="Category",
     )
     recibo = models.ForeignKey(
         MediaFile, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name="transacciones", verbose_name="Recibo",
-        help_text="Foto o documento del recibo, reutilizando tus Archivos.",
+        related_name="transacciones", verbose_name="Receipt",
+        help_text="Photo or document of the receipt, reusing your Files.",
     )
     metodo_captura = models.CharField(
         max_length=10, choices=MetodoCaptura.choices, default=MetodoCaptura.MANUAL,
-        verbose_name="Método de captura",
+        verbose_name="Capture method",
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["-fecha", "-created_at"]
-        verbose_name = "Transacción"
-        verbose_name_plural = "Transacciones"
+        verbose_name = "Transaction"
+        verbose_name_plural = "Transactions"
 
     def __str__(self):
         return f"{self.get_tipo_display()}: {self.concepto} ({self.monto})"
@@ -78,52 +78,52 @@ class Deuda(models.Model):
     """Deuda recurrente (tarjeta, préstamo, etc.) con su pago mensual y estatus del mes en curso."""
 
     class Tipo(models.TextChoices):
-        FIJA = "fija", "Fija"
+        FIJA = "fija", "Fixed"
         VARIABLE = "variable", "Variable"
 
     class Flag(models.TextChoices):
-        PAGADO = "P", "Pagado"
-        NO_PAGADO = "N", "Aún sin pagar"
+        PAGADO = "P", "Paid"
+        NO_PAGADO = "N", "Not paid yet"
 
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="deudas")
-    deuda = models.CharField(max_length=150, verbose_name="Deuda")
-    tipo = models.CharField(max_length=10, choices=Tipo.choices, verbose_name="Tipo")
+    deuda = models.CharField(max_length=150, verbose_name="Debt")
+    tipo = models.CharField(max_length=10, choices=Tipo.choices, verbose_name="Type")
     monto = models.DecimalField(
         max_digits=12, decimal_places=2, null=True, blank=True,
-        verbose_name="Monto a pagar cada mes",
-        help_text="Obligatorio si la deuda es Fija; opcional si es Variable.",
+        verbose_name="Monthly payment amount",
+        help_text="Required if the debt is Fixed; optional if it's Variable.",
     )
     saldo = models.DecimalField(
-        max_digits=12, decimal_places=2, null=True, blank=True, verbose_name="Saldo"
+        max_digits=12, decimal_places=2, null=True, blank=True, verbose_name="Balance"
     )
     cuenta = models.ForeignKey(
-        Cuenta, on_delete=models.PROTECT, related_name="deudas", verbose_name="Cuenta #"
+        Cuenta, on_delete=models.PROTECT, related_name="deudas", verbose_name="Account #"
     )
     credito = models.DecimalField(
-        max_digits=12, decimal_places=2, null=True, blank=True, verbose_name="Crédito"
+        max_digits=12, decimal_places=2, null=True, blank=True, verbose_name="Credit limit"
     )
     dia = models.PositiveSmallIntegerField(
         validators=[MinValueValidator(1), MaxValueValidator(31)],
-        verbose_name="Día de pago",
-        help_text="Día del mes en que vence el pago (1-31).",
+        verbose_name="Payment day",
+        help_text="Day of the month the payment is due (1-31).",
     )
     flag = models.CharField(
         max_length=1, choices=Flag.choices, default=Flag.NO_PAGADO,
-        verbose_name="Flag", help_text="Estatus de pago del mes en curso.",
+        verbose_name="Paid this month", help_text="Payment status for the current month.",
     )
-    remarks = models.TextField(blank=True, verbose_name="Observaciones")
+    remarks = models.TextField(blank=True, verbose_name="Remarks")
     password = models.ForeignKey(
         VaultPassword, on_delete=models.SET_NULL, null=True, blank=True,
-        related_name="deudas", verbose_name="Password relacionado",
-        help_text="Registro de Passwords donde inicias sesión para pagar esta deuda.",
+        related_name="deudas", verbose_name="Related password",
+        help_text="Password record you use to log in and pay this debt.",
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ["deuda"]
-        verbose_name = "Deuda"
-        verbose_name_plural = "Deudas"
+        verbose_name = "Debt"
+        verbose_name_plural = "Debts"
 
     @property
     def credito_disponible(self):
