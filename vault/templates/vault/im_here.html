@@ -7,13 +7,13 @@
     <form method="post" class="flex flex-wrap items-center gap-3">
         {% csrf_token %}
         <label for="{{ form.location_alert_email.id_for_label }}" class="whitespace-nowrap text-sm font-medium text-gray-700">Email</label>
-        <div class="w-40">
+        <div class="min-w-[200px] flex-1">
             {{ form.location_alert_email }}
         </div>
         <button type="submit" class="whitespace-nowrap rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700">Save email</button>
         <button type="button" id="im-here-btn"
-                class="inline-flex items-center gap-2 whitespace-nowrap rounded-lg bg-emerald-600 px-6 py-3 text-base font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60">
-            {% include "icons/map-pin.html" with class="w-5 h-5" %}
+                class="inline-flex items-center gap-2 whitespace-nowrap rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60">
+            {% include "icons/map-pin.html" with class="w-4 h-4" %}
             <span id="im-here-btn-label">I am here</span>
         </button>
     </form>
