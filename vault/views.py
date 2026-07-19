@@ -418,6 +418,8 @@ class ImHereView(LoginRequiredMixin, FormView):
         sort_key = sort.lstrip("-")
         if sort_key == "remarks":
             checkins.sort(key=lambda c: c.remarks.lower(), reverse=reverse)
+        elif sort_key == "ruta":
+            checkins.sort(key=lambda c: c.ruta.lower(), reverse=reverse)
         else:
             sort_key = "date"
             checkins.sort(key=lambda c: c.created_at, reverse=reverse)
@@ -429,6 +431,7 @@ class ImHereView(LoginRequiredMixin, FormView):
         context["sort_reverse"] = reverse
         context["date_sort_next"] = "date" if sort == "-date" else "-date"
         context["remarks_sort_next"] = "-remarks" if sort == "remarks" else "remarks"
+        context["ruta_sort_next"] = "-ruta" if sort == "ruta" else "ruta"
         return context
 
 

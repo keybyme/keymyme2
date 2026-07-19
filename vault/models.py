@@ -247,6 +247,7 @@ class LocationCheckIn(models.Model):
     latitude = models.DecimalField(max_digits=9, decimal_places=6)
     longitude = models.DecimalField(max_digits=9, decimal_places=6)
     remarks = models.CharField(max_length=255, blank=True)
+    ruta = models.CharField(max_length=100, blank=True, verbose_name="Route")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

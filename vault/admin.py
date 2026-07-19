@@ -70,5 +70,5 @@ class ReminderAdmin(admin.ModelAdmin):
 
 @admin.register(LocationCheckIn)
 class LocationCheckInAdmin(admin.ModelAdmin):
-    list_display = ("owner", "created_at", "latitude", "longitude", "remarks")
+    list_display = ("owner", "created_at", "latitude", "longitude", "ruta", "remarks")
     list_filter = ("owner",)
