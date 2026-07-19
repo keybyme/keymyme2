@@ -42,6 +42,11 @@ class CustomUser(AbstractUser):
             "notifications as if they were an SMS, without needing Twilio or any other service."
         ),
     )
+    location_alert_email = models.EmailField(
+        blank=True,
+        verbose_name="Location alert email",
+        help_text="Where the 'I am here' button sends your coordinates and local time.",
+    )
 
     @property
     def sms_gateway_email(self):

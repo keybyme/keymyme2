@@ -1,4 +1,5 @@
 from django import forms
+from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import AuthenticationForm
 from django.core.files.uploadedfile import UploadedFile
 
@@ -172,3 +173,12 @@ class QRCodeForm(TailwindFormMixin, forms.Form):
         label="URL",
         widget=forms.URLInput(attrs={"placeholder": "https://example.com"}),
     )
+
+
+class LocationAlertEmailForm(TailwindFormMixin, forms.ModelForm):
+    class Meta:
+        model = get_user_model()
+        fields = ["location_alert_email"]
+        widgets = {
+            "location_alert_email": forms.EmailInput(attrs={"placeholder": "you@example.com"}),
+        }

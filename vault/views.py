@@ -1,11 +1,13 @@
 import base64
 import hmac
 import io
+import json
 
 import qrcode
 from django.conf import settings
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
+from django.core.mail import send_mail
 from django.core.management import call_command
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import redirect
@@ -20,6 +22,7 @@ from .forms import (
     CategoryForm,
     ContactForm,
     ContactImportForm,
+    LocationAlertEmailForm,
     MediaFileForm,
     QRCodeForm,
     ReminderForm,
@@ -374,3 +377,66 @@ class QRCodeGeneratorView(LoginRequiredMixin, FormView):
         qr_image_base64 = base64.b64encode(buffer.getvalue()).decode("ascii")
         context = self.get_context_data(form=form, qr_image_base64=qr_image_base64, submitted_url=url)
         return self.render_to_response(context)
+
+
+# ---------- I am here ----------
+
+class ImHereView(LoginRequiredMixin, FormView):
+    """
+    Página con el formulario para registrar el email de notificación y el
+    botón que dispara la captura de ubicación en el navegador (ver
+    im_here.html). El envío del email ocurre en ImHereSendLocationView,
+    vía fetch, no en este form.
+    """
+    template_name = "vault/im_here.html"
+    form_class = LocationAlertEmailForm
+    success_url = reverse_lazy("vault:im_here")
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["instance"] = self.request.user
+        return kwargs
+
+    def form_valid(self, form):
+        form.save()
+        messages.success(self.request, "Notification email saved.")
+        return super().form_valid(form)
+
+
+class ImHereSendLocationView(LoginRequiredMixin, View):
+    """
+    Recibe (vía fetch, como JSON) las coordenadas y la hora local que el
+    navegador capturó con navigator.geolocation, y las envía por email a
+    location_alert_email del usuario. No persiste nada en la BD.
+    """
+
+    def post(self, request):
+        recipient = request.user.location_alert_email
+        if not recipient:
+            return JsonResponse(
+                {"error": "Register a notification email below before sending your location."},
+                status=400,
+            )
+
+        try:
+            payload = json.loads(request.body)
+            latitude = float(payload["latitude"])
+            longitude = float(payload["longitude"])
+            local_time = str(payload.get("local_time", ""))[:100]
+        except (KeyError, TypeError, ValueError, json.JSONDecodeError):
+            return JsonResponse({"error": "Invalid location data."}, status=400)
+
+        maps_url = f"https://www.google.com/maps?q={latitude},{longitude}"
+        send_mail(
+            subject=f"{request.user.username} shared their location via KeyByMe",
+            message=(
+                f"{request.user.username} tapped \"I am here\" in KeyByMe.\n\n"
+                f"Coordinates: {latitude}, {longitude}\n"
+                f"Local time at that location: {local_time}\n"
+                f"Map: {maps_url}"
+            ),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[recipient],
+            fail_silently=False,
+        )
+        return JsonResponse({"status": "ok"})

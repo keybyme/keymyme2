@@ -48,6 +48,10 @@ urlpatterns = [
     # QR Codes
     path("qrcode/", views.QRCodeGeneratorView.as_view(), name="qrcode_generate"),
 
+    # I am here
+    path("im-here/", views.ImHereView.as_view(), name="im_here"),
+    path("im-here/send/", views.ImHereSendLocationView.as_view(), name="im_here_send"),
+
     # Cron externo (ver config/settings.py CRON_SECRET)
     path("cron/send-reminders/", views.SendDueRemindersCronView.as_view(), name="cron_send_reminders"),
 ]

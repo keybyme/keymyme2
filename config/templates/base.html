@@ -33,7 +33,7 @@
                 <a href="{% url 'vault:reminder_list' %}" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-gray-100 hover:text-blue-700">
                     {% include "icons/bell.html" with class="w-4 h-4" %} Reminders
                 </a>
-                <details class="finanzas-menu relative">
+                <details class="nav-dropdown relative">
                     <summary class="flex list-none items-center gap-1.5 rounded-md px-3 py-1.5 cursor-pointer hover:bg-gray-100 hover:text-blue-700 [&::-webkit-details-marker]:hidden">
                         {% include "icons/banknotes.html" with class="w-4 h-4" %} Finances
                         {% include "icons/chevron-down.html" with class="w-3.5 h-3.5" %}
@@ -53,9 +53,20 @@
                 <a href="{% url 'vault:category_list' %}" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-gray-100 hover:text-blue-700">
                     {% include "icons/tag.html" with class="w-4 h-4" %} Categories
                 </a>
-                <a href="{% url 'vault:qrcode_generate' %}" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-gray-100 hover:text-blue-700">
-                    {% include "icons/qr-code.html" with class="w-4 h-4" %} QR
-                </a>
+                <details class="nav-dropdown relative">
+                    <summary class="flex list-none items-center gap-1.5 rounded-md px-3 py-1.5 cursor-pointer hover:bg-gray-100 hover:text-blue-700 [&::-webkit-details-marker]:hidden">
+                        {% include "icons/qr-code.html" with class="w-4 h-4" %} Artifacts
+                        {% include "icons/chevron-down.html" with class="w-3.5 h-3.5" %}
+                    </summary>
+                    <div class="absolute left-0 z-10 mt-1 w-44 rounded-md border border-gray-100 bg-white py-1 shadow-lg">
+                        <a href="{% url 'vault:qrcode_generate' %}" class="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 hover:text-blue-700">
+                            {% include "icons/qr-code.html" with class="w-4 h-4" %} QR
+                        </a>
+                        <a href="{% url 'vault:im_here' %}" class="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 hover:text-blue-700">
+                            {% include "icons/map-pin.html" with class="w-4 h-4" %} I am here
+                        </a>
+                    </div>
+                </details>
             </div>
 
             <div class="hidden items-center gap-3 text-sm text-gray-600 md:flex">
@@ -93,7 +104,7 @@
                 <a href="{% url 'vault:reminder_list' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
                     {% include "icons/bell.html" with class="w-5 h-5" %} Reminders
                 </a>
-                <details class="finanzas-menu">
+                <details class="nav-dropdown">
                     <summary class="flex list-none items-center gap-2 rounded-md px-3 py-2.5 cursor-pointer hover:bg-gray-100 hover:text-blue-700 [&::-webkit-details-marker]:hidden">
                         {% include "icons/banknotes.html" with class="w-5 h-5" %} Finances
                         {% include "icons/chevron-down.html" with class="w-4 h-4" %}
@@ -113,9 +124,20 @@
                 <a href="{% url 'vault:category_list' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
                     {% include "icons/tag.html" with class="w-5 h-5" %} Categories
                 </a>
-                <a href="{% url 'vault:qrcode_generate' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
-                    {% include "icons/qr-code.html" with class="w-5 h-5" %} QR
-                </a>
+                <details class="nav-dropdown">
+                    <summary class="flex list-none items-center gap-2 rounded-md px-3 py-2.5 cursor-pointer hover:bg-gray-100 hover:text-blue-700 [&::-webkit-details-marker]:hidden">
+                        {% include "icons/qr-code.html" with class="w-5 h-5" %} Artifacts
+                        {% include "icons/chevron-down.html" with class="w-4 h-4" %}
+                    </summary>
+                    <div class="flex flex-col gap-1 pl-6">
+                        <a href="{% url 'vault:qrcode_generate' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
+                            {% include "icons/qr-code.html" with class="w-5 h-5" %} QR
+                        </a>
+                        <a href="{% url 'vault:im_here' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
+                            {% include "icons/map-pin.html" with class="w-5 h-5" %} I am here
+                        </a>
+                    </div>
+                </details>
             </div>
             <div class="flex items-center justify-between gap-3 border-t border-gray-100 px-4 py-3 text-sm text-gray-600">
                 <span class="font-medium">{{ user.username }}</span>
@@ -176,7 +198,7 @@
         });
 
         document.addEventListener('click', (event) => {
-            document.querySelectorAll('details.finanzas-menu[open]').forEach((menu) => {
+            document.querySelectorAll('details.nav-dropdown[open]').forEach((menu) => {
                 if (!menu.contains(event.target)) {
                     menu.removeAttribute('open');
                 }

@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}I am here{% endblock %}
+{% block content %}
+<h1 class="mb-6 text-2xl font-semibold text-gray-900">I am here</h1>
+
+<div class="max-w-lg rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+    <h2 class="mb-1 text-sm font-semibold text-gray-900">Notification email</h2>
+    <p class="mb-4 text-sm text-gray-500">Register the address that should receive your location. This is required before the button below will work.</p>
+    <form method="post">
+        {% csrf_token %}
+        {% include "_form_fields.html" %}
+        <div class="mt-4 flex items-center gap-3">
+            <button type="submit" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700">Save email</button>
+        </div>
+    </form>
+</div>
+
+<div class="mt-6 max-w-lg rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+    <h2 class="mb-1 text-sm font-semibold text-gray-900">Send my location</h2>
+    <p class="mb-4 text-sm text-gray-500">Sends your current coordinates and local time to the email above.</p>
+
+    <button type="button" id="im-here-btn"
+            class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60">
+        {% include "icons/map-pin.html" with class="w-4 h-4" %}
+        <span id="im-here-btn-label">I am here</span>
+    </button>
+
+    <p id="im-here-status" class="mt-3 text-sm"></p>
+</div>
+
+<script>
+(function () {
+    const button = document.getElementById('im-here-btn');
+    const label = document.getElementById('im-here-btn-label');
+    const status = document.getElementById('im-here-status');
+    const sendUrl = "{% url 'vault:im_here_send' %}";
+
+    function setStatus(message, isError) {
+        status.textContent = message;
+        status.className = 'mt-3 text-sm ' + (isError ? 'text-red-600' : 'text-emerald-600');
+    }
+
+    function getCsrfToken() {
+        const match = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
+        return match ? match[1] : '';
+    }
+
+    button.addEventListener('click', function () {
+        if (!navigator.geolocation) {
+            setStatus('Your browser does not support geolocation.', true);
+            return;
+        }
+
+        button.disabled = true;
+        label.textContent = 'Locating...';
+        setStatus('', false);
+
+        navigator.geolocation.getCurrentPosition(
+            function (position) {
+                label.textContent = 'Sending...';
+                fetch(sendUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCsrfToken(),
+                    },
+                    body: JSON.stringify({
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude,
+                        local_time: new Date().toString(),
+                    }),
+                })
+                    .then(function (response) {
+                        return response.json().then(function (data) {
+                            return { ok: response.ok, data: data };
+                        });
+                    })
+                    .then(function (result) {
+                        if (result.ok) {
+                            setStatus('Location sent.', false);
+                        } else {
+                            setStatus(result.data.error || 'Could not send your location.', true);
+                        }
+                    })
+                    .catch(function () {
+                        setStatus('Could not send your location.', true);
+                    })
+                    .finally(function () {
+                        button.disabled = false;
+                        label.textContent = 'I am here';
+                    });
+            },
+            function () {
+                setStatus('Location permission was denied or is unavailable.', true);
+                button.disabled = false;
+                label.textContent = 'I am here';
+            }
+        );
+    });
+})();
+</script>
+{% endblock %}
