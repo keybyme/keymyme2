@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.contrib import admin
 from django.contrib.auth import views as auth_views
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render
 from django.urls import include, path, re_path
 from django.views.static import serve
 
@@ -9,10 +9,10 @@ from vault.forms import StyledAuthenticationForm
 
 
 def index(request):
-    """Raíz del sitio: sin esto, '/' da 404 (no hay vista de inicio propia)."""
+    """Raíz del sitio: portal público para visitantes, dashboard para usuarios."""
     if request.user.is_authenticated:
         return redirect("vault:contact_list")
-    return redirect("login")
+    return render(request, "landing.html")
 
 
 urlpatterns = [

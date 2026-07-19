@@ -1,0 +1,217 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>KeyByMe — Tu Asistente Personal</title>
+    <link rel="icon" type="image/png" href="{% static 'images/logo_keybyme.png' %}">
+    {% include "_tailwind_config.html" %}
+</head>
+<body class="min-h-screen bg-cream text-ink antialiased">
+
+    <header class="sticky top-0 z-20 border-b border-gray-200 bg-white/90 backdrop-blur">
+        <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
+            <a href="#top" class="flex items-center gap-3">
+                <img src="{% static 'images/logo_keybyme.png' %}" alt="KeyByMe" class="h-12 w-12 rounded-full object-cover shadow-sm">
+                <span class="leading-tight">
+                    <span class="block text-xl font-extrabold tracking-tight text-cafe-dark">KeyByMe</span>
+                    <span class="block text-xs text-gray-500">Tu Asistente Personal</span>
+                </span>
+            </a>
+
+            <nav class="hidden items-center gap-1 text-sm font-medium text-gray-600 lg:flex">
+                <a href="#top" class="border-b-2 border-gold px-3 py-1.5 text-cafe-dark">Inicio</a>
+                <a href="#caracteristicas" class="rounded-md px-3 py-1.5 hover:text-cafe">Características</a>
+                <a href="#" class="rounded-md px-3 py-1.5 hover:text-cafe">Precios</a>
+                <a href="#" class="rounded-md px-3 py-1.5 hover:text-cafe">Seguridad</a>
+                <a href="#" class="rounded-md px-3 py-1.5 hover:text-cafe">Acerca de</a>
+                <a href="#" class="rounded-md px-3 py-1.5 hover:text-cafe">Contacto</a>
+            </nav>
+
+            <div class="flex items-center gap-3">
+                <button type="button" title="Español (único idioma disponible)"
+                        class="hidden items-center gap-1 rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-600 sm:flex">
+                    ES {% include "icons/chevron-down.html" with class="w-3.5 h-3.5" %}
+                </button>
+                <a href="{% url 'login' %}" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-cafe-darker">
+                    {% include "icons/key.html" with class="w-4 h-4" %} Iniciar sesión
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <section id="top">
+        <div class="mx-auto grid max-w-7xl gap-12 px-4 py-16 sm:px-6 lg:grid-cols-2 lg:items-center lg:px-8 lg:py-24">
+            <div>
+                <span class="inline-flex items-center gap-2 rounded-full bg-[#E9DDD0] px-4 py-1.5 text-sm font-medium text-cafe-dark">
+                    {% include "icons/shield-check.html" with class="w-4 h-4" %} Más que una bóveda. Tu asistente personal.
+                </span>
+                <h1 class="mt-6 text-4xl font-extrabold leading-tight text-ink sm:text-5xl">
+                    Todo lo importante de tu vida, siempre a tu lado.
+                </h1>
+                <p class="mt-6 max-w-xl text-lg text-gray-600">
+                    KeyByMe te ayuda a organizar, proteger y tener siempre a la mano lo que más importa: tu información, tus contactos, tus accesos y mucho más.
+                </p>
+                <div class="mt-8">
+                    <a href="{% url 'login' %}" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-cafe-darker">
+                        {% include "icons/key.html" with class="w-4 h-4" %} Iniciar sesión
+                    </a>
+                </div>
+                <p class="mt-6 flex items-center gap-2 text-sm text-gray-600">
+                    {% include "icons/check-circle.html" with class="w-4 h-4 text-emerald-600" %} Seguro. Privado. Siempre contigo.
+                </p>
+            </div>
+
+            <div class="rounded-2xl border border-gray-200 bg-white p-5 shadow-xl">
+                <div class="flex items-center justify-between border-b border-gray-100 pb-3">
+                    <div class="flex items-center gap-2">
+                        <img src="{% static 'images/logo_keybyme.png' %}" alt="" class="h-6 w-6 rounded-full object-cover">
+                        <span class="font-semibold text-cafe-dark">KeyByMe</span>
+                    </div>
+                    <div class="flex items-center gap-3 text-gray-400">
+                        {% include "icons/bell.html" with class="w-4 h-4" %}
+                        <span class="h-6 w-6 rounded-full bg-gray-200"></span>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <p class="text-sm font-semibold text-gray-900">Bienvenido, Jorge</p>
+                    <p class="text-xs text-gray-500">Aquí tienes un resumen de tu información.</p>
+                </div>
+
+                <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    <div class="rounded-xl bg-cream-soft p-3">
+                        <p class="text-xs text-gray-500">Contactos</p>
+                        <p class="text-xl font-bold text-cafe-dark">128</p>
+                        <p class="text-xs text-gray-500">personas</p>
+                    </div>
+                    <div class="rounded-xl bg-cream-soft p-3">
+                        <p class="text-xs text-gray-500">Claves</p>
+                        <p class="text-xl font-bold text-cafe-dark">56</p>
+                        <p class="text-xs text-gray-500">guardadas</p>
+                    </div>
+                    <div class="rounded-xl bg-cream-soft p-3">
+                        <p class="text-xs text-gray-500">Enlaces</p>
+                        <p class="text-xl font-bold text-cafe-dark">42</p>
+                        <p class="text-xs text-gray-500">sitios guardados</p>
+                    </div>
+                    <div class="rounded-xl bg-cream-soft p-3">
+                        <p class="text-xs text-gray-500">Archivos</p>
+                        <p class="text-xl font-bold text-cafe-dark">38</p>
+                        <p class="text-xs text-gray-500">documentos</p>
+                    </div>
+                    <div class="rounded-xl bg-cream-soft p-3">
+                        <p class="text-xs text-gray-500">Recordatorios</p>
+                        <p class="text-xl font-bold text-cafe-dark">12</p>
+                        <p class="text-xs text-gray-500">pendientes</p>
+                    </div>
+                    <div class="rounded-xl bg-cream-soft p-3">
+                        <p class="text-xs text-gray-500">Finanzas</p>
+                        <p class="mt-1 text-xs font-medium text-cafe">Ver resumen de tus finanzas</p>
+                    </div>
+                </div>
+
+                <div class="mt-5">
+                    <p class="text-xs text-gray-500">Uso de almacenamiento</p>
+                    <div class="mt-1 h-2 overflow-hidden rounded-full bg-gray-100">
+                        <div class="h-full w-[45%] rounded-full bg-cafe"></div>
+                    </div>
+                    <p class="mt-1 text-right text-xs text-gray-500">4.5 GB de 10 GB usados</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="caracteristicas" class="mx-auto max-w-7xl px-4 pb-16 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-1 gap-8 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm sm:grid-cols-2 lg:grid-cols-3 lg:p-8">
+            <div class="flex items-start gap-3">
+                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#E9DDD0] text-cafe-dark">
+                    {% include "icons/users.html" with class="w-5 h-5" %}
+                </span>
+                <div>
+                    <p class="font-semibold text-gray-900">Contactos</p>
+                    <p class="text-sm text-gray-600">Organiza y ten siempre a tu gente importante.</p>
+                </div>
+            </div>
+            <div class="flex items-start gap-3">
+                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#E9DDD0] text-cafe-dark">
+                    {% include "icons/key.html" with class="w-5 h-5" %}
+                </span>
+                <div>
+                    <p class="font-semibold text-gray-900">Claves</p>
+                    <p class="text-sm text-gray-600">Guarda tus contraseñas de forma segura.</p>
+                </div>
+            </div>
+            <div class="flex items-start gap-3">
+                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#E9DDD0] text-cafe-dark">
+                    {% include "icons/link.html" with class="w-5 h-5" %}
+                </span>
+                <div>
+                    <p class="font-semibold text-gray-900">Enlaces</p>
+                    <p class="text-sm text-gray-600">Accede rápido a tus sitios web favoritos.</p>
+                </div>
+            </div>
+            <div class="flex items-start gap-3">
+                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#E9DDD0] text-cafe-dark">
+                    {% include "icons/paper-clip.html" with class="w-5 h-5" %}
+                </span>
+                <div>
+                    <p class="font-semibold text-gray-900">Archivos</p>
+                    <p class="text-sm text-gray-600">Tus documentos importantes siempre protegidos.</p>
+                </div>
+            </div>
+            <div class="flex items-start gap-3">
+                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#E9DDD0] text-cafe-dark">
+                    {% include "icons/bell.html" with class="w-5 h-5" %}
+                </span>
+                <div>
+                    <p class="font-semibold text-gray-900">Recordatorios</p>
+                    <p class="text-sm text-gray-600">No olvides lo que realmente importa.</p>
+                </div>
+            </div>
+            <div class="flex items-start gap-3">
+                <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#E9DDD0] text-cafe-dark">
+                    {% include "icons/banknotes.html" with class="w-5 h-5" %}
+                </span>
+                <div>
+                    <p class="font-semibold text-gray-900">Finanzas</p>
+                    <p class="text-sm text-gray-600">Lleva control de tus finanzas y presupuestos.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="border-t border-gray-200 bg-white">
+        <div class="mx-auto flex max-w-7xl flex-col items-center gap-4 px-4 py-8 sm:flex-row sm:justify-between sm:px-6 lg:px-8">
+            <a href="#top" class="flex items-center gap-3">
+                <img src="{% static 'images/logo_keybyme.png' %}" alt="KeyByMe" class="h-10 w-10 rounded-full object-cover">
+                <span class="leading-tight">
+                    <span class="block text-sm font-extrabold text-cafe-dark">KeyByMe</span>
+                    <span class="block text-xs text-gray-500">Tu Asistente Personal</span>
+                </span>
+            </a>
+
+            <p class="text-sm text-gray-500">© {% now "Y" %} KeyByMe. Todos los derechos reservados.</p>
+
+            <div class="flex items-center gap-4 text-sm text-gray-500">
+                <a href="#" class="hover:text-cafe">Términos de uso</a>
+                <a href="#" class="hover:text-cafe">Privacidad</a>
+                <a href="#" class="hover:text-cafe">Ayuda</a>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <a href="#" class="flex h-9 w-9 items-center justify-center rounded-full bg-cream-soft text-cafe-dark hover:bg-beige" title="Facebook">
+                    {% include "icons/facebook.html" with class="w-4 h-4" %}
+                </a>
+                <a href="#" class="flex h-9 w-9 items-center justify-center rounded-full bg-cream-soft text-cafe-dark hover:bg-beige" title="Instagram">
+                    {% include "icons/instagram.html" with class="w-4 h-4" %}
+                </a>
+                <a href="#" class="flex h-9 w-9 items-center justify-center rounded-full bg-cream-soft text-cafe-dark hover:bg-beige" title="Correo">
+                    {% include "icons/envelope.html" with class="w-4 h-4" %}
+                </a>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
