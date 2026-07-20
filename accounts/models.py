@@ -62,6 +62,10 @@ class CustomUser(AbstractUser):
         return ""
 
     @property
+    def role_level(self):
+        return self.role.level if self.role_id else 0
+
+    @property
     def storage_quota_bytes(self):
         return int(self.storage_quota_gb * (1024 ** 3))
 

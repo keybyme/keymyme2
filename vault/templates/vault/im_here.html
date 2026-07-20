@@ -8,7 +8,9 @@
             {% csrf_token %}
             <button type="submit" class="rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">Save Route</button>
         </form>
+        {% if show_history_link %}
         <a href="{% url 'vault:im_here_history' %}" class="rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">History</a>
+        {% endif %}
     </div>
 </div>
 
@@ -70,7 +72,7 @@
         {% for checkin in page_obj %}
         <tr class="group odd:bg-white even:bg-cream-soft hover:bg-beige">
             <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-900">{{ checkin.seq }}</td>
-            <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-900">{{ checkin.check_date|date:"m/d/Y" }}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-900">{% if checkin.created_at %}{{ checkin.check_date|date:"m/d/Y" }}{% else %}—{% endif %}</td>
             <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-900">{% if checkin.created_at %}{{ checkin.created_at|time:"g:i A" }}{% else %}—{% endif %}</td>
             <td class="whitespace-nowrap px-4 py-3 text-sm">
                 {% if checkin.latitude and checkin.longitude %}
@@ -78,7 +80,7 @@
                     {% include "icons/map-pin.html" with class="w-4 h-4" %} Open GPS
                 </a>
                 {% else %}
-                <span class="text-gray-400">Pending</span>
+                <span class="text-gray-400">—</span>
                 {% endif %}
             </td>
             <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-600">{{ checkin.owner.route|default:"9999" }}</td>

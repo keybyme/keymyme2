@@ -39,6 +39,10 @@ class Role(models.Model):
     """Conjunto reutilizable de permisos (ej: 'Usuario estándar', 'Solo lectura')."""
     name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True)
+    level = models.PositiveIntegerField(
+        default=0,
+        help_text="Numeric rank used to gate level-based features (e.g. a user needs level > 70 to see 'History' on I am here).",
+    )
     submodules = models.ManyToManyField(SubModule, through="RolePermission", related_name="roles")
 
     class Meta:

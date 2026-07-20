@@ -389,6 +389,9 @@ class QRCodeGeneratorView(LoginRequiredMixin, FormView):
 
 # ---------- I am here ----------
 
+HISTORY_MIN_ROLE_LEVEL = 70
+
+
 class ImHereView(LoginRequiredMixin, FormView):
     """
     Página con el formulario para registrar el email de notificación, el
@@ -440,6 +443,7 @@ class ImHereView(LoginRequiredMixin, FormView):
         context["date_sort_next"] = "date" if sort == "-date" else "-date"
         context["remarks_sort_next"] = "-remarks" if sort == "remarks" else "remarks"
         context["seq_sort_next"] = "-seq" if sort == "seq" else "seq"
+        context["show_history_link"] = self.request.user.role_level > HISTORY_MIN_ROLE_LEVEL
         return context
 
     def _ensure_todays_stops(self):
@@ -569,8 +573,14 @@ class LocationCheckInDeleteView(OwnerQuerysetMixin, DeleteView):
 
 class LocationCheckInHistoryView(LoginRequiredMixin, TemplateView):
     """Check-ins de días anteriores a hoy, ya fuera de la tabla de
-    ImHereView, conservados aquí para análisis posterior."""
+    ImHereView, conservados aquí para análisis posterior. Solo visible
+    (link) y accesible (esta vista) para roles con level > HISTORY_MIN_ROLE_LEVEL."""
     template_name = "vault/im_here_history.html"
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated and request.user.role_level <= HISTORY_MIN_ROLE_LEVEL:
+            return HttpResponseForbidden("You don't have access to this page.")
+        return super().dispatch(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

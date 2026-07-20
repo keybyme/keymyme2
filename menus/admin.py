@@ -22,7 +22,7 @@ class RolePermissionInline(admin.TabularInline):
 
 @admin.register(Role)
 class RoleAdmin(admin.ModelAdmin):
-    list_display = ("name", "description")
+    list_display = ("name", "level", "description")
     inlines = [RolePermissionInline]
 
 
