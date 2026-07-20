@@ -87,9 +87,9 @@
             <td class="max-w-xs px-4 py-3 text-sm text-gray-600">{{ checkin.remarks|default:"—" }}</td>
             <td class="whitespace-nowrap px-4 py-3 text-right text-sm">
                 <div class="flex justify-end gap-3">
-                    <button type="button" class="here-row-btn text-emerald-600 hover:text-emerald-800 disabled:cursor-not-allowed disabled:opacity-60"
-                            data-url="{% url 'vault:location_checkin_here' checkin.pk %}" title="Here">
-                        {% include "icons/map-pin.html" with class="w-5 h-5" %}
+                    <button type="button" class="here-row-btn rounded-lg bg-emerald-600 px-2.5 py-1 text-xs font-medium text-white shadow-sm hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                            data-url="{% url 'vault:location_checkin_here' checkin.pk %}" title="Mark here">
+                        Here
                     </button>
                     <a href="{% url 'vault:location_checkin_update' checkin.pk %}" class="text-cafe hover:text-cafe-darker" title="Edit">
                         {% include "icons/pencil.html" with class="w-5 h-5" %}
