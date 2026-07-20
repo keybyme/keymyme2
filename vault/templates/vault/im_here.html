@@ -4,8 +4,15 @@
 <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
     <h1 class="text-2xl font-semibold text-gray-900">I am here</h1>
     <div class="flex items-center gap-3">
-        <form method="post" action="{% url 'vault:im_here_save_route' %}">
+        <form method="post" action="{% url 'vault:im_here_save_route' %}" class="flex items-center gap-2">
             {% csrf_token %}
+            <input type="text" name="route_type" list="route-type-options" placeholder="AM" required maxlength="30"
+                   class="w-24 rounded-lg border border-gray-300 py-2 px-3 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+            <datalist id="route-type-options">
+                <option value="AM"></option>
+                <option value="PM"></option>
+                <option value="MID DAY"></option>
+            </datalist>
             <button type="submit" class="rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">Save Route</button>
         </form>
         {% if show_history_link %}
@@ -34,6 +41,21 @@
     <p id="im-here-status" class="mt-2 text-sm"></p>
 </div>
 
+{% if route_choices %}
+<div class="mb-6 rounded-xl border border-gold bg-cream-soft p-4 shadow-sm">
+    <p class="mb-3 text-sm font-medium text-gray-700">Choose today's route to load:</p>
+    <div class="flex flex-wrap gap-2">
+        {% for rt in route_choices %}
+        <form method="post" action="{% url 'vault:im_here_load_route' %}">
+            {% csrf_token %}
+            <input type="hidden" name="route_type" value="{{ rt }}">
+            <button type="submit" class="rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">{{ rt }}</button>
+        </form>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
 <div class="mt-6 overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
 <table class="min-w-full divide-y divide-gray-100">
     <thead class="bg-cafe-dark">
@@ -57,6 +79,7 @@
             <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Time</th>
             <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Location</th>
             <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Route</th>
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Type</th>
             <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">
                 <a href="?sort={{ remarks_sort_next }}" class="inline-flex items-center gap-1 hover:text-gold">
                     Remarks
@@ -84,6 +107,7 @@
                 {% endif %}
             </td>
             <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-600">{{ checkin.owner.route|default:"9999" }}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-600">{{ checkin.route_type|default:"—" }}</td>
             <td class="max-w-xs px-4 py-3 text-sm text-gray-600">{{ checkin.remarks|default:"—" }}</td>
             <td class="whitespace-nowrap px-4 py-3 text-right text-sm">
                 <div class="flex justify-end gap-3">
@@ -91,8 +115,8 @@
                             data-url="{% url 'vault:location_checkin_here' checkin.pk %}" title="Mark here">
                         Here
                     </button>
-                    <a href="{% url 'vault:location_checkin_update' checkin.pk %}" class="text-cafe hover:text-cafe-darker" title="Edit">
-                        {% include "icons/pencil.html" with class="w-5 h-5" %}
+                    <a href="{% url 'vault:location_checkin_update' checkin.pk %}" class="rounded-lg bg-yellow-500 px-2.5 py-1 text-xs font-medium text-gray-900 shadow-sm hover:bg-yellow-600" title="Edit">
+                        Edit
                     </a>
                     <a href="{% url 'vault:location_checkin_delete' checkin.pk %}" class="text-crimson hover:text-red-800" title="Delete">
                         {% include "icons/trash.html" with class="w-5 h-5" %}
@@ -101,7 +125,7 @@
             </td>
         </tr>
         {% empty %}
-        <tr><td colspan="7" class="px-4 py-6 text-center text-sm text-gray-500">No check-ins yet today. Tap "I am here" above to log one.</td></tr>
+        <tr><td colspan="8" class="px-4 py-6 text-center text-sm text-gray-500">No check-ins yet today. Tap "I am here" above to log one.</td></tr>
         {% endfor %}
     </tbody>
 </table>

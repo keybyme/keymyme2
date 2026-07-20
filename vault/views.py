@@ -416,7 +416,6 @@ class ImHereView(LoginRequiredMixin, FormView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        self._ensure_todays_stops()
         # Solo check-ins de la fecha actual; los de días anteriores viven en
         # la página de Historia (LocationCheckInHistoryView).
         checkins = list(
@@ -424,6 +423,14 @@ class ImHereView(LoginRequiredMixin, FormView):
                 owner=self.request.user, check_date=timezone.localdate()
             )
         )
+        if not checkins:
+            # Sin check-ins hoy: si el usuario tiene rutas guardadas (por
+            # route_type, vía SaveRouteView), no precargamos automáticamente
+            # — le ofrecemos elegir cuál cargar (LoadRouteView).
+            context["route_choices"] = list(
+                RouteStop.objects.filter(owner=self.request.user)
+                .order_by("route_type").values_list("route_type", flat=True).distinct()
+            )
         sort = self.request.GET.get("sort", "-date")
         reverse = sort.startswith("-")
         sort_key = sort.lstrip("-")
@@ -445,23 +452,6 @@ class ImHereView(LoginRequiredMixin, FormView):
         context["seq_sort_next"] = "-seq" if sort == "seq" else "seq"
         context["show_history_link"] = self.request.user.role_level > HISTORY_MIN_ROLE_LEVEL
         return context
-
-    def _ensure_todays_stops(self):
-        """Si el usuario todavía no tiene check-ins hoy y guardó una ruta
-        diaria (RouteStop, vía SaveRouteView), precarga esas paradas para
-        hoy sin fecha real/hora/ubicación: el usuario las va completando
-        con el ícono 'Here' de cada fila conforme llega a cada lugar."""
-        user = self.request.user
-        today = timezone.localdate()
-        if LocationCheckIn.objects.filter(owner=user, check_date=today).exists():
-            return
-        stops = RouteStop.objects.filter(owner=user).order_by("seq")
-        if not stops:
-            return
-        LocationCheckIn.objects.bulk_create([
-            LocationCheckIn(owner=user, check_date=today, seq=stop.seq, remarks=stop.remarks)
-            for stop in stops
-        ])
 
 
 class ImHereSendLocationView(LoginRequiredMixin, View):
@@ -535,12 +525,20 @@ class LocationCheckInHereView(LoginRequiredMixin, View):
 class SaveRouteView(LoginRequiredMixin, View):
     """
     Botón 'Save Route': guarda los check-ins del día actual (seq + remarks)
-    como la plantilla de ruta diaria del usuario (RouteStop), reemplazando
-    la anterior. ImHereView usa esa plantilla para precargar las paradas
-    del día siguiente.
+    como la plantilla de ruta diaria del usuario para el route_type indicado
+    (AM, PM, MID DAY, ...) en RouteStop, reemplazando solo las paradas de
+    ESE route_type — las de otros tipos guardados quedan intactas, para que
+    un mismo usuario pueda mantener varias rutas nombradas en paralelo.
+    LoadRouteView usa esa plantilla para precargar las paradas de un
+    route_type elegido en un día futuro.
     """
 
     def post(self, request):
+        route_type = request.POST.get("route_type", "").strip()
+        if not route_type:
+            messages.error(request, "Enter a route type (AM, PM, MID DAY, ...) to save this route as.")
+            return redirect("vault:im_here")
+
         todays_checkins = LocationCheckIn.objects.filter(
             owner=request.user, check_date=timezone.localdate()
         ).order_by("seq")
@@ -549,12 +547,41 @@ class SaveRouteView(LoginRequiredMixin, View):
             messages.error(request, "No check-ins today to save as a route.")
             return redirect("vault:im_here")
 
-        RouteStop.objects.filter(owner=request.user).delete()
+        RouteStop.objects.filter(owner=request.user, route_type=route_type).delete()
         RouteStop.objects.bulk_create([
-            RouteStop(owner=request.user, seq=checkin.seq, remarks=checkin.remarks)
+            RouteStop(owner=request.user, route_type=route_type, seq=checkin.seq, remarks=checkin.remarks)
             for checkin in todays_checkins
         ])
-        messages.success(request, "Route saved. It will be pre-loaded tomorrow.")
+        messages.success(request, f'Route "{route_type}" saved. You can load it on a future day.')
+        return redirect("vault:im_here")
+
+
+class LoadRouteView(LoginRequiredMixin, View):
+    """
+    Chooser en ImHereView (cuando no hay check-ins hoy pero sí rutas
+    guardadas): el usuario elige qué route_type cargar y esta vista precarga
+    esas paradas como los check-ins de hoy, sin fecha real/hora/ubicación
+    propias — el usuario las va completando con el ícono 'Here' de cada fila
+    conforme llega a cada lugar.
+    """
+
+    def post(self, request):
+        route_type = request.POST.get("route_type", "").strip()
+        today = timezone.localdate()
+        if LocationCheckIn.objects.filter(owner=request.user, check_date=today).exists():
+            return redirect("vault:im_here")
+
+        stops = RouteStop.objects.filter(owner=request.user, route_type=route_type).order_by("seq")
+        if not stops:
+            messages.error(request, f'No stops saved for route "{route_type}".')
+            return redirect("vault:im_here")
+
+        LocationCheckIn.objects.bulk_create([
+            LocationCheckIn(owner=request.user, check_date=today, seq=stop.seq,
+                             remarks=stop.remarks, route_type=stop.route_type)
+            for stop in stops
+        ])
+        messages.success(request, f'Route "{route_type}" loaded for today.')
         return redirect("vault:im_here")
 
 

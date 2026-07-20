@@ -70,7 +70,7 @@ class ReminderAdmin(admin.ModelAdmin):
 
 @admin.register(LocationCheckIn)
 class LocationCheckInAdmin(admin.ModelAdmin):
-    list_display = ("owner", "check_date", "seq", "created_at", "owner_route", "latitude", "longitude", "remarks")
+    list_display = ("owner", "check_date", "seq", "route_type", "created_at", "owner_route", "latitude", "longitude", "remarks")
     list_filter = ("owner",)
 
     def owner_route(self, obj):
@@ -81,5 +81,5 @@ class LocationCheckInAdmin(admin.ModelAdmin):
 
 @admin.register(RouteStop)
 class RouteStopAdmin(admin.ModelAdmin):
-    list_display = ("owner", "seq", "remarks")
-    list_filter = ("owner",)
+    list_display = ("owner", "route_type", "seq", "remarks")
+    list_filter = ("owner", "route_type")

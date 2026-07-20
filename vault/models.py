@@ -251,6 +251,10 @@ class LocationCheckIn(models.Model):
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     remarks = models.CharField(max_length=255, blank=True)
     seq = models.PositiveIntegerField(default=10, verbose_name="Seq")
+    route_type = models.CharField(
+        max_length=30, blank=True, verbose_name="Route type",
+        help_text="Which saved route (AM, PM, MID DAY, ...) this stop was loaded from, if any.",
+    )
     check_date = models.DateField(verbose_name="Date")
     created_at = models.DateTimeField(null=True, blank=True, verbose_name="Time")
 
@@ -270,18 +274,22 @@ class LocationCheckIn(models.Model):
 
 
 class RouteStop(models.Model):
-    """Plantilla de la ruta diaria de un usuario: seq + remarks de las
-    paradas guardadas con 'Save Route'. Sin fecha/hora/ubicación propias
-    (esas se capturan cada día). ImHereView la usa para precargar el día
-    siguiente; SaveRouteView la reemplaza con los check-ins del día actual."""
+    """Plantilla de ruta diaria de un usuario: seq + remarks de las paradas
+    guardadas con 'Save Route', agrupadas por route_type (AM, PM, MID DAY,
+    etc.) para poder guardar varias rutas nombradas en paralelo. Sin fecha/
+    hora/ubicación propias (esas se capturan cada día). ImHereView usa esta
+    plantilla, vía LoadRouteView, para precargar el día siguiente una vez
+    el usuario elige qué route_type cargar; SaveRouteView reemplaza solo las
+    paradas del route_type indicado, dejando intactas las de otros tipos."""
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="route_stops")
+    route_type = models.CharField(max_length=30, default="AM", verbose_name="Route type")
     seq = models.PositiveIntegerField(default=10, verbose_name="Seq")
     remarks = models.CharField(max_length=255, blank=True)
 
     class Meta:
-        ordering = ["seq"]
+        ordering = ["route_type", "seq"]
         verbose_name = "Daily route stop"
         verbose_name_plural = "Daily route stops"
 
     def __str__(self):
-        return f"{self.owner} route stop #{self.seq}"
+        return f"{self.owner} {self.route_type} route stop #{self.seq}"
