@@ -80,6 +80,11 @@ class ContactListView(SearchableListMixin, OwnerQuerysetMixin, ListView):
     paginate_by = 15
     search_fields = ("name", "phone", "email", "address", "notes")
 
+    def get_template_names(self):
+        if self.request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return ["vault/_contact_results.html"]
+        return [self.template_name]
+
 
 class ContactCreateView(OwnerCreateMixin, CreateView):
     model = Contact

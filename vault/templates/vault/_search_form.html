@@ -3,10 +3,10 @@
         <span class="pointer-events-none absolute inset-y-0 left-3 flex items-center text-gray-400">
             {% include "icons/search.html" with class="w-4 h-4" %}
         </span>
-        <input type="text" name="q" value="{{ query }}" placeholder="Search..."
+        <input type="text" name="q" id="search-q" value="{{ query }}" placeholder="Search..." autocomplete="off"
                class="w-full rounded-lg border border-gray-300 py-2 pl-9 pr-3 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
     </div>
-    <select name="category" onchange="this.form.submit()" class="rounded-lg border border-gray-300 py-2 px-3 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+    <select name="category" id="search-category" onchange="this.form.submit()" class="rounded-lg border border-gray-300 py-2 px-3 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
         <option value="">All categories</option>
         {% for cat in categories %}
         <option value="{{ cat.pk }}" {% if selected_category == cat.pk|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
