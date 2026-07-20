@@ -41,6 +41,22 @@ class OwnerCreateMixin(LoginRequiredMixin, UserFormKwargsMixin):
         return super().form_valid(form)
 
 
+class AjaxPartialTemplateMixin:
+    """
+    Para ListView con búsqueda "en vivo" (ver _live_search.html: hace fetch
+    con header X-Requested-With en vez de recargar la página). Sirve
+    ajax_template_name (solo la tabla de resultados, sin el layout de
+    base.html) cuando la request viene de ese fetch; si no, el template
+    normal de la vista.
+    """
+    ajax_template_name = None
+
+    def get_template_names(self):
+        if self.ajax_template_name and self.request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return [self.ajax_template_name]
+        return super().get_template_names()
+
+
 class SearchableListMixin:
     """
     Para ListView (junto con OwnerQuerysetMixin). Agrega filtros opcionales

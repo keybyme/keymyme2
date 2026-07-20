@@ -1,0 +1,47 @@
+<div class="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+<table class="min-w-full divide-y divide-gray-100">
+    <thead class="bg-cafe-dark">
+        <tr>
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Name</th>
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Category</th>
+            <th class="px-4 py-3"></th>
+        </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100">
+        {% for url_obj in urls %}
+        <tr class="group odd:bg-white even:bg-cream-soft hover:bg-beige">
+            <td class="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900">
+                <a href="{{ url_obj.url }}" target="_blank" class="inline-flex items-center gap-1 text-blue-600 hover:underline">
+                    {% include "icons/link.html" with class="w-4 h-4" %} {{ url_obj.name }}
+                </a>
+            </td>
+            <td class="whitespace-nowrap px-4 py-3 text-sm">
+                {% if url_obj.category %}
+                <span class="inline-flex items-center rounded-full bg-[#E9DDD0] px-2.5 py-0.5 text-xs font-medium text-cafe-dark">{{ url_obj.category.name }}</span>
+                {% else %}<span class="text-gray-400">—</span>{% endif %}
+            </td>
+            <td class="whitespace-nowrap px-4 py-3 text-right text-sm">
+                <div class="flex justify-end gap-3">
+                    <a href="{% url 'vault:url_update' url_obj.pk %}" class="text-cafe hover:text-cafe-darker" title="Edit">
+                        {% include "icons/pencil.html" with class="w-5 h-5" %}
+                    </a>
+                    <a href="{% url 'vault:url_delete' url_obj.pk %}" class="text-crimson hover:text-red-800" title="Delete">
+                        {% include "icons/trash.html" with class="w-5 h-5" %}
+                    </a>
+                </div>
+            </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="3" class="px-4 py-6 text-center text-sm text-gray-500">You don't have any saved links.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+
+{% if is_paginated %}
+<div class="mt-4 flex items-center justify-center gap-4 text-sm text-gray-600">
+    {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}" class="hover:text-blue-600">Previous</a>{% endif %}
+    <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}" class="hover:text-blue-600">Next</a>{% endif %}
+</div>
+{% endif %}

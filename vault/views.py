@@ -38,7 +38,7 @@ from .forms import (
     UrlForm,
     VaultPasswordForm,
 )
-from .mixins import OwnerCreateMixin, OwnerQuerysetMixin, SearchableListMixin, UserFormKwargsMixin
+from .mixins import AjaxPartialTemplateMixin, OwnerCreateMixin, OwnerQuerysetMixin, SearchableListMixin, UserFormKwargsMixin
 from .models import Category, Contact, LocationCheckIn, MediaFile, Reminder, RouteStop, Url, VaultPassword
 
 
@@ -73,17 +73,13 @@ class CategoryDeleteView(OwnerQuerysetMixin, DeleteView):
 
 # ---------- Contacts ----------
 
-class ContactListView(SearchableListMixin, OwnerQuerysetMixin, ListView):
+class ContactListView(AjaxPartialTemplateMixin, SearchableListMixin, OwnerQuerysetMixin, ListView):
     model = Contact
     template_name = "vault/contact_list.html"
+    ajax_template_name = "vault/_contact_results.html"
     context_object_name = "contacts"
     paginate_by = 15
     search_fields = ("name", "phone", "email", "address", "notes")
-
-    def get_template_names(self):
-        if self.request.headers.get("X-Requested-With") == "XMLHttpRequest":
-            return ["vault/_contact_results.html"]
-        return [self.template_name]
 
 
 class ContactCreateView(OwnerCreateMixin, CreateView):
@@ -146,9 +142,10 @@ class ContactImportView(UserFormKwargsMixin, LoginRequiredMixin, FormView):
 
 # ---------- Vault Passwords ----------
 
-class PasswordListView(SearchableListMixin, OwnerQuerysetMixin, ListView):
+class PasswordListView(AjaxPartialTemplateMixin, SearchableListMixin, OwnerQuerysetMixin, ListView):
     model = VaultPassword
     template_name = "vault/password_list.html"
+    ajax_template_name = "vault/_password_results.html"
     context_object_name = "passwords"
     paginate_by = 15
     search_fields = ("site_name", "username", "site_url", "notes")
@@ -212,9 +209,10 @@ class PasswordRevealJSONView(OwnerQuerysetMixin, DetailView):
 
 # ---------- URLs ----------
 
-class UrlListView(SearchableListMixin, OwnerQuerysetMixin, ListView):
+class UrlListView(AjaxPartialTemplateMixin, SearchableListMixin, OwnerQuerysetMixin, ListView):
     model = Url
     template_name = "vault/url_list.html"
+    ajax_template_name = "vault/_url_results.html"
     context_object_name = "urls"
     paginate_by = 15
     search_fields = ("name", "url", "notes")
@@ -242,9 +240,10 @@ class UrlDeleteView(OwnerQuerysetMixin, DeleteView):
 
 # ---------- Media Files ----------
 
-class MediaFileListView(SearchableListMixin, OwnerQuerysetMixin, ListView):
+class MediaFileListView(AjaxPartialTemplateMixin, SearchableListMixin, OwnerQuerysetMixin, ListView):
     model = MediaFile
     template_name = "vault/mediafile_list.html"
+    ajax_template_name = "vault/_mediafile_results.html"
     context_object_name = "files"
     paginate_by = 15
     search_fields = ("original_name",)
@@ -328,9 +327,10 @@ class MediaFileDeleteView(OwnerQuerysetMixin, DeleteView):
 
 # ---------- Reminders ----------
 
-class ReminderListView(SearchableListMixin, OwnerQuerysetMixin, ListView):
+class ReminderListView(AjaxPartialTemplateMixin, SearchableListMixin, OwnerQuerysetMixin, ListView):
     model = Reminder
     template_name = "vault/reminder_list.html"
+    ajax_template_name = "vault/_reminder_results.html"
     context_object_name = "reminders"
     paginate_by = 15
     search_fields = ("title", "description")
