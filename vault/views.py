@@ -1,4 +1,5 @@
 import base64
+import datetime as dt
 import hmac
 import io
 import json
@@ -11,13 +12,17 @@ from django.contrib import messages
 from django.core.mail import send_mail
 from django.core.management import call_command
 from django.core.paginator import Paginator
+from django.db.models import Max
 from django.http import HttpResponseForbidden, JsonResponse
-from django.shortcuts import redirect
+from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
+from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.csrf import csrf_exempt
-from django.views.generic import CreateView, DeleteView, DetailView, FormView, ListView, UpdateView, View
+from django.views.generic import (
+    CreateView, DeleteView, DetailView, FormView, ListView, TemplateView, UpdateView, View,
+)
 
 from .contact_import import parse_csv, parse_vcard
 from .forms import (
@@ -33,7 +38,7 @@ from .forms import (
     VaultPasswordForm,
 )
 from .mixins import OwnerCreateMixin, OwnerQuerysetMixin, SearchableListMixin, UserFormKwargsMixin
-from .models import Category, Contact, LocationCheckIn, MediaFile, Reminder, Url, VaultPassword
+from .models import Category, Contact, LocationCheckIn, MediaFile, Reminder, RouteStop, Url, VaultPassword
 
 
 # ---------- Categories ----------
@@ -408,21 +413,24 @@ class ImHereView(LoginRequiredMixin, FormView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Universo limitado a los últimos 20 check-ins (siempre por fecha), el
-        # orden de visualización dentro de ese subconjunto lo elige ?sort=.
+        self._ensure_todays_stops()
+        # Solo check-ins de la fecha actual; los de días anteriores viven en
+        # la página de Historia (LocationCheckInHistoryView).
         checkins = list(
-            LocationCheckIn.objects.filter(owner=self.request.user).order_by("-created_at")[:20]
+            LocationCheckIn.objects.filter(
+                owner=self.request.user, check_date=timezone.localdate()
+            )
         )
         sort = self.request.GET.get("sort", "-date")
         reverse = sort.startswith("-")
         sort_key = sort.lstrip("-")
         if sort_key == "remarks":
             checkins.sort(key=lambda c: c.remarks.lower(), reverse=reverse)
-        elif sort_key == "ruta":
-            checkins.sort(key=lambda c: c.ruta.lower(), reverse=reverse)
+        elif sort_key == "seq":
+            checkins.sort(key=lambda c: c.seq, reverse=reverse)
         else:
             sort_key = "date"
-            checkins.sort(key=lambda c: c.created_at, reverse=reverse)
+            checkins.sort(key=lambda c: c.created_at or dt.datetime.min.replace(tzinfo=dt.timezone.utc), reverse=reverse)
 
         paginator = Paginator(checkins, 10)
         context["page_obj"] = paginator.get_page(self.request.GET.get("page"))
@@ -431,17 +439,34 @@ class ImHereView(LoginRequiredMixin, FormView):
         context["sort_reverse"] = reverse
         context["date_sort_next"] = "date" if sort == "-date" else "-date"
         context["remarks_sort_next"] = "-remarks" if sort == "remarks" else "remarks"
-        context["ruta_sort_next"] = "-ruta" if sort == "ruta" else "ruta"
+        context["seq_sort_next"] = "-seq" if sort == "seq" else "seq"
         return context
+
+    def _ensure_todays_stops(self):
+        """Si el usuario todavía no tiene check-ins hoy y guardó una ruta
+        diaria (RouteStop, vía SaveRouteView), precarga esas paradas para
+        hoy sin fecha real/hora/ubicación: el usuario las va completando
+        con el ícono 'Here' de cada fila conforme llega a cada lugar."""
+        user = self.request.user
+        today = timezone.localdate()
+        if LocationCheckIn.objects.filter(owner=user, check_date=today).exists():
+            return
+        stops = RouteStop.objects.filter(owner=user).order_by("seq")
+        if not stops:
+            return
+        LocationCheckIn.objects.bulk_create([
+            LocationCheckIn(owner=user, check_date=today, seq=stop.seq, remarks=stop.remarks)
+            for stop in stops
+        ])
 
 
 class ImHereSendLocationView(LoginRequiredMixin, View):
     """
     Recibe (vía fetch, como JSON) las coordenadas y la hora local que el
     navegador capturó con navigator.geolocation. Siempre crea un
-    LocationCheckIn; si el usuario registró location_alert_email, además
-    envía el aviso por correo (best-effort: la falta de email no bloquea
-    el registro del check-in).
+    LocationCheckIn nuevo; si el usuario registró location_alert_email,
+    además envía el aviso por correo (best-effort: la falta de email no
+    bloquea el registro del check-in).
     """
 
     def post(self, request):
@@ -453,7 +478,15 @@ class ImHereSendLocationView(LoginRequiredMixin, View):
         except (KeyError, TypeError, ValueError, InvalidOperation, json.JSONDecodeError):
             return JsonResponse({"error": "Invalid location data."}, status=400)
 
-        LocationCheckIn.objects.create(owner=request.user, latitude=latitude, longitude=longitude)
+        today = timezone.localdate()
+        last_seq = LocationCheckIn.objects.filter(
+            owner=request.user, check_date=today
+        ).aggregate(Max("seq"))["seq__max"]
+        next_seq = (last_seq or 0) + 10
+        LocationCheckIn.objects.create(
+            owner=request.user, latitude=latitude, longitude=longitude,
+            check_date=today, created_at=timezone.now(), seq=next_seq,
+        )
 
         recipient = request.user.location_alert_email
         if recipient:
@@ -471,6 +504,56 @@ class ImHereSendLocationView(LoginRequiredMixin, View):
         return JsonResponse({"status": "ok"})
 
 
+class LocationCheckInHereView(LoginRequiredMixin, View):
+    """
+    Ícono 'Here' de cada fila en la tabla de hoy: captura la ubicación
+    actual y actualiza ESE registro (pensado para las paradas precargadas
+    por SaveRouteView), sin crear un check-in nuevo y sin enviar el email
+    de aviso.
+    """
+
+    def post(self, request, pk):
+        checkin = get_object_or_404(LocationCheckIn, pk=pk, owner=request.user)
+        try:
+            payload = json.loads(request.body)
+            latitude = Decimal(str(payload["latitude"]))
+            longitude = Decimal(str(payload["longitude"]))
+        except (KeyError, TypeError, ValueError, InvalidOperation, json.JSONDecodeError):
+            return JsonResponse({"error": "Invalid location data."}, status=400)
+
+        checkin.latitude = latitude
+        checkin.longitude = longitude
+        checkin.created_at = timezone.now()
+        checkin.save(update_fields=["latitude", "longitude", "created_at"])
+        return JsonResponse({"status": "ok"})
+
+
+class SaveRouteView(LoginRequiredMixin, View):
+    """
+    Botón 'Save Route': guarda los check-ins del día actual (seq + remarks)
+    como la plantilla de ruta diaria del usuario (RouteStop), reemplazando
+    la anterior. ImHereView usa esa plantilla para precargar las paradas
+    del día siguiente.
+    """
+
+    def post(self, request):
+        todays_checkins = LocationCheckIn.objects.filter(
+            owner=request.user, check_date=timezone.localdate()
+        ).order_by("seq")
+
+        if not todays_checkins.exists():
+            messages.error(request, "No check-ins today to save as a route.")
+            return redirect("vault:im_here")
+
+        RouteStop.objects.filter(owner=request.user).delete()
+        RouteStop.objects.bulk_create([
+            RouteStop(owner=request.user, seq=checkin.seq, remarks=checkin.remarks)
+            for checkin in todays_checkins
+        ])
+        messages.success(request, "Route saved. It will be pre-loaded tomorrow.")
+        return redirect("vault:im_here")
+
+
 class LocationCheckInUpdateView(OwnerQuerysetMixin, UpdateView):
     model = LocationCheckIn
     form_class = LocationCheckInForm
@@ -482,3 +565,37 @@ class LocationCheckInDeleteView(OwnerQuerysetMixin, DeleteView):
     model = LocationCheckIn
     template_name = "vault/location_checkin_confirm_delete.html"
     success_url = reverse_lazy("vault:im_here")
+
+
+class LocationCheckInHistoryView(LoginRequiredMixin, TemplateView):
+    """Check-ins de días anteriores a hoy, ya fuera de la tabla de
+    ImHereView, conservados aquí para análisis posterior."""
+    template_name = "vault/im_here_history.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        checkins = list(
+            LocationCheckIn.objects.filter(
+                owner=self.request.user, check_date__lt=timezone.localdate()
+            )
+        )
+        sort = self.request.GET.get("sort", "-date")
+        reverse = sort.startswith("-")
+        sort_key = sort.lstrip("-")
+        if sort_key == "remarks":
+            checkins.sort(key=lambda c: c.remarks.lower(), reverse=reverse)
+        elif sort_key == "seq":
+            checkins.sort(key=lambda c: c.seq, reverse=reverse)
+        else:
+            sort_key = "date"
+            checkins.sort(key=lambda c: c.created_at or dt.datetime.min.replace(tzinfo=dt.timezone.utc), reverse=reverse)
+
+        paginator = Paginator(checkins, 15)
+        context["page_obj"] = paginator.get_page(self.request.GET.get("page"))
+        context["sort"] = sort
+        context["sort_key"] = sort_key
+        context["sort_reverse"] = reverse
+        context["date_sort_next"] = "date" if sort == "-date" else "-date"
+        context["remarks_sort_next"] = "-remarks" if sort == "remarks" else "remarks"
+        context["seq_sort_next"] = "-seq" if sort == "seq" else "seq"
+        return context

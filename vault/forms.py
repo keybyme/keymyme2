@@ -187,7 +187,7 @@ class LocationAlertEmailForm(TailwindFormMixin, forms.ModelForm):
 class LocationCheckInForm(TailwindFormMixin, forms.ModelForm):
     class Meta:
         model = LocationCheckIn
-        fields = ["ruta", "remarks"]
+        fields = ["seq", "remarks"]
         widgets = {
             "remarks": forms.Textarea(attrs={"rows": 3}),
         }

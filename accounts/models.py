@@ -47,6 +47,11 @@ class CustomUser(AbstractUser):
         verbose_name="Location alert email",
         help_text="Where the 'I am here' button sends your coordinates and local time.",
     )
+    route = models.CharField(
+        max_length=100, default="9999", blank=True,
+        verbose_name="Route",
+        help_text="Route number assigned to this user, shown on their 'I am here' check-ins.",
+    )
 
     @property
     def sms_gateway_email(self):

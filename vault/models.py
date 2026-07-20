@@ -242,22 +242,46 @@ class Reminder(models.Model):
 
 class LocationCheckIn(models.Model):
     """Un registro por cada click en el botón 'I am here', con las
-    coordenadas que el navegador capturó en ese momento."""
+    coordenadas que el navegador capturó en ese momento. También puede ser
+    una parada precargada desde RouteStop (ver SaveRouteView/ImHereView):
+    en ese caso latitude/longitude/created_at quedan en None hasta que el
+    usuario la marca con el ícono 'Here'."""
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="location_checkins")
-    latitude = models.DecimalField(max_digits=9, decimal_places=6)
-    longitude = models.DecimalField(max_digits=9, decimal_places=6)
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     remarks = models.CharField(max_length=255, blank=True)
-    ruta = models.CharField(max_length=100, blank=True, verbose_name="Route")
-    created_at = models.DateTimeField(auto_now_add=True)
+    seq = models.PositiveIntegerField(default=10, verbose_name="Seq")
+    check_date = models.DateField(verbose_name="Date")
+    created_at = models.DateTimeField(null=True, blank=True, verbose_name="Time")
 
     class Meta:
-        ordering = ["-created_at"]
+        ordering = ["-check_date", "seq"]
         verbose_name = "Location check-in"
         verbose_name_plural = "Location check-ins"
 
     def __str__(self):
-        return f"{self.owner} @ {self.created_at:%Y-%m-%d %H:%M}"
+        return f"{self.owner} @ {self.check_date}"
 
     @property
     def maps_url(self):
+        if self.latitude is None or self.longitude is None:
+            return ""
         return f"https://www.google.com/maps?q={self.latitude},{self.longitude}"
+
+
+class RouteStop(models.Model):
+    """Plantilla de la ruta diaria de un usuario: seq + remarks de las
+    paradas guardadas con 'Save Route'. Sin fecha/hora/ubicación propias
+    (esas se capturan cada día). ImHereView la usa para precargar el día
+    siguiente; SaveRouteView la reemplaza con los check-ins del día actual."""
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="route_stops")
+    seq = models.PositiveIntegerField(default=10, verbose_name="Seq")
+    remarks = models.CharField(max_length=255, blank=True)
+
+    class Meta:
+        ordering = ["seq"]
+        verbose_name = "Daily route stop"
+        verbose_name_plural = "Daily route stops"
+
+    def __str__(self):
+        return f"{self.owner} route stop #{self.seq}"

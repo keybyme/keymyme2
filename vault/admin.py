@@ -1,7 +1,7 @@
 from django import forms
 from django.contrib import admin
 
-from .models import Category, Contact, LocationCheckIn, VaultPassword, MediaFile, Reminder, Url
+from .models import Category, Contact, LocationCheckIn, VaultPassword, MediaFile, Reminder, RouteStop, Url
 
 
 @admin.register(Category)
@@ -70,5 +70,16 @@ class ReminderAdmin(admin.ModelAdmin):
 
 @admin.register(LocationCheckIn)
 class LocationCheckInAdmin(admin.ModelAdmin):
-    list_display = ("owner", "created_at", "latitude", "longitude", "ruta", "remarks")
+    list_display = ("owner", "check_date", "seq", "created_at", "owner_route", "latitude", "longitude", "remarks")
+    list_filter = ("owner",)
+
+    def owner_route(self, obj):
+        return obj.owner.route
+    owner_route.short_description = "Route"
+    owner_route.admin_order_field = "owner__route"
+
+
+@admin.register(RouteStop)
+class RouteStopAdmin(admin.ModelAdmin):
+    list_display = ("owner", "seq", "remarks")
     list_filter = ("owner",)

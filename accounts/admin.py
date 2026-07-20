@@ -7,14 +7,14 @@ from .models import CustomUser
 @admin.register(CustomUser)
 class CustomUserAdmin(UserAdmin):
     list_display = (
-        "username", "email", "role", "storage_quota_gb",
+        "username", "email", "role", "route", "storage_quota_gb",
         "storage_used_display", "is_admin_principal", "is_suspended", "is_active",
     )
     list_filter = ("is_admin_principal", "is_suspended", "is_active", "role")
     fieldsets = UserAdmin.fieldsets + (
         ("KeyByMe", {
             "fields": (
-                "is_admin_principal", "role", "storage_quota_gb",
+                "is_admin_principal", "role", "route", "storage_quota_gb",
                 "storage_used_bytes", "is_suspended", "created_by",
                 "phone", "carrier", "location_alert_email",
             )
