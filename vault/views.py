@@ -4,6 +4,7 @@ import hmac
 import io
 import json
 from decimal import Decimal, InvalidOperation
+from itertools import groupby
 
 import qrcode
 from django.conf import settings
@@ -611,6 +612,16 @@ class LocationCheckInHistoryView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        # Rutas guardadas (RouteStop) por route_type, tal como quedaron tras
+        # el último "Save Route" de cada tipo — vive aquí, no solo como
+        # plantilla invisible de precarga, para que el usuario pueda auditar
+        # qué quedó guardado bajo cada tipo (AM, PM, MID DAY, ...).
+        saved_stops = RouteStop.objects.filter(owner=self.request.user).order_by("route_type", "seq")
+        context["saved_routes"] = [
+            (route_type, list(stops))
+            for route_type, stops in groupby(saved_stops, key=lambda s: s.route_type)
+        ]
+
         checkins = list(
             LocationCheckIn.objects.filter(
                 owner=self.request.user, check_date__lt=timezone.localdate()
