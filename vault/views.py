@@ -429,14 +429,15 @@ class ImHereView(LoginRequiredMixin, FormView):
                 owner=self.request.user, check_date=timezone.localdate()
             )
         )
-        if not checkins:
-            # Sin check-ins hoy: si el usuario tiene rutas guardadas (por
-            # route_type, vía SaveRouteView), no precargamos automáticamente
-            # — le ofrecemos elegir cuál cargar (LoadRouteView).
-            context["route_choices"] = list(
-                RouteStop.objects.filter(owner=self.request.user)
-                .order_by("route_type").values_list("route_type", flat=True).distinct()
-            )
+        # Si el usuario tiene rutas guardadas (por route_type, vía
+        # SaveRouteView), siempre le ofrecemos elegir cuál cargar
+        # (LoadRouteView) — incluso si ya hay check-ins hoy, para poder
+        # sumar una ruta distinta (p. ej. cargar PM más tarde en el mismo
+        # día después de haber hecho AM en la mañana), sin autocargar nada.
+        context["route_choices"] = list(
+            RouteStop.objects.filter(owner=self.request.user)
+            .order_by("route_type").values_list("route_type", flat=True).distinct()
+        )
         sort = self.request.GET.get("sort", "-date")
         reverse = sort.startswith("-")
         sort_key = sort.lstrip("-")
@@ -457,6 +458,7 @@ class ImHereView(LoginRequiredMixin, FormView):
         context["remarks_sort_next"] = "-remarks" if sort == "remarks" else "remarks"
         context["seq_sort_next"] = "-seq" if sort == "seq" else "seq"
         context["show_history_link"] = self.request.user.role_level > HISTORY_MIN_ROLE_LEVEL
+        context["active_route_type"] = checkins[0].route_type if checkins else ""
         return context
 
 
@@ -564,28 +566,32 @@ class SaveRouteView(LoginRequiredMixin, View):
 
 class LoadRouteView(LoginRequiredMixin, View):
     """
-    Chooser en ImHereView (cuando no hay check-ins hoy pero sí rutas
-    guardadas): el usuario elige qué route_type cargar y esta vista precarga
-    esas paradas como los check-ins de hoy, sin fecha real/hora/ubicación
-    propias — el usuario las va completando con el ícono 'Here' de cada fila
-    conforme llega a cada lugar.
+    Chooser en ImHereView: el usuario elige qué route_type cargar y esta
+    vista precarga esas paradas como check-ins de hoy, sin fecha real/hora/
+    ubicación propias — el usuario las va completando con el ícono 'Here' de
+    cada fila conforme llega a cada lugar. Si ya hay check-ins hoy (p. ej. la
+    ruta AM de la mañana), la ruta elegida se AGREGA a continuación (seq
+    corrido para no pisar los existentes) en vez de reemplazarlos, para poder
+    sumar una ruta distinta más tarde el mismo día.
     """
 
     def post(self, request):
         route_type = request.POST.get("route_type", "").strip()
         today = timezone.localdate()
-        if LocationCheckIn.objects.filter(owner=request.user, check_date=today).exists():
-            return redirect("vault:im_here")
 
         stops = RouteStop.objects.filter(owner=request.user, route_type=route_type).order_by("seq")
         if not stops:
             messages.error(request, f'No stops saved for route "{route_type}".')
             return redirect("vault:im_here")
 
+        last_seq = LocationCheckIn.objects.filter(
+            owner=request.user, check_date=today
+        ).aggregate(Max("seq"))["seq__max"] or 0
+
         LocationCheckIn.objects.bulk_create([
-            LocationCheckIn(owner=request.user, check_date=today, seq=stop.seq,
+            LocationCheckIn(owner=request.user, check_date=today, seq=last_seq + (index + 1) * 10,
                              remarks=stop.remarks, route_type=stop.route_type)
-            for stop in stops
+            for index, stop in enumerate(stops)
         ])
         messages.success(request, f'Route "{route_type}" loaded for today.')
         return redirect("vault:im_here")

@@ -2,7 +2,13 @@
 {% block title %}I am here{% endblock %}
 {% block content %}
 <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
-    <h1 class="text-2xl font-semibold text-gray-900">I am here</h1>
+    <div>
+        <h1 class="text-2xl font-semibold text-gray-900">I am here</h1>
+        <p class="mt-1 text-sm text-gray-600">
+            Route <span class="font-semibold text-gray-900">{{ request.user.route|default:"9999" }}</span>
+            &middot; Type <span class="font-semibold text-gray-900">{{ active_route_type|default:"—" }}</span>
+        </p>
+    </div>
     <div class="flex items-center gap-3">
         <form method="post" action="{% url 'vault:im_here_save_route' %}" class="flex items-center gap-2">
             {% csrf_token %}
@@ -43,7 +49,7 @@
 
 {% if route_choices %}
 <div class="mb-6 rounded-xl border border-gold bg-cream-soft p-4 shadow-sm">
-    <p class="mb-3 text-sm font-medium text-gray-700">Choose today's route to load:</p>
+    <p class="mb-3 text-sm font-medium text-gray-700">Load a saved route (added to today's stops, not a replacement):</p>
     <div class="flex flex-wrap gap-2">
         {% for rt in route_choices %}
         <form method="post" action="{% url 'vault:im_here_load_route' %}">
@@ -60,10 +66,20 @@
 <table class="min-w-full divide-y divide-gray-100">
     <thead class="bg-cafe-dark">
         <tr>
+            <th class="px-4 py-3"></th>
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Stop #</th>
             <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">
                 <a href="?sort={{ seq_sort_next }}" class="inline-flex items-center gap-1 hover:text-gold">
                     Seq
                     {% if sort_key == "seq" %}
+                        {% if sort_reverse %}{% include "icons/chevron-down.html" with class="w-3.5 h-3.5" %}{% else %}{% include "icons/chevron-up.html" with class="w-3.5 h-3.5" %}{% endif %}
+                    {% endif %}
+                </a>
+            </th>
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">
+                <a href="?sort={{ remarks_sort_next }}" class="inline-flex items-center gap-1 hover:text-gold">
+                    Name/Act
+                    {% if sort_key == "remarks" %}
                         {% if sort_reverse %}{% include "icons/chevron-down.html" with class="w-3.5 h-3.5" %}{% else %}{% include "icons/chevron-up.html" with class="w-3.5 h-3.5" %}{% endif %}
                     {% endif %}
                 </a>
@@ -77,24 +93,22 @@
                 </a>
             </th>
             <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Time</th>
-            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Location</th>
-            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Route</th>
-            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Type</th>
-            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">
-                <a href="?sort={{ remarks_sort_next }}" class="inline-flex items-center gap-1 hover:text-gold">
-                    Remarks
-                    {% if sort_key == "remarks" %}
-                        {% if sort_reverse %}{% include "icons/chevron-down.html" with class="w-3.5 h-3.5" %}{% else %}{% include "icons/chevron-up.html" with class="w-3.5 h-3.5" %}{% endif %}
-                    {% endif %}
-                </a>
-            </th>
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Loc</th>
             <th class="px-4 py-3"></th>
         </tr>
     </thead>
     <tbody class="divide-y divide-gray-100">
         {% for checkin in page_obj %}
         <tr class="group odd:bg-white even:bg-cream-soft hover:bg-beige">
+            <td class="whitespace-nowrap px-4 py-3 text-sm">
+                <button type="button" class="here-row-btn rounded-lg bg-emerald-600 px-2.5 py-1 text-xs font-medium text-white shadow-sm hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+                        data-url="{% url 'vault:location_checkin_here' checkin.pk %}" title="Mark here">
+                    Here
+                </button>
+            </td>
+            <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-900">{{ checkin.stop_number|default:"—" }}</td>
             <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-900">{{ checkin.seq }}</td>
+            <td class="max-w-xs px-4 py-3 text-sm text-gray-600">{{ checkin.remarks|default:"—" }}</td>
             <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-900">{% if checkin.created_at %}{{ checkin.check_date|date:"m/d/Y" }}{% else %}—{% endif %}</td>
             <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-900">{% if checkin.created_at %}{{ checkin.created_at|time:"g:i A" }}{% else %}—{% endif %}</td>
             <td class="whitespace-nowrap px-4 py-3 text-sm">
@@ -106,15 +120,8 @@
                 <span class="text-gray-400">—</span>
                 {% endif %}
             </td>
-            <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-600">{{ checkin.owner.route|default:"9999" }}</td>
-            <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-600">{{ checkin.route_type|default:"—" }}</td>
-            <td class="max-w-xs px-4 py-3 text-sm text-gray-600">{{ checkin.remarks|default:"—" }}</td>
             <td class="whitespace-nowrap px-4 py-3 text-right text-sm">
                 <div class="flex justify-end gap-3">
-                    <button type="button" class="here-row-btn rounded-lg bg-emerald-600 px-2.5 py-1 text-xs font-medium text-white shadow-sm hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
-                            data-url="{% url 'vault:location_checkin_here' checkin.pk %}" title="Mark here">
-                        Here
-                    </button>
                     <a href="{% url 'vault:location_checkin_update' checkin.pk %}" class="rounded-lg bg-yellow-500 px-2.5 py-1 text-xs font-medium text-gray-900 shadow-sm hover:bg-yellow-600" title="Edit">
                         Edit
                     </a>

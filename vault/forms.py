@@ -187,7 +187,8 @@ class LocationAlertEmailForm(TailwindFormMixin, forms.ModelForm):
 class LocationCheckInForm(TailwindFormMixin, forms.ModelForm):
     class Meta:
         model = LocationCheckIn
-        fields = ["seq", "route_type", "remarks"]
+        fields = ["stop_number", "seq", "route_type", "remarks"]
+        labels = {"remarks": "Name/Act"}
         widgets = {
             "remarks": forms.Textarea(attrs={"rows": 3}),
             "route_type": forms.TextInput(attrs={"placeholder": "AM"}),
