@@ -30,7 +30,6 @@ from .forms import (
     CategoryForm,
     ContactForm,
     ContactImportForm,
-    LocationAlertEmailForm,
     LocationCheckInForm,
     MediaFileForm,
     QRCodeForm,
@@ -395,30 +394,17 @@ class QRCodeGeneratorView(LoginRequiredMixin, FormView):
 
 # ---------- I am here ----------
 
-HISTORY_MIN_ROLE_LEVEL = 70
+ADMIN_MIN_ROLE_LEVEL = 70
 
 
-class ImHereView(LoginRequiredMixin, FormView):
+class ImHereView(LoginRequiredMixin, TemplateView):
     """
-    Página con el formulario para registrar el email de notificación, el
-    botón que dispara la captura de ubicación en el navegador, y la tabla
-    con los últimos check-ins (ver im_here.html). El registro del check-in
-    y el envío del email ocurren en ImHereSendLocationView, vía fetch, no
-    en este form.
+    Página con el botón que dispara la captura de ubicación en el navegador
+    y la tabla con los últimos check-ins (ver im_here.html). El registro del
+    check-in y el envío del email de aviso (a location_alert_email, editable
+    solo desde /admin) ocurren en ImHereSendLocationView, vía fetch.
     """
     template_name = "vault/im_here.html"
-    form_class = LocationAlertEmailForm
-    success_url = reverse_lazy("vault:im_here")
-
-    def get_form_kwargs(self):
-        kwargs = super().get_form_kwargs()
-        kwargs["instance"] = self.request.user
-        return kwargs
-
-    def form_valid(self, form):
-        form.save()
-        messages.success(self.request, "Notification email saved.")
-        return super().form_valid(form)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -457,7 +443,7 @@ class ImHereView(LoginRequiredMixin, FormView):
         context["date_sort_next"] = "date" if sort == "-date" else "-date"
         context["remarks_sort_next"] = "-remarks" if sort == "remarks" else "remarks"
         context["seq_sort_next"] = "-seq" if sort == "seq" else "seq"
-        context["show_history_link"] = self.request.user.role_level > HISTORY_MIN_ROLE_LEVEL
+        context["show_administrator_link"] = self.request.user.role_level > ADMIN_MIN_ROLE_LEVEL
         context["active_route_type"] = checkins[0].route_type if checkins else ""
         return context
 
@@ -614,29 +600,45 @@ class LocationCheckInDeleteView(OwnerQuerysetMixin, DeleteView):
     success_url = reverse_lazy("vault:im_here")
 
 
-class LocationCheckInHistoryView(LoginRequiredMixin, TemplateView):
-    """Check-ins de días anteriores a hoy, ya fuera de la tabla de
-    ImHereView, conservados aquí para análisis posterior. Solo visible
-    (link) y accesible (esta vista) para roles con level > HISTORY_MIN_ROLE_LEVEL."""
-    template_name = "vault/im_here_history.html"
+class AdminRoleRequiredMixin(LoginRequiredMixin):
+    """Para las vistas bajo el menú 'Administrator': solo visibles
+    (link) y accesibles (dispatch) para roles con level > ADMIN_MIN_ROLE_LEVEL."""
 
     def dispatch(self, request, *args, **kwargs):
-        if request.user.is_authenticated and request.user.role_level <= HISTORY_MIN_ROLE_LEVEL:
+        if request.user.is_authenticated and request.user.role_level <= ADMIN_MIN_ROLE_LEVEL:
             return HttpResponseForbidden("You don't have access to this page.")
         return super().dispatch(request, *args, **kwargs)
 
+
+class AdministratorView(AdminRoleRequiredMixin, TemplateView):
+    """Landing del menú de administración (Rutas, History, ...)."""
+    template_name = "vault/administrator.html"
+
+
+class AdminRoutesView(AdminRoleRequiredMixin, TemplateView):
+    """Rutas guardadas (RouteStop) por route_type, tal como quedaron tras
+    el último 'Save Route' de cada tipo — vive aquí, no solo como plantilla
+    invisible de precarga, para que el usuario pueda auditar qué quedó
+    guardado bajo cada tipo (AM, PM, MID DAY, ...)."""
+    template_name = "vault/admin_routes.html"
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Rutas guardadas (RouteStop) por route_type, tal como quedaron tras
-        # el último "Save Route" de cada tipo — vive aquí, no solo como
-        # plantilla invisible de precarga, para que el usuario pueda auditar
-        # qué quedó guardado bajo cada tipo (AM, PM, MID DAY, ...).
         saved_stops = RouteStop.objects.filter(owner=self.request.user).order_by("route_type", "seq")
         context["saved_routes"] = [
             (route_type, list(stops))
             for route_type, stops in groupby(saved_stops, key=lambda s: s.route_type)
         ]
+        return context
 
+
+class LocationCheckInHistoryView(AdminRoleRequiredMixin, TemplateView):
+    """Check-ins de días anteriores a hoy, ya fuera de la tabla de
+    ImHereView, conservados aquí para análisis posterior."""
+    template_name = "vault/im_here_history.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
         checkins = list(
             LocationCheckIn.objects.filter(
                 owner=self.request.user, check_date__lt=timezone.localdate()

@@ -57,6 +57,8 @@ urlpatterns = [
     path("im-here/checkins/<int:pk>/delete/", views.LocationCheckInDeleteView.as_view(), name="location_checkin_delete"),
     path("im-here/checkins/<int:pk>/here/", views.LocationCheckInHereView.as_view(), name="location_checkin_here"),
     path("im-here/history/", views.LocationCheckInHistoryView.as_view(), name="im_here_history"),
+    path("im-here/administrator/", views.AdministratorView.as_view(), name="im_here_administrator"),
+    path("im-here/administrator/routes/", views.AdminRoutesView.as_view(), name="im_here_admin_routes"),
 
     # Cron externo (ver config/settings.py CRON_SECRET)
     path("cron/send-reminders/", views.SendDueRemindersCronView.as_view(), name="cron_send_reminders"),
