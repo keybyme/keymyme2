@@ -568,24 +568,35 @@ class LoadRouteView(LoginRequiredMixin, View):
     Chooser en ImHereView: el usuario elige qué route_type cargar y esta
     vista precarga esas paradas como check-ins de hoy, sin fecha real/hora/
     ubicación propias — el usuario las va completando con el ícono 'Here' de
-    cada fila conforme llega a cada lugar. Si ya hay check-ins hoy (p. ej. la
-    ruta AM de la mañana), la ruta elegida se AGREGA a continuación (seq
-    corrido para no pisar los existentes) en vez de reemplazarlos, para poder
-    sumar una ruta distinta más tarde el mismo día.
+    cada fila conforme llega a cada lugar. Los check-ins de OTROS route_type
+    (p. ej. AM ya hecho en la mañana) nunca se tocan, para poder sumar una
+    ruta distinta más tarde el mismo día.
+
+    Si ESTE route_type ya se había cargado hoy pero ninguna de esas paradas
+    fue marcada 'Here' todavía, se REEMPLAZA por el estado actual de la
+    plantilla (permite recargar mientras se sigue editando la ruta en
+    Rutas). Si alguna ya fue marcada 'Here' (tiene created_at), no se toca
+    nada — hay que borrarlas a mano primero para evitar perder esa captura.
     """
 
     def post(self, request):
         route_type = request.POST.get("route_type", "").strip()
         today = timezone.localdate()
 
-        if LocationCheckIn.objects.filter(owner=request.user, check_date=today, route_type=route_type).exists():
-            messages.error(request, f'Route "{route_type}" was already loaded today.')
-            return redirect("vault:im_here")
-
         stops = RouteStop.objects.filter(owner=request.user, route_type=route_type).order_by("seq")
         if not stops:
             messages.error(request, f'No stops saved for route "{route_type}".')
             return redirect("vault:im_here")
+
+        existing = LocationCheckIn.objects.filter(owner=request.user, check_date=today, route_type=route_type)
+        if existing.filter(created_at__isnull=False).exists():
+            messages.error(
+                request,
+                f'Route "{route_type}" was already loaded today and some of its stops are already marked '
+                '"Here" — delete those from the table first if you want to reload the latest version.',
+            )
+            return redirect("vault:im_here")
+        existing.delete()
 
         last_seq = LocationCheckIn.objects.filter(
             owner=request.user, check_date=today
