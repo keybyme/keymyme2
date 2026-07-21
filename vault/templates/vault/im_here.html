@@ -14,6 +14,11 @@
             {% csrf_token %}
             <button type="submit" class="rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">Save Route</button>
         </form>
+        <form method="post" action="{% url 'vault:im_here_close_day' %}" class="flex items-center gap-2"
+              onsubmit="return confirm('Close today\'s stops? They will move to History and this table will start empty.');">
+            {% csrf_token %}
+            <button type="submit" class="rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">Close day</button>
+        </form>
         {% if show_administrator_link %}
         <a href="{% url 'vault:im_here_administrator' %}" class="rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">Administrator</a>
         {% endif %}

@@ -14,7 +14,7 @@ from django.contrib import messages
 from django.core.mail import send_mail
 from django.core.management import call_command
 from django.core.paginator import Paginator
-from django.db.models import Max
+from django.db.models import Max, Q
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
@@ -410,11 +410,12 @@ class ImHereView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Solo check-ins de la fecha actual; los de días anteriores viven en
+        # Solo check-ins de la fecha actual y no cerrados; los de días
+        # anteriores, y los de hoy ya cerrados con "Close day", viven en
         # la página de Historia (LocationCheckInHistoryView).
         checkins = list(
             LocationCheckIn.objects.filter(
-                owner=self.request.user, check_date=timezone.localdate()
+                owner=self.request.user, check_date=timezone.localdate(), is_closed=False
             )
         )
         # Si el usuario tiene rutas guardadas (por route_type, vía
@@ -473,7 +474,7 @@ class ImHereSendLocationView(LoginRequiredMixin, View):
 
         today = timezone.localdate()
         last_seq = LocationCheckIn.objects.filter(
-            owner=request.user, check_date=today
+            owner=request.user, check_date=today, is_closed=False
         ).aggregate(Max("seq"))["seq__max"]
         next_seq = (last_seq or 0) + 10
         LocationCheckIn.objects.create(
@@ -521,6 +522,29 @@ class LocationCheckInHereView(LoginRequiredMixin, View):
         return JsonResponse({"status": "ok"})
 
 
+class CloseDayView(LoginRequiredMixin, View):
+    """
+    Botón 'Close day': marca is_closed=True en todos los check-ins ABIERTOS
+    de hoy, sacándolos de la tabla de ImHereView (que solo muestra
+    is_closed=False) y haciéndolos aparecer de inmediato en History (que
+    incluye los de hoy ya cerrados), sin esperar a que cambie la fecha del
+    calendario. Cualquier check-in que se agregue después (Add stop, Load
+    Route) nace abierto y vuelve a aparecer en ImHereView como una tabla
+    nueva para el resto del día.
+    """
+
+    def post(self, request):
+        today = timezone.localdate()
+        updated = LocationCheckIn.objects.filter(
+            owner=request.user, check_date=today, is_closed=False
+        ).update(is_closed=True)
+        if not updated:
+            messages.error(request, "No check-ins today to close.")
+        else:
+            messages.success(request, f"Day closed — {updated} stop(s) moved to History.")
+        return redirect("vault:im_here")
+
+
 class SaveRouteView(LoginRequiredMixin, View):
     """
     Botón 'Save Route': guarda los check-ins del día actual (seq + remarks)
@@ -536,7 +560,7 @@ class SaveRouteView(LoginRequiredMixin, View):
 
     def post(self, request):
         todays_checkins = LocationCheckIn.objects.filter(
-            owner=request.user, check_date=timezone.localdate()
+            owner=request.user, check_date=timezone.localdate(), is_closed=False
         ).order_by("seq")
 
         if not todays_checkins.exists():
@@ -591,7 +615,9 @@ class LoadRouteView(LoginRequiredMixin, View):
             messages.error(request, f'No stops saved for route "{route_type}".')
             return redirect("vault:im_here")
 
-        existing = LocationCheckIn.objects.filter(owner=request.user, check_date=today, route_type=route_type)
+        existing = LocationCheckIn.objects.filter(
+            owner=request.user, check_date=today, route_type=route_type, is_closed=False
+        )
         if existing.filter(created_at__isnull=False).exists():
             messages.error(
                 request,
@@ -602,7 +628,7 @@ class LoadRouteView(LoginRequiredMixin, View):
         existing.delete()
 
         last_seq = LocationCheckIn.objects.filter(
-            owner=request.user, check_date=today
+            owner=request.user, check_date=today, is_closed=False
         ).aggregate(Max("seq"))["seq__max"] or 0
 
         LocationCheckIn.objects.bulk_create([
@@ -752,15 +778,16 @@ class RouteDeleteView(AdminRoleRequiredMixin, TemplateView):
 
 
 class LocationCheckInHistoryView(AdminRoleRequiredMixin, TemplateView):
-    """Check-ins de días anteriores a hoy, ya fuera de la tabla de
-    ImHereView, conservados aquí para análisis posterior."""
+    """Check-ins de días anteriores a hoy, más los de hoy ya cerrados con
+    'Close day' (ver CloseDayView) — ya fuera de la tabla de ImHereView,
+    conservados aquí para análisis posterior."""
     template_name = "vault/im_here_history.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         checkins = list(
-            LocationCheckIn.objects.filter(
-                owner=self.request.user, check_date__lt=timezone.localdate()
+            LocationCheckIn.objects.filter(owner=self.request.user).filter(
+                Q(check_date__lt=timezone.localdate()) | Q(check_date=timezone.localdate(), is_closed=True)
             )
         )
         sort = self.request.GET.get("sort", "-date")

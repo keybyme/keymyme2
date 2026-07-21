@@ -52,6 +52,7 @@ urlpatterns = [
     path("im-here/", views.ImHereView.as_view(), name="im_here"),
     path("im-here/send/", views.ImHereSendLocationView.as_view(), name="im_here_send"),
     path("im-here/save-route/", views.SaveRouteView.as_view(), name="im_here_save_route"),
+    path("im-here/close-day/", views.CloseDayView.as_view(), name="im_here_close_day"),
     path("im-here/load-route/", views.LoadRouteView.as_view(), name="im_here_load_route"),
     path("im-here/checkins/<int:pk>/edit/", views.LocationCheckInUpdateView.as_view(), name="location_checkin_update"),
     path("im-here/checkins/<int:pk>/delete/", views.LocationCheckInDeleteView.as_view(), name="location_checkin_delete"),

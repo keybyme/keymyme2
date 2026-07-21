@@ -258,6 +258,11 @@ class LocationCheckIn(models.Model):
     )
     check_date = models.DateField(verbose_name="Date")
     created_at = models.DateTimeField(null=True, blank=True, verbose_name="Time")
+    is_closed = models.BooleanField(
+        default=False,
+        help_text="Set by the 'Close day' button: moves this check-in from today's "
+        "'I am here' table into History, without waiting for the calendar date to change.",
+    )
 
     class Meta:
         ordering = ["-check_date", "seq"]
