@@ -668,6 +668,42 @@ class RouteStopDeleteView(AdminRoleRequiredMixin, OwnerQuerysetMixin, DeleteView
     success_url = reverse_lazy("vault:im_here_admin_routes")
 
 
+class RouteCreateView(AdminRoleRequiredMixin, View):
+    """Crea una ruta nueva (route_type) con una primera parada en blanco,
+    para que aparezca de inmediato en la grilla de Rutas lista para editar."""
+
+    def post(self, request):
+        route_type = request.POST.get("route_type", "").strip()
+        if not route_type:
+            messages.error(request, "Enter a route type (AM, PM, MID DAY, ...) to create.")
+            return redirect("vault:im_here_admin_routes")
+        if RouteStop.objects.filter(owner=request.user, route_type=route_type).exists():
+            messages.error(request, f'Route "{route_type}" already exists.')
+            return redirect("vault:im_here_admin_routes")
+        RouteStop.objects.create(owner=request.user, route_type=route_type, seq=10, remarks="")
+        messages.success(request, f'Route "{route_type}" created.')
+        return redirect("vault:im_here_admin_routes")
+
+
+class RouteDeleteView(AdminRoleRequiredMixin, TemplateView):
+    """Borra TODAS las paradas (RouteStop) de un route_type de una vez,
+    en vez de tener que borrarlas una por una desde RouteStopDeleteView."""
+    template_name = "vault/route_confirm_delete.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["route_type"] = self.kwargs["route_type"]
+        context["stop_count"] = RouteStop.objects.filter(
+            owner=self.request.user, route_type=self.kwargs["route_type"]
+        ).count()
+        return context
+
+    def post(self, request, route_type):
+        deleted, _ = RouteStop.objects.filter(owner=request.user, route_type=route_type).delete()
+        messages.success(request, f'Route "{route_type}" deleted ({deleted} stop(s)).')
+        return redirect("vault:im_here_admin_routes")
+
+
 class LocationCheckInHistoryView(AdminRoleRequiredMixin, TemplateView):
     """Check-ins de días anteriores a hoy, ya fuera de la tabla de
     ImHereView, conservados aquí para análisis posterior."""
