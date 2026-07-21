@@ -4,10 +4,6 @@
 <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
     <div>
         <h1 class="text-2xl font-semibold text-gray-900">I am here</h1>
-        <p class="mt-1 text-sm text-gray-600">
-            Route <span class="font-semibold text-gray-900">{{ request.user.route|default:"9999" }}</span>
-            &middot; Type <span class="font-semibold text-gray-900">{{ active_route_type|default:"—" }}</span>
-        </p>
     </div>
     <div class="flex items-center gap-3">
         <form method="post" action="{% url 'vault:im_here_save_route' %}" class="flex items-center gap-2">

@@ -450,7 +450,6 @@ class ImHereView(LoginRequiredMixin, TemplateView):
         context["remarks_sort_next"] = "-remarks" if sort == "remarks" else "remarks"
         context["seq_sort_next"] = "-seq" if sort == "seq" else "seq"
         context["show_administrator_link"] = self.request.user.role_level > ADMIN_MIN_ROLE_LEVEL
-        context["active_route_type"] = checkins[0].route_type if checkins else ""
         return context
 
 
@@ -473,13 +472,17 @@ class ImHereSendLocationView(LoginRequiredMixin, View):
             return JsonResponse({"error": "Invalid location data."}, status=400)
 
         today = timezone.localdate()
-        last_seq = LocationCheckIn.objects.filter(
+        todays_checkins = LocationCheckIn.objects.filter(
             owner=request.user, check_date=today, is_closed=False
-        ).aggregate(Max("seq"))["seq__max"]
+        )
+        last_seq = todays_checkins.aggregate(Max("seq"))["seq__max"]
         next_seq = (last_seq or 0) + 10
+        active_route_type = (
+            todays_checkins.exclude(route_type="").order_by("seq").values_list("route_type", flat=True).first() or ""
+        )
         LocationCheckIn.objects.create(
             owner=request.user, latitude=latitude, longitude=longitude,
-            check_date=today, created_at=timezone.now(), seq=next_seq,
+            check_date=today, created_at=timezone.now(), seq=next_seq, route_type=active_route_type,
         )
 
         recipient = request.user.location_alert_email
