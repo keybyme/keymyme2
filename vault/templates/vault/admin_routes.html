@@ -6,8 +6,10 @@
     <div class="flex flex-wrap items-center gap-3">
         <form method="post" action="{% url 'vault:route_create' %}" class="flex items-center gap-2">
             {% csrf_token %}
+            <input type="text" name="route_number" placeholder="Number" required maxlength="100"
+                   class="w-24 rounded-lg border border-gray-300 py-2 px-3 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
             <input type="text" name="route_type" list="route-type-options" placeholder="AM" required maxlength="30"
-                   class="w-28 rounded-lg border border-gray-300 py-2 px-3 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                   class="w-24 rounded-lg border border-gray-300 py-2 px-3 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
             <datalist id="route-type-options">
                 <option value="AM"></option>
                 <option value="PM"></option>
@@ -19,14 +21,15 @@
         <a href="{% url 'vault:im_here_administrator' %}" class="rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">Back to Administrator</a>
     </div>
 </div>
+<p class="mb-6 text-xs text-gray-500">"Number" must match an existing driver's Route field (e.g. s2112). Rutas here covers every driver, not just your own.</p>
 
 {% if saved_routes %}
 <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-    {% for route_type, stops in saved_routes %}
+    {% for route_number, route_type, stops, next_seq in saved_routes %}
     <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
         <div class="flex items-center justify-between bg-cafe-dark px-4 py-2 text-sm font-bold uppercase tracking-wide text-white">
-            <span>{{ request.user.route }} {{ route_type }}</span>
-            <a href="{% url 'vault:route_delete' route_type %}" class="text-white hover:text-red-300" title="Delete route">
+            <span>{{ route_number }} {{ route_type }}</span>
+            <a href="{% url 'vault:route_delete' route_number route_type %}" class="text-white hover:text-red-300" title="Delete route">
                 {% include "icons/trash.html" with class="w-4 h-4" %}
             </a>
         </div>
@@ -50,6 +53,16 @@
                 {% endfor %}
             </tbody>
         </table>
+        <form method="post" action="{% url 'vault:route_stop_create' %}" class="flex items-center gap-2 border-t border-gray-100 p-3">
+            {% csrf_token %}
+            <input type="hidden" name="route_number" value="{{ route_number }}">
+            <input type="hidden" name="route_type" value="{{ route_type }}">
+            <input type="number" name="seq" value="{{ next_seq }}"
+                   class="w-16 rounded-lg border border-gray-300 py-1.5 px-2 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+            <input type="text" name="remarks" placeholder="Name/Act"
+                   class="min-w-0 flex-1 rounded-lg border border-gray-300 py-1.5 px-2 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+            <button type="submit" class="whitespace-nowrap rounded-lg bg-cafe px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-cafe-darker">Add</button>
+        </form>
     </div>
     {% endfor %}
 </div>

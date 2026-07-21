@@ -2,9 +2,20 @@
 {% block title %}Route stop{% endblock %}
 {% block content %}
 <h1 class="mb-6 text-2xl font-semibold text-gray-900">{% if object %}Edit route stop{% else %}Add stop{% endif %}</h1>
+{% if object %}
+<p class="mb-4 text-sm text-gray-600">Route <span class="font-semibold text-gray-900">{{ object.owner.route }} {{ object.route_type }}</span></p>
+{% endif %}
 
 <form method="post" class="max-w-lg rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
     {% csrf_token %}
+    {% if not object %}
+    <div class="mb-4">
+        <label for="id_route_number" class="mb-1 block text-sm font-medium text-gray-700">Route number <span class="text-red-500">*</span></label>
+        <input type="text" name="route_number" id="id_route_number" value="{{ request.GET.route_number }}" required maxlength="100"
+               class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+        <p class="mt-1 text-xs text-gray-500">The driver's route number (their Route field), e.g. s2112.</p>
+    </div>
+    {% endif %}
     {% include "_form_fields.html" %}
     <div class="mt-6 flex items-center gap-3">
         <button type="submit" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700">Save</button>

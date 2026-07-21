@@ -4,7 +4,7 @@
 <div class="mx-auto max-w-md rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
     <div class="mb-4 flex items-center gap-3 text-amber-600">
         {% include "icons/exclamation-triangle.html" with class="w-8 h-8" %}
-        <h1 class="text-lg font-semibold text-gray-900">Delete route {{ request.user.route }} {{ route_type }}?</h1>
+        <h1 class="text-lg font-semibold text-gray-900">Delete route {{ route_number }} {{ route_type }}?</h1>
     </div>
     <p class="mb-6 text-sm text-gray-600">This deletes all {{ stop_count }} saved stop{{ stop_count|pluralize }} under this route. This action cannot be undone.</p>
     <form method="post" class="flex gap-3">

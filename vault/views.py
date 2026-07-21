@@ -8,6 +8,7 @@ from itertools import groupby
 
 import qrcode
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.core.mail import send_mail
@@ -627,24 +628,37 @@ class AdministratorView(AdminRoleRequiredMixin, TemplateView):
     template_name = "vault/administrator.html"
 
 
+def _find_driver_by_route(route_number):
+    """Busca la cuenta de chofer dueña de un número de ruta (CustomUser.route).
+    Rutas es administrado por roles >70 para CUALQUIER chofer, no solo el
+    propio del admin logueado — por eso todo lo que crea/edita una ruta
+    necesita resolver primero a qué cuenta pertenece ese número."""
+    return get_user_model().objects.filter(route=route_number).first()
+
+
 class AdminRoutesView(AdminRoleRequiredMixin, TemplateView):
-    """Rutas guardadas (RouteStop) por route_type, tal como quedaron tras
-    el último 'Save Route' de cada tipo — vive aquí, no solo como plantilla
-    invisible de precarga, para que el usuario pueda auditar qué quedó
-    guardado bajo cada tipo (AM, PM, MID DAY, ...)."""
+    """Rutas guardadas (RouteStop) de TODOS los choferes, agrupadas por
+    número de ruta (owner.route) + route_type, tal como quedaron tras el
+    último 'Save Route' de cada tipo (o creadas a mano aquí) — vive aquí,
+    no solo como plantilla invisible de precarga, para que un admin pueda
+    auditar y administrar la ruta de cualquier chofer."""
     template_name = "vault/admin_routes.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        saved_stops = RouteStop.objects.filter(owner=self.request.user).order_by("route_type", "seq")
-        context["saved_routes"] = [
-            (route_type, list(stops))
-            for route_type, stops in groupby(saved_stops, key=lambda s: s.route_type)
-        ]
+        saved_stops = RouteStop.objects.select_related("owner").order_by("owner__route", "route_type", "seq")
+        saved_routes = []
+        for (route_number, route_type), stops in groupby(saved_stops, key=lambda s: (s.owner.route, s.route_type)):
+            stops = list(stops)
+            saved_routes.append((route_number, route_type, stops, stops[-1].seq + 10))
+        context["saved_routes"] = saved_routes
         return context
 
 
 class RouteStopCreateView(AdminRoleRequiredMixin, CreateView):
+    """Agrega una parada a una ruta existente (identificada por número +
+    tipo) o, vía el link suelto 'Add stop', a una ruta cualquiera que el
+    admin indique a mano."""
     model = RouteStop
     form_class = RouteStopForm
     template_name = "vault/route_stop_form.html"
@@ -658,56 +672,68 @@ class RouteStopCreateView(AdminRoleRequiredMixin, CreateView):
         return initial
 
     def form_valid(self, form):
-        form.instance.owner = self.request.user
+        route_number = self.request.POST.get("route_number", "").strip()
+        owner = _find_driver_by_route(route_number)
+        if owner is None:
+            form.add_error(None, f'No driver account found with route number "{route_number}".')
+            return self.form_invalid(form)
+        form.instance.owner = owner
         return super().form_valid(form)
 
 
-class RouteStopUpdateView(AdminRoleRequiredMixin, OwnerQuerysetMixin, UpdateView):
+class RouteStopUpdateView(AdminRoleRequiredMixin, UpdateView):
     model = RouteStop
     form_class = RouteStopForm
     template_name = "vault/route_stop_form.html"
     success_url = reverse_lazy("vault:im_here_admin_routes")
 
 
-class RouteStopDeleteView(AdminRoleRequiredMixin, OwnerQuerysetMixin, DeleteView):
+class RouteStopDeleteView(AdminRoleRequiredMixin, DeleteView):
     model = RouteStop
     template_name = "vault/route_stop_confirm_delete.html"
     success_url = reverse_lazy("vault:im_here_admin_routes")
 
 
 class RouteCreateView(AdminRoleRequiredMixin, View):
-    """Crea una ruta nueva (route_type) con una primera parada en blanco,
-    para que aparezca de inmediato en la grilla de Rutas lista para editar."""
+    """Crea una ruta nueva (número + route_type) con una primera parada en
+    blanco, para que aparezca de inmediato en la grilla de Rutas lista para
+    editar. El número debe ser el Route de una cuenta de chofer existente."""
 
     def post(self, request):
+        route_number = request.POST.get("route_number", "").strip()
         route_type = request.POST.get("route_type", "").strip().upper()
-        if not route_type:
-            messages.error(request, "Enter a route type (AM, PM, MID DAY, ...) to create.")
+        if not route_number or not route_type:
+            messages.error(request, "Enter both a route number and a route type (AM, PM, MID DAY, ...) to create.")
             return redirect("vault:im_here_admin_routes")
-        if RouteStop.objects.filter(owner=request.user, route_type=route_type).exists():
-            messages.error(request, f'Route "{route_type}" already exists.')
+        owner = _find_driver_by_route(route_number)
+        if owner is None:
+            messages.error(request, f'No driver account found with route number "{route_number}".')
             return redirect("vault:im_here_admin_routes")
-        RouteStop.objects.create(owner=request.user, route_type=route_type, seq=10, remarks="")
-        messages.success(request, f'Route "{route_type}" created.')
+        if RouteStop.objects.filter(owner=owner, route_type=route_type).exists():
+            messages.error(request, f'Route "{route_number} {route_type}" already exists.')
+            return redirect("vault:im_here_admin_routes")
+        RouteStop.objects.create(owner=owner, route_type=route_type, seq=10, remarks="")
+        messages.success(request, f'Route "{route_number} {route_type}" created.')
         return redirect("vault:im_here_admin_routes")
 
 
 class RouteDeleteView(AdminRoleRequiredMixin, TemplateView):
-    """Borra TODAS las paradas (RouteStop) de un route_type de una vez,
-    en vez de tener que borrarlas una por una desde RouteStopDeleteView."""
+    """Borra TODAS las paradas (RouteStop) de un número + route_type de una
+    vez, en vez de tener que borrarlas una por una desde RouteStopDeleteView."""
     template_name = "vault/route_confirm_delete.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context["route_number"] = self.kwargs["route_number"]
         context["route_type"] = self.kwargs["route_type"]
         context["stop_count"] = RouteStop.objects.filter(
-            owner=self.request.user, route_type=self.kwargs["route_type"]
+            owner__route=self.kwargs["route_number"], route_type=self.kwargs["route_type"]
         ).count()
         return context
 
-    def post(self, request, route_type):
-        deleted, _ = RouteStop.objects.filter(owner=request.user, route_type=route_type).delete()
-        messages.success(request, f'Route "{route_type}" deleted ({deleted} stop(s)).')
+    def post(self, request, route_number, route_type):
+        deleted, _ = RouteStop.objects.filter(owner__route=route_number, route_type=route_type).delete()
+        messages.success(request, f'Route "{route_number} {route_type}" deleted ({deleted} stop(s)).')
         return redirect("vault:im_here_admin_routes")
 
 
