@@ -579,6 +579,10 @@ class LoadRouteView(LoginRequiredMixin, View):
         route_type = request.POST.get("route_type", "").strip()
         today = timezone.localdate()
 
+        if LocationCheckIn.objects.filter(owner=request.user, check_date=today, route_type=route_type).exists():
+            messages.error(request, f'Route "{route_type}" was already loaded today.')
+            return redirect("vault:im_here")
+
         stops = RouteStop.objects.filter(owner=request.user, route_type=route_type).order_by("seq")
         if not stops:
             messages.error(request, f'No stops saved for route "{route_type}".')
