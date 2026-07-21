@@ -291,6 +291,10 @@ class RouteStop(models.Model):
     route_type = models.CharField(max_length=30, default="AM", verbose_name="Route type")
     seq = models.PositiveIntegerField(default=10, verbose_name="Seq")
     stop_number = models.PositiveIntegerField(null=True, blank=True, verbose_name="Stop #")
+    planned_time = models.TimeField(
+        null=True, blank=True, verbose_name="Time",
+        help_text="Reference time this stop is expected to happen — not the actual captured time.",
+    )
     remarks = models.CharField(max_length=255, blank=True)
 
     class Meta:

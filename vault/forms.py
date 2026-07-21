@@ -196,9 +196,10 @@ class LocationCheckInForm(NormalizeRouteTypeMixin, TailwindFormMixin, forms.Mode
 class RouteStopForm(NormalizeRouteTypeMixin, TailwindFormMixin, forms.ModelForm):
     class Meta:
         model = RouteStop
-        fields = ["stop_number", "route_type", "seq", "remarks"]
+        fields = ["stop_number", "route_type", "seq", "planned_time", "remarks"]
         labels = {"remarks": "Name/Act"}
         widgets = {
             "remarks": forms.Textarea(attrs={"rows": 3}),
             "route_type": forms.TextInput(attrs={"placeholder": "AM"}),
+            "planned_time": forms.TimeInput(attrs={"type": "time"}),
         }

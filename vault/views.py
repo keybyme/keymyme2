@@ -775,6 +775,7 @@ class RouteCreateView(AdminRoleRequiredMixin, View):
         route_number = request.POST.get("route_number", "").strip()
         route_type = request.POST.get("route_type", "").strip().upper()
         stop_number = request.POST.get("stop_number", "").strip() or None
+        planned_time = request.POST.get("planned_time", "").strip() or None
         if not route_number or not route_type:
             messages.error(request, "Enter both a route number and a route type (AM, PM, MID DAY, ...) to create.")
             return redirect("vault:im_here_admin_routes")
@@ -785,7 +786,10 @@ class RouteCreateView(AdminRoleRequiredMixin, View):
         if RouteStop.objects.filter(owner=owner, route_type=route_type).exists():
             messages.error(request, f'Route "{route_number} {route_type}" already exists.')
             return redirect("vault:im_here_admin_routes")
-        RouteStop.objects.create(owner=owner, route_type=route_type, seq=10, stop_number=stop_number, remarks="")
+        RouteStop.objects.create(
+            owner=owner, route_type=route_type, seq=10,
+            stop_number=stop_number, planned_time=planned_time, remarks="",
+        )
         messages.success(request, f'Route "{route_number} {route_type}" created.')
         return redirect("vault:im_here_admin_routes")
 

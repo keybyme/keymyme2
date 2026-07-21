@@ -17,6 +17,8 @@
             </datalist>
             <input type="number" name="stop_number" placeholder="Stop #"
                    class="w-24 rounded-lg border border-gray-300 py-2 px-3 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+            <input type="time" name="planned_time" title="Reference time only, not the actual captured time"
+                   class="rounded-lg border border-gray-300 py-2 px-3 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
             <button type="submit" class="whitespace-nowrap rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">New route</button>
         </form>
         <a href="{% url 'vault:route_stop_create' %}" class="rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">Add stop</a>
@@ -41,6 +43,7 @@
                 <tr class="odd:bg-white even:bg-cream-soft">
                     <td class="whitespace-nowrap px-4 py-2 text-sm text-gray-900">{{ stop.stop_number|default:"—" }}</td>
                     <td class="whitespace-nowrap px-4 py-2 text-sm text-gray-900">{{ stop.seq }}</td>
+                    <td class="whitespace-nowrap px-4 py-2 text-sm text-gray-400" title="Reference time only, not the actual captured time">{% if stop.planned_time %}{{ stop.planned_time|time:"g:i A" }}{% else %}—{% endif %}</td>
                     <td class="px-4 py-2 text-sm text-gray-600">{{ stop.remarks|default:"—" }}</td>
                     <td class="whitespace-nowrap px-4 py-2 text-right text-sm">
                         <div class="flex justify-end gap-3">
@@ -64,6 +67,8 @@
                    class="w-16 rounded-lg border border-gray-300 py-1.5 px-2 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
             <input type="number" name="stop_number" placeholder="Stop #"
                    class="w-20 rounded-lg border border-gray-300 py-1.5 px-2 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+            <input type="time" name="planned_time" title="Reference time only, not the actual captured time"
+                   class="rounded-lg border border-gray-300 py-1.5 px-2 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
             <input type="text" name="remarks" placeholder="Name/Act"
                    class="min-w-0 flex-1 rounded-lg border border-gray-300 py-1.5 px-2 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
             <button type="submit" class="whitespace-nowrap rounded-lg bg-cafe px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-cafe-darker">Add</button>
