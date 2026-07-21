@@ -437,8 +437,11 @@ class ImHereView(LoginRequiredMixin, TemplateView):
             sort_key = "date"
             checkins.sort(key=lambda c: c.created_at or dt.datetime.min.replace(tzinfo=dt.timezone.utc), reverse=reverse)
 
-        paginator = Paginator(checkins, 10)
-        context["page_obj"] = paginator.get_page(self.request.GET.get("page"))
+        # Sin paginar: la tabla de hoy debe mostrar TODAS las paradas del
+        # día en una sola vista (a diferencia de la Historia, que sí pagina
+        # por acumular muchos días).
+        paginator = Paginator(checkins, max(len(checkins), 1))
+        context["page_obj"] = paginator.get_page(1)
         context["sort"] = sort
         context["sort_key"] = sort_key
         context["sort_reverse"] = reverse
