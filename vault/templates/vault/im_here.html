@@ -16,6 +16,7 @@
             <button type="submit" class="rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">Close day</button>
         </form>
         {% if show_administrator_link %}
+        <a href="{% url 'vault:im_here_dispatch' %}" class="rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">Dispatch</a>
         <a href="{% url 'vault:im_here_administrator' %}" class="rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">Administrator</a>
         {% endif %}
     </div>

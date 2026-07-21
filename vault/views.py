@@ -863,3 +863,88 @@ class LocationCheckInHistoryView(AdminRoleRequiredMixin, TemplateView):
         context["remarks_sort_next"] = "-remarks" if sort == "remarks" else "remarks"
         context["seq_sort_next"] = "-seq" if sort == "seq" else "seq"
         return context
+
+
+class DispatchView(AdminRoleRequiredMixin, TemplateView):
+    """Panel de despacho: solo rutas que YA salieron del depot hoy (al menos
+    una parada marcada 'Here'), con cuántas paradas completaron, si van
+    atrasadas y una ETA de la última parada, ordenadas por delay descendente.
+
+    RouteStop no tiene un link directo a los LocationCheckIn del día (Load
+    Route recalcula el seq al copiar), así que el 'Time' de referencia
+    (RouteStop.planned_time) se empareja con cada check-in POR POSICIÓN
+    dentro de la ruta (mismo orden en que se cargó) — un best-effort mientras
+    no exista un FK explícito. Si el admin reordena o agrega paradas después
+    de cargar la ruta, ese emparejamiento puede desalinearse."""
+    template_name = "vault/dispatch.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        today = timezone.localdate()
+        now = timezone.localtime()
+
+        checkins_by_route = {}
+        todays_checkins = LocationCheckIn.objects.select_related("owner").filter(
+            check_date=today, is_closed=False
+        ).exclude(route_type="").order_by("seq")
+        for checkin in todays_checkins:
+            checkins_by_route.setdefault((checkin.owner_id, checkin.route_type), []).append(checkin)
+
+        template_stops_by_route = {}
+        for stop in RouteStop.objects.order_by("seq"):
+            template_stops_by_route.setdefault((stop.owner_id, stop.route_type), []).append(stop)
+
+        def planned_time_at(template_stops, index):
+            if 0 <= index < len(template_stops):
+                return template_stops[index].planned_time
+            return None
+
+        rows = []
+        for (owner_id, route_type), stops in checkins_by_route.items():
+            done = [c for c in stops if c.created_at]
+            if not done:
+                continue  # todavía no salió del depot
+
+            total = len(stops)
+            template_stops = template_stops_by_route.get((owner_id, route_type), [])
+            pending = next((c for c in stops if not c.created_at), None)
+
+            delay_minutes = None
+            if pending is not None:
+                planned = planned_time_at(template_stops, stops.index(pending))
+                if planned:
+                    planned_dt = timezone.make_aware(dt.datetime.combine(today, planned))
+                    delay_minutes = int((now - planned_dt).total_seconds() // 60)
+
+            eta = None
+            last_planned = planned_time_at(template_stops, total - 1)
+            if last_planned:
+                eta_dt = timezone.make_aware(dt.datetime.combine(today, last_planned))
+                if delay_minutes and delay_minutes > 0:
+                    eta_dt += dt.timedelta(minutes=delay_minutes)
+                eta = eta_dt
+
+            if pending is None:
+                status = "Completed"
+            elif delay_minutes is None:
+                status = "In progress"
+            elif delay_minutes > 0:
+                status = "Late"
+            else:
+                status = "On time"
+
+            last_checkin = done[-1]
+            rows.append({
+                "owner": last_checkin.owner,
+                "route_type": route_type,
+                "status": status,
+                "done": len(done),
+                "total": total,
+                "delay_minutes": delay_minutes,
+                "eta": eta,
+                "last_checkin": last_checkin,
+            })
+
+        rows.sort(key=lambda r: (r["delay_minutes"] is None, -(r["delay_minutes"] or 0)))
+        context["rows"] = rows
+        return context

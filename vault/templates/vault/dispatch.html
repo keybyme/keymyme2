@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Dispatch{% endblock %}
+{% block content %}
+<div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+    <h1 class="text-2xl font-semibold text-gray-900">Dispatch</h1>
+    <a href="{% url 'vault:im_here_administrator' %}" class="rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">Back to Administrator</a>
+</div>
+<p class="mb-6 text-xs text-gray-500">
+    Only routes that have already left the depot today (at least one stop marked "Here") are shown, sorted by delay (most delayed first).
+    Delay/ETA compare the current time against each stop's reference Time in Rutas — routes without a Time set on their stops show "—".
+</p>
+
+<div class="mt-6 overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+<table class="min-w-full divide-y divide-gray-100">
+    <thead class="bg-cafe-dark">
+        <tr>
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Driver</th>
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Route</th>
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Status</th>
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Stops</th>
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Delay</th>
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">ETA (last stop)</th>
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Last check-in</th>
+        </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100">
+        {% for row in rows %}
+        <tr class="odd:bg-white even:bg-cream-soft hover:bg-beige">
+            <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-900">{{ row.owner.get_full_name|default:row.owner.username }}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-900">{{ row.owner.route|default:"9999" }} {{ row.route_type }}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-sm">
+                {% if row.status == "Late" %}
+                <span class="rounded-full bg-red-100 px-2.5 py-1 text-xs font-medium text-red-700">Late</span>
+                {% elif row.status == "Completed" %}
+                <span class="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-700">Completed</span>
+                {% elif row.status == "On time" %}
+                <span class="rounded-full bg-blue-100 px-2.5 py-1 text-xs font-medium text-blue-700">On time</span>
+                {% else %}
+                <span class="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600">In progress</span>
+                {% endif %}
+            </td>
+            <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-900">{{ row.done }} / {{ row.total }}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-sm font-medium">
+                {% if row.delay_minutes is None %}
+                <span class="text-gray-400">—</span>
+                {% elif row.delay_minutes > 0 %}
+                <span class="text-red-600">{{ row.delay_minutes }} min late</span>
+                {% else %}
+                <span class="text-emerald-600">On time</span>
+                {% endif %}
+            </td>
+            <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-900">{% if row.eta %}{{ row.eta|time:"g:i A" }}{% else %}—{% endif %}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-sm">
+                {% if row.last_checkin.created_at %}
+                <span class="text-gray-900">{{ row.last_checkin.created_at|time:"g:i A" }}</span>
+                {% if row.last_checkin.latitude and row.last_checkin.longitude %}
+                <a href="{{ row.last_checkin.maps_url }}" target="_blank" rel="noopener" class="ml-2 inline-flex items-center gap-1 text-blue-600 hover:text-blue-800">
+                    {% include "icons/map-pin.html" with class="w-4 h-4" %} GPS
+                </a>
+                {% endif %}
+                {% else %}
+                <span class="text-gray-400">—</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="px-4 py-6 text-center text-sm text-gray-500">No routes have left the depot yet today.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+{% endblock %}
