@@ -587,7 +587,8 @@ class SaveRouteView(LoginRequiredMixin, View):
         for route_type, checkins in by_type.items():
             RouteStop.objects.filter(owner=request.user, route_type=route_type).delete()
             RouteStop.objects.bulk_create([
-                RouteStop(owner=request.user, route_type=route_type, seq=checkin.seq, remarks=checkin.remarks)
+                RouteStop(owner=request.user, route_type=route_type, seq=checkin.seq,
+                          stop_number=checkin.stop_number, remarks=checkin.remarks)
                 for checkin in checkins
             ])
         messages.success(request, f'Route(s) saved: {", ".join(by_type.keys())}.')
@@ -637,7 +638,7 @@ class LoadRouteView(LoginRequiredMixin, View):
 
         LocationCheckIn.objects.bulk_create([
             LocationCheckIn(owner=request.user, check_date=today, seq=last_seq + (index + 1) * 10,
-                             remarks=stop.remarks, route_type=stop.route_type)
+                             stop_number=stop.stop_number, remarks=stop.remarks, route_type=stop.route_type)
             for index, stop in enumerate(stops)
         ])
         messages.success(request, f'Route "{route_type}" loaded for today.')
@@ -773,6 +774,7 @@ class RouteCreateView(AdminRoleRequiredMixin, View):
     def post(self, request):
         route_number = request.POST.get("route_number", "").strip()
         route_type = request.POST.get("route_type", "").strip().upper()
+        stop_number = request.POST.get("stop_number", "").strip() or None
         if not route_number or not route_type:
             messages.error(request, "Enter both a route number and a route type (AM, PM, MID DAY, ...) to create.")
             return redirect("vault:im_here_admin_routes")
@@ -783,7 +785,7 @@ class RouteCreateView(AdminRoleRequiredMixin, View):
         if RouteStop.objects.filter(owner=owner, route_type=route_type).exists():
             messages.error(request, f'Route "{route_number} {route_type}" already exists.')
             return redirect("vault:im_here_admin_routes")
-        RouteStop.objects.create(owner=owner, route_type=route_type, seq=10, remarks="")
+        RouteStop.objects.create(owner=owner, route_type=route_type, seq=10, stop_number=stop_number, remarks="")
         messages.success(request, f'Route "{route_number} {route_type}" created.')
         return redirect("vault:im_here_admin_routes")
 

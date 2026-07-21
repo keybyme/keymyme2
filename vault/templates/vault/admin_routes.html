@@ -15,6 +15,8 @@
                 <option value="PM"></option>
                 <option value="MID DAY"></option>
             </datalist>
+            <input type="number" name="stop_number" placeholder="Stop #"
+                   class="w-24 rounded-lg border border-gray-300 py-2 px-3 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
             <button type="submit" class="whitespace-nowrap rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">New route</button>
         </form>
         <a href="{% url 'vault:route_stop_create' %}" class="rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">Add stop</a>
@@ -37,6 +39,7 @@
             <tbody class="divide-y divide-gray-100">
                 {% for stop in stops %}
                 <tr class="odd:bg-white even:bg-cream-soft">
+                    <td class="whitespace-nowrap px-4 py-2 text-sm text-gray-900">{{ stop.stop_number|default:"—" }}</td>
                     <td class="whitespace-nowrap px-4 py-2 text-sm text-gray-900">{{ stop.seq }}</td>
                     <td class="px-4 py-2 text-sm text-gray-600">{{ stop.remarks|default:"—" }}</td>
                     <td class="whitespace-nowrap px-4 py-2 text-right text-sm">
@@ -59,6 +62,8 @@
             <input type="hidden" name="route_type" value="{{ route_type }}">
             <input type="number" name="seq" value="{{ next_seq }}"
                    class="w-16 rounded-lg border border-gray-300 py-1.5 px-2 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+            <input type="number" name="stop_number" placeholder="Stop #"
+                   class="w-20 rounded-lg border border-gray-300 py-1.5 px-2 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
             <input type="text" name="remarks" placeholder="Name/Act"
                    class="min-w-0 flex-1 rounded-lg border border-gray-300 py-1.5 px-2 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
             <button type="submit" class="whitespace-nowrap rounded-lg bg-cafe px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-cafe-darker">Add</button>
