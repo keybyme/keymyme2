@@ -4,7 +4,13 @@
 <div class="mx-auto max-w-md rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
     <div class="mb-4 flex items-center gap-3 text-amber-600">
         {% include "icons/exclamation-triangle.html" with class="w-8 h-8" %}
-        <h1 class="text-lg font-semibold text-gray-900">Delete check-in from {{ object.created_at|date:"m/d/Y" }} {{ object.created_at|time:"g:i A" }}?</h1>
+        <h1 class="text-lg font-semibold text-gray-900">
+            {% if object.created_at %}
+                Delete check-in from {{ object.created_at|date:"m/d/Y" }} {{ object.created_at|time:"g:i A" }}?
+            {% else %}
+                Delete this preloaded stop ({{ object.check_date|date:"m/d/Y" }}, not checked in yet)?
+            {% endif %}
+        </h1>
     </div>
     <p class="mb-6 text-sm text-gray-600">This action cannot be undone.</p>
     <form method="post" class="flex gap-3">
