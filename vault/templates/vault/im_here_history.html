@@ -1,18 +1,44 @@
 {% extends "base.html" %}
 {% block title %}I am here — History{% endblock %}
 {% block content %}
-<div class="mb-6 flex items-center justify-between">
-    <h1 class="text-2xl font-semibold text-gray-900">I am here — History</h1>
+<div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+    <h1 class="text-2xl font-semibold text-gray-900">
+        {% if searched %}History Route #{{ search_route }} {{ search_route_type }}{% else %}I am here — History{% endif %}
+    </h1>
     <a href="{% url 'vault:im_here_administrator' %}" class="rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">Back to Administrator</a>
 </div>
 
+<div class="mb-6 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+    <form method="get" class="flex flex-wrap items-end gap-3">
+        <div>
+            <label for="history-route" class="mb-1 block text-xs font-medium text-gray-600">Route</label>
+            <input type="text" id="history-route" name="route" value="{{ search_route }}" placeholder="e.g. s2112" required
+                   maxlength="100"
+                   class="w-32 rounded-lg border border-gray-300 py-2 px-3 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+        </div>
+        <div>
+            <label for="history-route-type" class="mb-1 block text-xs font-medium text-gray-600">Type</label>
+            <input type="text" id="history-route-type" name="route_type" value="{{ search_route_type }}"
+                   list="route-type-options" placeholder="AM" required maxlength="30"
+                   class="w-28 rounded-lg border border-gray-300 py-2 px-3 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+            <datalist id="route-type-options">
+                <option value="AM"></option>
+                <option value="PM"></option>
+                <option value="MID DAY"></option>
+            </datalist>
+        </div>
+        <button type="submit" class="rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">Search</button>
+    </form>
+</div>
+
+{% if searched %}
 <div class="mt-6 overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
 <table class="min-w-full divide-y divide-gray-100">
     <thead class="bg-cafe-dark">
         <tr>
             <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Stop #</th>
             <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">
-                <a href="?sort={{ seq_sort_next }}" class="inline-flex items-center gap-1 hover:text-gold">
+                <a href="?route={{ search_route|urlencode }}&route_type={{ search_route_type|urlencode }}&sort={{ seq_sort_next }}" class="inline-flex items-center gap-1 hover:text-gold">
                     Seq
                     {% if sort_key == "seq" %}
                         {% if sort_reverse %}{% include "icons/chevron-down.html" with class="w-3.5 h-3.5" %}{% else %}{% include "icons/chevron-up.html" with class="w-3.5 h-3.5" %}{% endif %}
@@ -20,7 +46,7 @@
                 </a>
             </th>
             <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">
-                <a href="?sort={{ date_sort_next }}" class="inline-flex items-center gap-1 hover:text-gold">
+                <a href="?route={{ search_route|urlencode }}&route_type={{ search_route_type|urlencode }}&sort={{ date_sort_next }}" class="inline-flex items-center gap-1 hover:text-gold">
                     Date
                     {% if sort_key == "date" %}
                         {% if sort_reverse %}{% include "icons/chevron-down.html" with class="w-3.5 h-3.5" %}{% else %}{% include "icons/chevron-up.html" with class="w-3.5 h-3.5" %}{% endif %}
@@ -29,10 +55,8 @@
             </th>
             <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Time</th>
             <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Location</th>
-            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Route</th>
-            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Type</th>
             <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">
-                <a href="?sort={{ remarks_sort_next }}" class="inline-flex items-center gap-1 hover:text-gold">
+                <a href="?route={{ search_route|urlencode }}&route_type={{ search_route_type|urlencode }}&sort={{ remarks_sort_next }}" class="inline-flex items-center gap-1 hover:text-gold">
                     Name/Act
                     {% if sort_key == "remarks" %}
                         {% if sort_reverse %}{% include "icons/chevron-down.html" with class="w-3.5 h-3.5" %}{% else %}{% include "icons/chevron-up.html" with class="w-3.5 h-3.5" %}{% endif %}
@@ -58,8 +82,6 @@
                 <span class="text-gray-400">—</span>
                 {% endif %}
             </td>
-            <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-600">{{ checkin.owner.route|default:"9999" }}</td>
-            <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-600">{{ checkin.route_type|default:"—" }}</td>
             <td class="max-w-xs px-4 py-3 text-sm text-gray-600">{{ checkin.remarks|default:"—" }}</td>
             <td class="whitespace-nowrap px-4 py-3 text-right text-sm">
                 <div class="flex justify-end gap-3">
@@ -73,7 +95,7 @@
             </td>
         </tr>
         {% empty %}
-        <tr><td colspan="9" class="px-4 py-6 text-center text-sm text-gray-500">No past check-ins yet.</td></tr>
+        <tr><td colspan="7" class="px-4 py-6 text-center text-sm text-gray-500">No past check-ins found for this route and type.</td></tr>
         {% endfor %}
     </tbody>
 </table>
@@ -81,9 +103,12 @@
 
 {% if page_obj.has_other_pages %}
 <div class="mt-4 flex items-center justify-center gap-4 text-sm text-gray-600">
-    {% if page_obj.has_previous %}<a href="?sort={{ sort }}&page={{ page_obj.previous_page_number }}" class="hover:text-blue-600">Previous</a>{% endif %}
+    {% if page_obj.has_previous %}<a href="?route={{ search_route|urlencode }}&route_type={{ search_route_type|urlencode }}&sort={{ sort }}&page={{ page_obj.previous_page_number }}" class="hover:text-blue-600">Previous</a>{% endif %}
     <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-    {% if page_obj.has_next %}<a href="?sort={{ sort }}&page={{ page_obj.next_page_number }}" class="hover:text-blue-600">Next</a>{% endif %}
+    {% if page_obj.has_next %}<a href="?route={{ search_route|urlencode }}&route_type={{ search_route_type|urlencode }}&sort={{ sort }}&page={{ page_obj.next_page_number }}" class="hover:text-blue-600">Next</a>{% endif %}
 </div>
+{% endif %}
+{% else %}
+<p class="text-sm text-gray-500">Enter a route number and type above, then tap Search.</p>
 {% endif %}
 {% endblock %}

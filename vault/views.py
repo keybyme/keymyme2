@@ -5,6 +5,7 @@ import io
 import json
 from decimal import Decimal, InvalidOperation
 from itertools import groupby
+from urllib.parse import urlencode
 
 import qrcode
 from django.conf import settings
@@ -646,21 +647,39 @@ class LoadRouteView(LoginRequiredMixin, View):
 class LocationCheckInSuccessUrlMixin:
     """Send the user back to History if the check-in being edited/deleted
     lives there (past day or closed today), otherwise back to today's I am
-    here table — matches the filter LocationCheckInHistoryView uses."""
+    here table — matches the filter LocationCheckInHistoryView uses. When
+    going back to History, carries the route/type along so the admin lands
+    back on the same search instead of the empty prompt."""
 
     def get_success_url(self):
         checkin = self.object
-        is_history = checkin.check_date < timezone.localdate() or checkin.is_closed
-        return reverse_lazy("vault:im_here_history") if is_history else reverse_lazy("vault:im_here")
+        if checkin.check_date < timezone.localdate() or checkin.is_closed:
+            if checkin.route_type:
+                query = urlencode({"route": checkin.owner.route, "route_type": checkin.route_type})
+                return f"{reverse('vault:im_here_history')}?{query}"
+            return reverse("vault:im_here_history")
+        return reverse("vault:im_here")
 
 
-class LocationCheckInUpdateView(LocationCheckInSuccessUrlMixin, OwnerQuerysetMixin, UpdateView):
+class LocationCheckInAccessMixin(LoginRequiredMixin):
+    """Regular drivers can only edit/delete their own check-ins. Admins
+    (role_level > ADMIN_MIN_ROLE_LEVEL) can reach any driver's, since
+    History — which links here — is cross-driver like Rutas."""
+
+    def get_queryset(self):
+        queryset = LocationCheckIn.objects.all()
+        if self.request.user.role_level > ADMIN_MIN_ROLE_LEVEL:
+            return queryset
+        return queryset.filter(owner=self.request.user)
+
+
+class LocationCheckInUpdateView(LocationCheckInSuccessUrlMixin, LocationCheckInAccessMixin, UpdateView):
     model = LocationCheckIn
     form_class = LocationCheckInForm
     template_name = "vault/location_checkin_form.html"
 
 
-class LocationCheckInDeleteView(LocationCheckInSuccessUrlMixin, OwnerQuerysetMixin, DeleteView):
+class LocationCheckInDeleteView(LocationCheckInSuccessUrlMixin, LocationCheckInAccessMixin, DeleteView):
     model = LocationCheckIn
     template_name = "vault/location_checkin_confirm_delete.html"
 
@@ -792,16 +811,32 @@ class RouteDeleteView(AdminRoleRequiredMixin, TemplateView):
 class LocationCheckInHistoryView(AdminRoleRequiredMixin, TemplateView):
     """Check-ins de días anteriores a hoy, más los de hoy ya cerrados con
     'Close day' (ver CloseDayView) — ya fuera de la tabla de ImHereView,
-    conservados aquí para análisis posterior."""
+    conservados aquí para análisis posterior. Cross-driver como Rutas
+    (AdminRoleRequiredMixin ya exige role_level > ADMIN_MIN_ROLE_LEVEL): en
+    vez de listar todo mezclado, el admin busca un número de ruta + tipo
+    (AM/PM/...) a la vez — con más choferes activos, la lista de rutas solo
+    va a crecer, así que cada búsqueda queda separada."""
     template_name = "vault/im_here_history.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        checkins = list(
-            LocationCheckIn.objects.filter(owner=self.request.user).filter(
-                Q(check_date__lt=timezone.localdate()) | Q(check_date=timezone.localdate(), is_closed=True)
+        search_route = self.request.GET.get("route", "").strip()
+        search_route_type = self.request.GET.get("route_type", "").strip().upper()
+        searched = bool(search_route and search_route_type)
+
+        checkins = []
+        if searched:
+            checkins = list(
+                LocationCheckIn.objects.filter(
+                    owner__route=search_route, route_type__iexact=search_route_type
+                ).filter(
+                    Q(check_date__lt=timezone.localdate()) | Q(check_date=timezone.localdate(), is_closed=True)
+                )
             )
-        )
+        context["search_route"] = search_route
+        context["search_route_type"] = search_route_type
+        context["searched"] = searched
+
         sort = self.request.GET.get("sort", "-date")
         reverse = sort.startswith("-")
         sort_key = sort.lstrip("-")
