@@ -34,6 +34,7 @@ from .forms import (
     MediaFileForm,
     QRCodeForm,
     ReminderForm,
+    RouteStopForm,
     UrlForm,
     VaultPasswordForm,
 )
@@ -530,7 +531,11 @@ class SaveRouteView(LoginRequiredMixin, View):
     def post(self, request):
         route_type = request.POST.get("route_type", "").strip()
         if not route_type:
-            messages.error(request, "Enter a route type (AM, PM, MID DAY, ...) to save this route as.")
+            messages.error(
+                request,
+                "Today's check-ins don't have a route type yet — load a saved route first, "
+                "or set one by editing a check-in, then Save Route.",
+            )
             return redirect("vault:im_here")
 
         todays_checkins = LocationCheckIn.objects.filter(
@@ -630,6 +635,37 @@ class AdminRoutesView(AdminRoleRequiredMixin, TemplateView):
             for route_type, stops in groupby(saved_stops, key=lambda s: s.route_type)
         ]
         return context
+
+
+class RouteStopCreateView(AdminRoleRequiredMixin, CreateView):
+    model = RouteStop
+    form_class = RouteStopForm
+    template_name = "vault/route_stop_form.html"
+    success_url = reverse_lazy("vault:im_here_admin_routes")
+
+    def get_initial(self):
+        initial = super().get_initial()
+        route_type = self.request.GET.get("route_type")
+        if route_type:
+            initial["route_type"] = route_type
+        return initial
+
+    def form_valid(self, form):
+        form.instance.owner = self.request.user
+        return super().form_valid(form)
+
+
+class RouteStopUpdateView(AdminRoleRequiredMixin, OwnerQuerysetMixin, UpdateView):
+    model = RouteStop
+    form_class = RouteStopForm
+    template_name = "vault/route_stop_form.html"
+    success_url = reverse_lazy("vault:im_here_admin_routes")
+
+
+class RouteStopDeleteView(AdminRoleRequiredMixin, OwnerQuerysetMixin, DeleteView):
+    model = RouteStop
+    template_name = "vault/route_stop_confirm_delete.html"
+    success_url = reverse_lazy("vault:im_here_admin_routes")
 
 
 class LocationCheckInHistoryView(AdminRoleRequiredMixin, TemplateView):

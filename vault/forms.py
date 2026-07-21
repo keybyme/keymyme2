@@ -3,7 +3,7 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.core.files.uploadedfile import UploadedFile
 
 from .image_compression import compress_image
-from .models import Category, Contact, LocationCheckIn, MediaFile, Reminder, Url, VaultPassword
+from .models import Category, Contact, LocationCheckIn, MediaFile, Reminder, RouteStop, Url, VaultPassword
 
 INPUT_CLASSES = (
     "block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 "
@@ -179,6 +179,16 @@ class LocationCheckInForm(TailwindFormMixin, forms.ModelForm):
         model = LocationCheckIn
         fields = ["stop_number", "seq", "route_type", "remarks"]
         labels = {"remarks": "Name/Act"}
+        widgets = {
+            "remarks": forms.Textarea(attrs={"rows": 3}),
+            "route_type": forms.TextInput(attrs={"placeholder": "AM"}),
+        }
+
+
+class RouteStopForm(TailwindFormMixin, forms.ModelForm):
+    class Meta:
+        model = RouteStop
+        fields = ["route_type", "seq", "remarks"]
         widgets = {
             "remarks": forms.Textarea(attrs={"rows": 3}),
             "route_type": forms.TextInput(attrs={"placeholder": "AM"}),

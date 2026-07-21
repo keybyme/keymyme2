@@ -12,13 +12,7 @@
     <div class="flex items-center gap-3">
         <form method="post" action="{% url 'vault:im_here_save_route' %}" class="flex items-center gap-2">
             {% csrf_token %}
-            <input type="text" name="route_type" list="route-type-options" placeholder="AM" required maxlength="30"
-                   class="w-24 rounded-lg border border-gray-300 py-2 px-3 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
-            <datalist id="route-type-options">
-                <option value="AM"></option>
-                <option value="PM"></option>
-                <option value="MID DAY"></option>
-            </datalist>
+            <input type="hidden" name="route_type" value="{{ active_route_type }}">
             <button type="submit" class="rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">Save Route</button>
         </form>
         {% if show_administrator_link %}
@@ -31,7 +25,7 @@
     <button type="button" id="im-here-btn"
             class="inline-flex items-center gap-2 whitespace-nowrap rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60">
         {% include "icons/map-pin.html" with class="w-4 h-4" %}
-        <span id="im-here-btn-label">I am here</span>
+        <span id="im-here-btn-label">Add stop</span>
     </button>
     <p id="im-here-status" class="mt-2 text-sm"></p>
 </div>
@@ -44,7 +38,7 @@
         <form method="post" action="{% url 'vault:im_here_load_route' %}">
             {% csrf_token %}
             <input type="hidden" name="route_type" value="{{ rt }}">
-            <button type="submit" class="rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">{{ rt }}</button>
+            <button type="submit" class="rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">{{ request.user.route }} {{ rt }}</button>
         </form>
         {% endfor %}
     </div>
@@ -121,7 +115,7 @@
             </td>
         </tr>
         {% empty %}
-        <tr><td colspan="8" class="px-4 py-6 text-center text-sm text-gray-500">No check-ins yet today. Tap "I am here" above to log one.</td></tr>
+        <tr><td colspan="8" class="px-4 py-6 text-center text-sm text-gray-500">No check-ins yet today. Tap "Add stop" above to log one.</td></tr>
         {% endfor %}
     </tbody>
 </table>
@@ -202,7 +196,7 @@
             function (message) {
                 setStatus(message, true);
                 button.disabled = false;
-                label.textContent = 'I am here';
+                label.textContent = 'Add stop';
             },
             function () {
                 window.location.reload();

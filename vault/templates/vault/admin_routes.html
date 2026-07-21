@@ -1,22 +1,35 @@
 {% extends "base.html" %}
 {% block title %}Rutas{% endblock %}
 {% block content %}
-<div class="mb-6 flex items-center justify-between">
+<div class="mb-6 flex flex-wrap items-center justify-between gap-3">
     <h1 class="text-2xl font-semibold text-gray-900">Rutas</h1>
-    <a href="{% url 'vault:im_here_administrator' %}" class="rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">Back to Administrator</a>
+    <div class="flex items-center gap-3">
+        <a href="{% url 'vault:route_stop_create' %}" class="rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">Add stop</a>
+        <a href="{% url 'vault:im_here_administrator' %}" class="rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">Back to Administrator</a>
+    </div>
 </div>
 
 {% if saved_routes %}
 <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
     {% for route_type, stops in saved_routes %}
     <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-        <div class="bg-cafe-dark px-4 py-2 text-sm font-bold uppercase tracking-wide text-white">{{ route_type }}</div>
+        <div class="bg-cafe-dark px-4 py-2 text-sm font-bold uppercase tracking-wide text-white">{{ request.user.route }} {{ route_type }}</div>
         <table class="min-w-full divide-y divide-gray-100">
             <tbody class="divide-y divide-gray-100">
                 {% for stop in stops %}
                 <tr class="odd:bg-white even:bg-cream-soft">
                     <td class="whitespace-nowrap px-4 py-2 text-sm text-gray-900">{{ stop.seq }}</td>
                     <td class="px-4 py-2 text-sm text-gray-600">{{ stop.remarks|default:"—" }}</td>
+                    <td class="whitespace-nowrap px-4 py-2 text-right text-sm">
+                        <div class="flex justify-end gap-3">
+                            <a href="{% url 'vault:route_stop_update' stop.pk %}" class="rounded-lg bg-yellow-500 px-2.5 py-1 text-xs font-medium text-gray-900 shadow-sm hover:bg-yellow-600" title="Edit">
+                                Edit
+                            </a>
+                            <a href="{% url 'vault:route_stop_delete' stop.pk %}" class="text-crimson hover:text-red-800" title="Delete">
+                                {% include "icons/trash.html" with class="w-5 h-5" %}
+                            </a>
+                        </div>
+                    </td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -25,6 +38,6 @@
     {% endfor %}
 </div>
 {% else %}
-<p class="text-sm text-gray-500">No saved routes yet. Use "Save Route" on the "I am here" page to save today's stops as a named route (AM, PM, ...).</p>
+<p class="text-sm text-gray-500">No saved routes yet. Tap "Add stop" above, or use "Save Route" on the "I am here" page to save today's stops as a named route (AM, PM, ...).</p>
 {% endif %}
 {% endblock %}
