@@ -643,17 +643,26 @@ class LoadRouteView(LoginRequiredMixin, View):
         return redirect("vault:im_here")
 
 
-class LocationCheckInUpdateView(OwnerQuerysetMixin, UpdateView):
+class LocationCheckInSuccessUrlMixin:
+    """Send the user back to History if the check-in being edited/deleted
+    lives there (past day or closed today), otherwise back to today's I am
+    here table — matches the filter LocationCheckInHistoryView uses."""
+
+    def get_success_url(self):
+        checkin = self.object
+        is_history = checkin.check_date < timezone.localdate() or checkin.is_closed
+        return reverse_lazy("vault:im_here_history") if is_history else reverse_lazy("vault:im_here")
+
+
+class LocationCheckInUpdateView(LocationCheckInSuccessUrlMixin, OwnerQuerysetMixin, UpdateView):
     model = LocationCheckIn
     form_class = LocationCheckInForm
     template_name = "vault/location_checkin_form.html"
-    success_url = reverse_lazy("vault:im_here")
 
 
-class LocationCheckInDeleteView(OwnerQuerysetMixin, DeleteView):
+class LocationCheckInDeleteView(LocationCheckInSuccessUrlMixin, OwnerQuerysetMixin, DeleteView):
     model = LocationCheckIn
     template_name = "vault/location_checkin_confirm_delete.html"
-    success_url = reverse_lazy("vault:im_here")
 
 
 class AdminRoleRequiredMixin(LoginRequiredMixin):
