@@ -520,24 +520,17 @@ class LocationCheckInHereView(LoginRequiredMixin, View):
 class SaveRouteView(LoginRequiredMixin, View):
     """
     Botón 'Save Route': guarda los check-ins del día actual (seq + remarks)
-    como la plantilla de ruta diaria del usuario para el route_type indicado
-    (AM, PM, MID DAY, ...) en RouteStop, reemplazando solo las paradas de
-    ESE route_type — las de otros tipos guardados quedan intactas, para que
-    un mismo usuario pueda mantener varias rutas nombradas en paralelo.
-    LoadRouteView usa esa plantilla para precargar las paradas de un
-    route_type elegido en un día futuro.
+    como la plantilla de ruta diaria del usuario en RouteStop, agrupados por
+    el route_type propio de CADA check-in (no un solo tipo elegido) —
+    un mismo día puede tener check-ins de varios tipos (AM hecho en la
+    mañana, PM agregado a mano en la tarde) y cada grupo se guarda bajo su
+    propio route_type, reemplazando solo las paradas de ESE tipo. Los
+    check-ins sin route_type (agregados con 'Add stop' sin cargar una ruta)
+    no se guardan como plantilla. LoadRouteView usa esa plantilla para
+    precargar las paradas de un route_type elegido en un día futuro.
     """
 
     def post(self, request):
-        route_type = request.POST.get("route_type", "").strip()
-        if not route_type:
-            messages.error(
-                request,
-                "Today's check-ins don't have a route type yet — load a saved route first, "
-                "or set one by editing a check-in, then Save Route.",
-            )
-            return redirect("vault:im_here")
-
         todays_checkins = LocationCheckIn.objects.filter(
             owner=request.user, check_date=timezone.localdate()
         ).order_by("seq")
@@ -546,12 +539,26 @@ class SaveRouteView(LoginRequiredMixin, View):
             messages.error(request, "No check-ins today to save as a route.")
             return redirect("vault:im_here")
 
-        RouteStop.objects.filter(owner=request.user, route_type=route_type).delete()
-        RouteStop.objects.bulk_create([
-            RouteStop(owner=request.user, route_type=route_type, seq=checkin.seq, remarks=checkin.remarks)
-            for checkin in todays_checkins
-        ])
-        messages.success(request, f'Route "{route_type}" saved. You can load it on a future day.')
+        by_type = {}
+        for checkin in todays_checkins:
+            if checkin.route_type:
+                by_type.setdefault(checkin.route_type, []).append(checkin)
+
+        if not by_type:
+            messages.error(
+                request,
+                "Today's check-ins don't have a route type yet — load a saved route first, "
+                "or set one by editing a check-in, then Save Route.",
+            )
+            return redirect("vault:im_here")
+
+        for route_type, checkins in by_type.items():
+            RouteStop.objects.filter(owner=request.user, route_type=route_type).delete()
+            RouteStop.objects.bulk_create([
+                RouteStop(owner=request.user, route_type=route_type, seq=checkin.seq, remarks=checkin.remarks)
+                for checkin in checkins
+            ])
+        messages.success(request, f'Route(s) saved: {", ".join(by_type.keys())}.')
         return redirect("vault:im_here")
 
 
@@ -673,7 +680,7 @@ class RouteCreateView(AdminRoleRequiredMixin, View):
     para que aparezca de inmediato en la grilla de Rutas lista para editar."""
 
     def post(self, request):
-        route_type = request.POST.get("route_type", "").strip()
+        route_type = request.POST.get("route_type", "").strip().upper()
         if not route_type:
             messages.error(request, "Enter a route type (AM, PM, MID DAY, ...) to create.")
             return redirect("vault:im_here_admin_routes")

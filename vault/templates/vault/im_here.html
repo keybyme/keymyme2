@@ -12,7 +12,6 @@
     <div class="flex items-center gap-3">
         <form method="post" action="{% url 'vault:im_here_save_route' %}" class="flex items-center gap-2">
             {% csrf_token %}
-            <input type="hidden" name="route_type" value="{{ active_route_type }}">
             <button type="submit" class="rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">Save Route</button>
         </form>
         {% if show_administrator_link %}

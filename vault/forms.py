@@ -174,7 +174,15 @@ class QRCodeForm(TailwindFormMixin, forms.Form):
     )
 
 
-class LocationCheckInForm(TailwindFormMixin, forms.ModelForm):
+class NormalizeRouteTypeMixin:
+    """Normaliza route_type (strip + mayúsculas) al guardar, para que 'AM' y
+    'Am' no terminen siendo dos rutas distintas por un typo de mayúsculas."""
+
+    def clean_route_type(self):
+        return self.cleaned_data["route_type"].strip().upper()
+
+
+class LocationCheckInForm(NormalizeRouteTypeMixin, TailwindFormMixin, forms.ModelForm):
     class Meta:
         model = LocationCheckIn
         fields = ["stop_number", "seq", "route_type", "remarks"]
@@ -185,7 +193,7 @@ class LocationCheckInForm(TailwindFormMixin, forms.ModelForm):
         }
 
 
-class RouteStopForm(TailwindFormMixin, forms.ModelForm):
+class RouteStopForm(NormalizeRouteTypeMixin, TailwindFormMixin, forms.ModelForm):
     class Meta:
         model = RouteStop
         fields = ["route_type", "seq", "remarks"]
