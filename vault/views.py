@@ -556,32 +556,35 @@ class LoadRouteView(LoginRequiredMixin, View):
     La plantilla (RouteStop, administrada solo desde Dispatch/Rutas) nunca
     se modifica desde acá — esta vista solo LEE de ella.
 
-    - Primera vez que se toca este route_type HOY (no hay ningún
-      LocationCheckIn de ese owner/route_type/fecha todavía): copia las
-      paradas de la plantilla como check-ins de hoy, sin fecha real/hora/
-      ubicación propias — el usuario las va completando con el ícono 'Here'
-      de cada fila conforme llega a cada lugar.
-    - Si ya se había empezado antes ese mismo día (ya existen check-ins de
-      ese owner/route_type/fecha): no se toca nada, simplemente se vuelve a
-      la tabla de hoy, que ya muestra el último estado guardado para esa
-      ruta.
+    - Si para ESTE route_type todavía no se marcó ningún stop como 'Here'
+      hoy (sin importar cuántas veces se haya tocado el botón antes: cero
+      veces, o varias sin avanzar), se descarta lo que hubiera y se vuelve
+      a copiar la plantilla tal como está AHORA en Rutas — así el usuario
+      siempre ve la versión más reciente hasta que empieza a avanzar.
+    - En cuanto al menos un stop de hoy para ese route_type ya tiene
+      'Here' marcado (created_at), esa es la "otra copia" con el avance del
+      día: ya no se toca ni se reemplaza por la plantilla — un load
+      posterior el mismo día solo vuelve a mostrar la tabla con ese
+      avance, sin perderlo y sin alterar el original de Rutas.
     """
 
     def post(self, request):
         route_type = request.POST.get("route_type", "").strip()
         today = timezone.localdate()
 
-        already_started = LocationCheckIn.objects.filter(
-            owner=request.user, check_date=today, route_type=route_type
-        ).exists()
-        if already_started:
-            messages.success(request, f'Route "{route_type}" already started today — showing today\'s latest update.')
+        existing = LocationCheckIn.objects.filter(
+            owner=request.user, check_date=today, route_type=route_type, is_closed=False
+        )
+        if existing.filter(created_at__isnull=False).exists():
+            messages.success(request, f'Route "{route_type}" already has progress today — showing today\'s latest update.')
             return redirect("vault:im_here")
 
         stops = RouteStop.objects.filter(owner=request.user, route_type=route_type).order_by("seq")
         if not stops:
             messages.error(request, f'No stops saved for route "{route_type}".')
             return redirect("vault:im_here")
+
+        existing.delete()
 
         last_seq = LocationCheckIn.objects.filter(
             owner=request.user, check_date=today, is_closed=False
