@@ -251,6 +251,7 @@ class LocationCheckIn(models.Model):
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     remarks = models.CharField(max_length=255, blank=True)
     address = models.CharField(max_length=255, blank=True)
+    phone_number = models.CharField(max_length=30, blank=True, verbose_name="Phone")
     seq = models.PositiveIntegerField(default=10, verbose_name="Seq")
     stop_number = models.PositiveIntegerField(null=True, blank=True, verbose_name="Stop #")
     route_type = models.CharField(

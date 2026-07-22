@@ -604,7 +604,7 @@ class LoadRouteView(LoginRequiredMixin, View):
         LocationCheckIn.objects.bulk_create([
             LocationCheckIn(owner=request.user, check_date=today, seq=stop.seq,
                              stop_number=stop.stop_number, remarks=stop.remarks, address=stop.address,
-                             route_type=stop.route_type)
+                             phone_number=stop.phone_number, route_type=stop.route_type)
             for stop in stops
         ])
         # Este es ahora el único route_type que ImHereView muestra — tocar

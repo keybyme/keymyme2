@@ -61,6 +61,7 @@
                     </a>
                 </th>
                 <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Address</th>
+                <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Phone</th>
                 <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">
                     <a href="?sort={{ date_sort_next }}" class="inline-flex items-center gap-1 hover:text-gold">
                         Date
@@ -94,6 +95,15 @@
                     </a>
                     {% else %}
                     —
+                    {% endif %}
+                </td>
+                <td class="whitespace-nowrap px-4 py-3 text-sm">
+                    {% if checkin.phone_number %}
+                    <a href="tel:{{ checkin.phone_number }}" class="inline-flex items-center text-blue-600 hover:text-blue-800" title="Call {{ checkin.phone_number }}">
+                        {% include "icons/phone.html" with class="w-5 h-5" %}
+                    </a>
+                    {% else %}
+                    <span class="text-gray-400">—</span>
                     {% endif %}
                 </td>
                 <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-900">{% if checkin.created_at %}{{ checkin.check_date|date:"m/d/Y" }}{% else %}—{% endif %}</td>
