@@ -78,7 +78,8 @@
             <tr class="group odd:bg-white even:bg-cream-soft hover:bg-beige">
                 <td class="whitespace-nowrap px-4 py-3 text-sm">
                     <button type="button" class="here-row-btn rounded-lg bg-emerald-600 px-2.5 py-1 text-xs font-medium text-white shadow-sm hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
-                            data-url="{% url 'vault:location_checkin_here' checkin.pk %}" title="Mark here">
+                            data-url="{% url 'vault:location_checkin_here' checkin.pk %}"
+                            data-already-marked="{% if checkin.created_at %}true{% else %}false{% endif %}" title="Mark here">
                         Here
                     </button>
                 </td>
@@ -198,6 +199,10 @@
 
     document.querySelectorAll('.here-row-btn').forEach(function (btn) {
         btn.addEventListener('click', function () {
+            if (btn.dataset.alreadyMarked === 'true' &&
+                !confirm('This stop was already marked Here. Update it with your current location anyway?')) {
+                return;
+            }
             btn.disabled = true;
             captureAndPost(
                 btn.dataset.url,
