@@ -419,11 +419,12 @@ class ImHereView(LoginRequiredMixin, TemplateView):
                 owner=self.request.user, check_date=timezone.localdate(), is_closed=False
             )
         )
-        # Si el usuario tiene rutas guardadas (por route_type, vía
-        # SaveRouteView), siempre le ofrecemos elegir cuál cargar
-        # (LoadRouteView) — incluso si ya hay check-ins hoy, para poder
-        # sumar una ruta distinta (p. ej. cargar PM más tarde en el mismo
-        # día después de haber hecho AM en la mañana), sin autocargar nada.
+        # Si el usuario tiene rutas guardadas (RouteStop, por route_type,
+        # administradas desde Dispatch/Rutas), siempre le ofrecemos elegir
+        # cuál hacer (LoadRouteView) — incluso si ya hay check-ins hoy, para
+        # poder sumar una ruta distinta (p. ej. cargar PM más tarde en el
+        # mismo día después de haber hecho AM en la mañana), sin autocargar
+        # nada.
         context["route_choices"] = list(
             RouteStop.objects.filter(owner=self.request.user)
             .order_by("route_type").values_list("route_type", flat=True).distinct()
@@ -450,7 +451,7 @@ class ImHereView(LoginRequiredMixin, TemplateView):
         context["date_sort_next"] = "date" if sort == "-date" else "-date"
         context["remarks_sort_next"] = "-remarks" if sort == "remarks" else "remarks"
         context["seq_sort_next"] = "-seq" if sort == "seq" else "seq"
-        context["show_administrator_link"] = self.request.user.role_level > ADMIN_MIN_ROLE_LEVEL
+        context["show_dispatch_link"] = self.request.user.role_level > ADMIN_MIN_ROLE_LEVEL
         return context
 
 
@@ -506,7 +507,7 @@ class LocationCheckInHereView(LoginRequiredMixin, View):
     """
     Ícono 'Here' de cada fila en la tabla de hoy: captura la ubicación
     actual y actualiza ESE registro (pensado para las paradas precargadas
-    por SaveRouteView), sin crear un check-in nuevo y sin enviar el email
+    por LoadRouteView), sin crear un check-in nuevo y sin enviar el email
     de aviso.
     """
 
@@ -549,88 +550,38 @@ class CloseDayView(LoginRequiredMixin, View):
         return redirect("vault:im_here")
 
 
-class SaveRouteView(LoginRequiredMixin, View):
-    """
-    Botón 'Save Route': guarda los check-ins del día actual (seq + remarks)
-    como la plantilla de ruta diaria del usuario en RouteStop, agrupados por
-    el route_type propio de CADA check-in (no un solo tipo elegido) —
-    un mismo día puede tener check-ins de varios tipos (AM hecho en la
-    mañana, PM agregado a mano en la tarde) y cada grupo se guarda bajo su
-    propio route_type, reemplazando solo las paradas de ESE tipo. Los
-    check-ins sin route_type (agregados con 'Add stop' sin cargar una ruta)
-    no se guardan como plantilla. LoadRouteView usa esa plantilla para
-    precargar las paradas de un route_type elegido en un día futuro.
-    """
-
-    def post(self, request):
-        todays_checkins = LocationCheckIn.objects.filter(
-            owner=request.user, check_date=timezone.localdate(), is_closed=False
-        ).order_by("seq")
-
-        if not todays_checkins.exists():
-            messages.error(request, "No check-ins today to save as a route.")
-            return redirect("vault:im_here")
-
-        by_type = {}
-        for checkin in todays_checkins:
-            if checkin.route_type:
-                by_type.setdefault(checkin.route_type, []).append(checkin)
-
-        if not by_type:
-            messages.error(
-                request,
-                "Today's check-ins don't have a route type yet — load a saved route first, "
-                "or set one by editing a check-in, then Save Route.",
-            )
-            return redirect("vault:im_here")
-
-        for route_type, checkins in by_type.items():
-            RouteStop.objects.filter(owner=request.user, route_type=route_type).delete()
-            RouteStop.objects.bulk_create([
-                RouteStop(owner=request.user, route_type=route_type, seq=checkin.seq,
-                          stop_number=checkin.stop_number, remarks=checkin.remarks)
-                for checkin in checkins
-            ])
-        messages.success(request, f'Route(s) saved: {", ".join(by_type.keys())}.')
-        return redirect("vault:im_here")
-
-
 class LoadRouteView(LoginRequiredMixin, View):
     """
-    Chooser en ImHereView: el usuario elige qué route_type cargar y esta
-    vista precarga esas paradas como check-ins de hoy, sin fecha real/hora/
-    ubicación propias — el usuario las va completando con el ícono 'Here' de
-    cada fila conforme llega a cada lugar. Los check-ins de OTROS route_type
-    (p. ej. AM ya hecho en la mañana) nunca se tocan, para poder sumar una
-    ruta distinta más tarde el mismo día.
+    Botón de ruta en ImHereView: el usuario elige qué route_type hacer hoy.
+    La plantilla (RouteStop, administrada solo desde Dispatch/Rutas) nunca
+    se modifica desde acá — esta vista solo LEE de ella.
 
-    Si ESTE route_type ya se había cargado hoy pero ninguna de esas paradas
-    fue marcada 'Here' todavía, se REEMPLAZA por el estado actual de la
-    plantilla (permite recargar mientras se sigue editando la ruta en
-    Rutas). Si alguna ya fue marcada 'Here' (tiene created_at), no se toca
-    nada — hay que borrarlas a mano primero para evitar perder esa captura.
+    - Primera vez que se toca este route_type HOY (no hay ningún
+      LocationCheckIn de ese owner/route_type/fecha todavía): copia las
+      paradas de la plantilla como check-ins de hoy, sin fecha real/hora/
+      ubicación propias — el usuario las va completando con el ícono 'Here'
+      de cada fila conforme llega a cada lugar.
+    - Si ya se había empezado antes ese mismo día (ya existen check-ins de
+      ese owner/route_type/fecha): no se toca nada, simplemente se vuelve a
+      la tabla de hoy, que ya muestra el último estado guardado para esa
+      ruta.
     """
 
     def post(self, request):
         route_type = request.POST.get("route_type", "").strip()
         today = timezone.localdate()
 
+        already_started = LocationCheckIn.objects.filter(
+            owner=request.user, check_date=today, route_type=route_type
+        ).exists()
+        if already_started:
+            messages.success(request, f'Route "{route_type}" already started today — showing today\'s latest update.')
+            return redirect("vault:im_here")
+
         stops = RouteStop.objects.filter(owner=request.user, route_type=route_type).order_by("seq")
         if not stops:
             messages.error(request, f'No stops saved for route "{route_type}".')
             return redirect("vault:im_here")
-
-        existing = LocationCheckIn.objects.filter(
-            owner=request.user, check_date=today, route_type=route_type, is_closed=False
-        )
-        if existing.filter(created_at__isnull=False).exists():
-            messages.error(
-                request,
-                f'Route "{route_type}" was already loaded today and some of its stops are already marked '
-                '"Here" — delete those from the table first if you want to reload the latest version.',
-            )
-            return redirect("vault:im_here")
-        existing.delete()
 
         last_seq = LocationCheckIn.objects.filter(
             owner=request.user, check_date=today, is_closed=False
@@ -686,18 +637,13 @@ class LocationCheckInDeleteView(LocationCheckInSuccessUrlMixin, LocationCheckInA
 
 
 class AdminRoleRequiredMixin(LoginRequiredMixin):
-    """Para las vistas bajo el menú 'Administrator': solo visibles
-    (link) y accesibles (dispatch) para roles con level > ADMIN_MIN_ROLE_LEVEL."""
+    """Para las vistas administrativas (Dispatch, Rutas, History): solo
+    visibles (link) y accesibles (dispatch) para roles con level > ADMIN_MIN_ROLE_LEVEL."""
 
     def dispatch(self, request, *args, **kwargs):
         if request.user.is_authenticated and request.user.role_level <= ADMIN_MIN_ROLE_LEVEL:
             return HttpResponseForbidden("You don't have access to this page.")
         return super().dispatch(request, *args, **kwargs)
-
-
-class AdministratorView(AdminRoleRequiredMixin, TemplateView):
-    """Landing del menú de administración (Rutas, History, ...)."""
-    template_name = "vault/administrator.html"
 
 
 def _find_driver_by_route(route_number):
@@ -948,3 +894,27 @@ class DispatchView(AdminRoleRequiredMixin, TemplateView):
         rows.sort(key=lambda r: (r["delay_minutes"] is None, -(r["delay_minutes"] or 0)))
         context["rows"] = rows
         return context
+
+
+class DispatchCloseDayView(AdminRoleRequiredMixin, View):
+    """Botón 'Close day' por fila en Dispatch: le permite a un admin cerrar
+    el día de un chofer/route_type puntual sin depender de que el propio
+    chofer lo cierre desde 'I am here' (ver CloseDayView, que sigue siendo
+    el cierre del propio usuario logueado)."""
+
+    def post(self, request):
+        route_number = request.POST.get("route_number", "").strip()
+        route_type = request.POST.get("route_type", "").strip()
+        owner = _find_driver_by_route(route_number)
+        if owner is None:
+            messages.error(request, f'No driver account found with route number "{route_number}".')
+            return redirect("vault:im_here_dispatch")
+
+        updated = LocationCheckIn.objects.filter(
+            owner=owner, check_date=timezone.localdate(), route_type=route_type, is_closed=False
+        ).update(is_closed=True)
+        if not updated:
+            messages.error(request, f'No open stops today for route "{route_number} {route_type}".')
+        else:
+            messages.success(request, f'Day closed for route "{route_number} {route_type}" — {updated} stop(s) moved to History.')
+        return redirect("vault:im_here_dispatch")

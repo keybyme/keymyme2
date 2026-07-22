@@ -22,7 +22,7 @@
             <button type="submit" class="whitespace-nowrap rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">New route</button>
         </form>
         <a href="{% url 'vault:route_stop_create' %}" class="rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">Add stop</a>
-        <a href="{% url 'vault:im_here_administrator' %}" class="rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">Back to Administrator</a>
+        <a href="{% url 'vault:im_here_dispatch' %}" class="rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">Back to Dispatch</a>
     </div>
 </div>
 <p class="mb-6 text-xs text-gray-500">"Number" must match an existing driver's Route field (e.g. s2112). Rutas here covers every driver, not just your own.</p>
@@ -77,6 +77,6 @@
     {% endfor %}
 </div>
 {% else %}
-<p class="text-sm text-gray-500">No saved routes yet. Use "New route" above to create one, or "Save Route" on the "I am here" page to save today's stops as a named route (AM, PM, ...).</p>
+<p class="text-sm text-gray-500">No saved routes yet. Use "New route" above to create one.</p>
 {% endif %}
 {% endblock %}

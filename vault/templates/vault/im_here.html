@@ -6,18 +6,13 @@
         <h1 class="text-2xl font-semibold text-gray-900">I am here</h1>
     </div>
     <div class="flex items-center gap-3">
-        <form method="post" action="{% url 'vault:im_here_save_route' %}" class="flex items-center gap-2">
-            {% csrf_token %}
-            <button type="submit" class="rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">Save Route</button>
-        </form>
         <form method="post" action="{% url 'vault:im_here_close_day' %}" class="flex items-center gap-2"
               onsubmit="return confirm('Close today\'s stops? They will move to History and this table will start empty.');">
             {% csrf_token %}
             <button type="submit" class="rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">Close day</button>
         </form>
-        {% if show_administrator_link %}
+        {% if show_dispatch_link %}
         <a href="{% url 'vault:im_here_dispatch' %}" class="rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">Dispatch</a>
-        <a href="{% url 'vault:im_here_administrator' %}" class="rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">Administrator</a>
         {% endif %}
     </div>
 </div>
@@ -33,7 +28,7 @@
 
 {% if route_choices %}
 <div class="mb-6 rounded-xl border border-gold bg-cream-soft p-4 shadow-sm">
-    <p class="mb-3 text-sm font-medium text-gray-700">Load a saved route (added to today's stops, not a replacement):</p>
+    <p class="mb-3 text-sm font-medium text-gray-700">Start a route (loads it fresh the first time today; if already started today, just shows today's latest update):</p>
     <div class="flex flex-wrap gap-2">
         {% for rt in route_choices %}
         <form method="post" action="{% url 'vault:im_here_load_route' %}">

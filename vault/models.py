@@ -243,7 +243,7 @@ class Reminder(models.Model):
 class LocationCheckIn(models.Model):
     """Un registro por cada click en el botón 'I am here', con las
     coordenadas que el navegador capturó en ese momento. También puede ser
-    una parada precargada desde RouteStop (ver SaveRouteView/ImHereView):
+    una parada precargada desde RouteStop (ver LoadRouteView/ImHereView):
     en ese caso latitude/longitude/created_at quedan en None hasta que el
     usuario la marca con el ícono 'Here'."""
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="location_checkins")
@@ -280,13 +280,12 @@ class LocationCheckIn(models.Model):
 
 
 class RouteStop(models.Model):
-    """Plantilla de ruta diaria de un usuario: seq + remarks de las paradas
-    guardadas con 'Save Route', agrupadas por route_type (AM, PM, MID DAY,
-    etc.) para poder guardar varias rutas nombradas en paralelo. Sin fecha/
-    hora/ubicación propias (esas se capturan cada día). ImHereView usa esta
-    plantilla, vía LoadRouteView, para precargar el día siguiente una vez
-    el usuario elige qué route_type cargar; SaveRouteView reemplaza solo las
-    paradas del route_type indicado, dejando intactas las de otros tipos."""
+    """Plantilla de ruta diaria de un chofer: seq + remarks de las paradas,
+    agrupadas por route_type (AM, PM, MID DAY, etc.) para poder tener varias
+    rutas nombradas en paralelo. Sin fecha/hora/ubicación propias (esas se
+    capturan cada día). Administrada solo desde Dispatch/Rutas (Admin*
+    views); ImHereView/LoadRouteView solo LEEN de acá para precargar el
+    día — nunca la modifican."""
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="route_stops")
     route_type = models.CharField(max_length=30, default="AM", verbose_name="Route type")
     seq = models.PositiveIntegerField(default=10, verbose_name="Seq")

@@ -51,14 +51,12 @@ urlpatterns = [
     # I am here
     path("im-here/", views.ImHereView.as_view(), name="im_here"),
     path("im-here/send/", views.ImHereSendLocationView.as_view(), name="im_here_send"),
-    path("im-here/save-route/", views.SaveRouteView.as_view(), name="im_here_save_route"),
     path("im-here/close-day/", views.CloseDayView.as_view(), name="im_here_close_day"),
     path("im-here/load-route/", views.LoadRouteView.as_view(), name="im_here_load_route"),
     path("im-here/checkins/<int:pk>/edit/", views.LocationCheckInUpdateView.as_view(), name="location_checkin_update"),
     path("im-here/checkins/<int:pk>/delete/", views.LocationCheckInDeleteView.as_view(), name="location_checkin_delete"),
     path("im-here/checkins/<int:pk>/here/", views.LocationCheckInHereView.as_view(), name="location_checkin_here"),
     path("im-here/history/", views.LocationCheckInHistoryView.as_view(), name="im_here_history"),
-    path("im-here/administrator/", views.AdministratorView.as_view(), name="im_here_administrator"),
     path("im-here/administrator/routes/", views.AdminRoutesView.as_view(), name="im_here_admin_routes"),
     path("im-here/administrator/routes/new/", views.RouteStopCreateView.as_view(), name="route_stop_create"),
     path("im-here/administrator/routes/<int:pk>/edit/", views.RouteStopUpdateView.as_view(), name="route_stop_update"),
@@ -66,6 +64,7 @@ urlpatterns = [
     path("im-here/administrator/routes/create/", views.RouteCreateView.as_view(), name="route_create"),
     path("im-here/administrator/routes/<str:route_number>/<str:route_type>/delete-route/", views.RouteDeleteView.as_view(), name="route_delete"),
     path("im-here/administrator/dispatch/", views.DispatchView.as_view(), name="im_here_dispatch"),
+    path("im-here/administrator/dispatch/close-day/", views.DispatchCloseDayView.as_view(), name="im_here_dispatch_close_day"),
 
     # Cron externo (ver config/settings.py CRON_SECRET)
     path("cron/send-reminders/", views.SendDueRemindersCronView.as_view(), name="cron_send_reminders"),
