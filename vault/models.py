@@ -297,6 +297,7 @@ class RouteStop(models.Model):
     )
     remarks = models.CharField(max_length=255, blank=True)
     address = models.CharField(max_length=255, blank=True)
+    phone_number = models.CharField(max_length=30, blank=True, verbose_name="Phone")
 
     class Meta:
         ordering = ["route_type", "seq"]

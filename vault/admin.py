@@ -81,5 +81,5 @@ class LocationCheckInAdmin(admin.ModelAdmin):
 
 @admin.register(RouteStop)
 class RouteStopAdmin(admin.ModelAdmin):
-    list_display = ("owner", "route_type", "seq", "remarks", "address")
+    list_display = ("owner", "route_type", "seq", "remarks", "address", "phone_number")
     list_filter = ("owner", "route_type")

@@ -39,6 +39,17 @@
         </div>
         <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-100">
+            <thead>
+                <tr>
+                    <th class="whitespace-nowrap px-4 py-2 text-left text-xs font-bold uppercase tracking-wide text-gray-500">Stop #</th>
+                    <th class="whitespace-nowrap px-4 py-2 text-left text-xs font-bold uppercase tracking-wide text-gray-500">Seq</th>
+                    <th class="whitespace-nowrap px-4 py-2 text-left text-xs font-bold uppercase tracking-wide text-gray-500">Time</th>
+                    <th class="whitespace-nowrap px-4 py-2 text-left text-xs font-bold uppercase tracking-wide text-gray-500">Name/Act</th>
+                    <th class="whitespace-nowrap px-4 py-2 text-left text-xs font-bold uppercase tracking-wide text-gray-500">Address</th>
+                    <th class="whitespace-nowrap px-4 py-2 text-left text-xs font-bold uppercase tracking-wide text-gray-500">Phone</th>
+                    <th class="px-4 py-2"></th>
+                </tr>
+            </thead>
             <tbody class="divide-y divide-gray-100">
                 {% for stop in stops %}
                 <tr class="odd:bg-white even:bg-cream-soft">
@@ -55,6 +66,7 @@
                         —
                         {% endif %}
                     </td>
+                    <td class="whitespace-nowrap px-4 py-2 text-sm text-gray-600">{{ stop.phone_number|default:"—" }}</td>
                     <td class="whitespace-nowrap px-4 py-2 text-right text-sm">
                         <div class="flex justify-end gap-3">
                             <a href="{% url 'vault:route_stop_update' stop.pk %}" class="rounded-lg bg-yellow-500 px-2.5 py-1 text-xs font-medium text-gray-900 shadow-sm hover:bg-yellow-600" title="Edit">
@@ -84,6 +96,8 @@
                    class="min-w-0 flex-1 rounded-lg border border-gray-300 py-1.5 px-2 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
             <input type="text" name="address" placeholder="Address"
                    class="min-w-0 flex-1 rounded-lg border border-gray-300 py-1.5 px-2 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+            <input type="text" name="phone_number" placeholder="Phone" maxlength="30"
+                   class="w-32 rounded-lg border border-gray-300 py-1.5 px-2 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
             <button type="submit" class="whitespace-nowrap rounded-lg bg-cafe px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-cafe-darker">Add</button>
         </form>
     </div>
