@@ -400,6 +400,9 @@ class QRCodeGeneratorView(LoginRequiredMixin, FormView):
 ADMIN_MIN_ROLE_LEVEL = 70
 
 
+IM_HERE_ACTIVE_ROUTE_SESSION_KEY = "im_here_active_route_type"
+
+
 class ImHereView(LoginRequiredMixin, TemplateView):
     """
     Página con el botón que dispara la captura de ubicación en el navegador
@@ -428,6 +431,16 @@ class ImHereView(LoginRequiredMixin, TemplateView):
             RouteStop.objects.filter(owner=self.request.user)
             .order_by("route_type").values_list("route_type", flat=True).distinct()
         )
+        # Solo se muestra la ruta que el chofer tocó por última vez (guardada
+        # en la sesión por LoadRouteView/ImHereSendLocationView) — tocar PM
+        # no debe dejar AM visible al mismo tiempo, ni viceversa. Si todavía
+        # no tocó nada esta sesión, no se muestra ninguna tabla.
+        active_route_type = self.request.session.get(IM_HERE_ACTIVE_ROUTE_SESSION_KEY)
+        if active_route_type is not None:
+            checkins = [c for c in checkins if c.route_type == active_route_type]
+        else:
+            checkins = []
+
         sort = self.request.GET.get("sort", "-date")
         reverse = sort.startswith("-")
         sort_key = sort.lstrip("-")
@@ -439,12 +452,6 @@ class ImHereView(LoginRequiredMixin, TemplateView):
             sort_key = "date"
             checkins.sort(key=lambda c: c.created_at or dt.datetime.min.replace(tzinfo=dt.timezone.utc), reverse=reverse)
 
-        # Cada route_type se muestra en su propia tabla, nunca mezcladas —
-        # cargar PM no debe agregarse al final de la tabla de AM. El grupo
-        # "" (paradas sueltas de "Add stop" antes de cargar cualquier ruta)
-        # va al final. El orden dentro de cada grupo respeta el sort elegido
-        # arriba; el orden de los grupos entre sí es alfabético por
-        # route_type, para que no salte de lugar según lo que se cargó último.
         groups = {}
         for checkin in checkins:
             groups.setdefault(checkin.route_type, []).append(checkin)
@@ -484,19 +491,22 @@ class ImHereSendLocationView(LoginRequiredMixin, View):
         todays_checkins = LocationCheckIn.objects.filter(
             owner=request.user, check_date=today, is_closed=False
         )
-        # Se suma a la tabla de la ruta ya activa hoy (si hay una cargada),
-        # o al grupo sin ruta ("") si "Add stop" es lo único que se usó —
-        # nunca mezclado con el seq de otra ruta (cada route_type es su
-        # propia tabla en ImHereView).
-        active_route_type = (
-            todays_checkins.exclude(route_type="").order_by("seq").values_list("route_type", flat=True).first() or ""
-        )
+        # Se suma a la ruta que ImHereView está mostrando ahora (guardada en
+        # sesión), o si todavía no hay ninguna activa esta sesión, a la que
+        # ya tenga check-ins hoy (o "" si "Add stop" es lo único que se usó)
+        # — y esa pasa a ser la activa, para que ImHereView la muestre.
+        active_route_type = request.session.get(IM_HERE_ACTIVE_ROUTE_SESSION_KEY)
+        if active_route_type is None:
+            active_route_type = (
+                todays_checkins.exclude(route_type="").order_by("seq").values_list("route_type", flat=True).first() or ""
+            )
         last_seq = todays_checkins.filter(route_type=active_route_type).aggregate(Max("seq"))["seq__max"]
         next_seq = (last_seq or 0) + 10
         LocationCheckIn.objects.create(
             owner=request.user, latitude=latitude, longitude=longitude,
             check_date=today, created_at=timezone.now(), seq=next_seq, route_type=active_route_type,
         )
+        request.session[IM_HERE_ACTIVE_ROUTE_SESSION_KEY] = active_route_type
 
         recipient = request.user.location_alert_email
         if recipient:
@@ -564,6 +574,7 @@ class LoadRouteView(LoginRequiredMixin, View):
             owner=request.user, check_date=today, route_type=route_type, is_closed=False
         )
         if existing.filter(created_at__isnull=False).exists():
+            request.session[IM_HERE_ACTIVE_ROUTE_SESSION_KEY] = route_type
             messages.success(request, f'Route "{route_type}" already has progress today — showing today\'s latest update.')
             return redirect("vault:im_here")
 
@@ -582,6 +593,9 @@ class LoadRouteView(LoginRequiredMixin, View):
                              stop_number=stop.stop_number, remarks=stop.remarks, route_type=stop.route_type)
             for stop in stops
         ])
+        # Este es ahora el único route_type que ImHereView muestra — tocar
+        # otra ruta después la reemplaza en pantalla (ver ImHereView).
+        request.session[IM_HERE_ACTIVE_ROUTE_SESSION_KEY] = route_type
         messages.success(request, f'Route "{route_type}" loaded for today.')
         return redirect("vault:im_here")
 
