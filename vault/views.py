@@ -441,6 +441,19 @@ class ImHereView(LoginRequiredMixin, TemplateView):
         else:
             checkins = []
 
+        # LoadRouteView copia el seq de RouteStop tal cual (ver LoadRouteView),
+        # así que (route_type, seq) identifica exactamente de qué parada de
+        # Rutas viene cada check-in — se usa para mostrar su Time de
+        # referencia (RouteStop.planned_time) junto a la hora real capturada.
+        planned_times = {
+            (route_type, seq): planned_time
+            for route_type, seq, planned_time in RouteStop.objects.filter(
+                owner=self.request.user, route_type=active_route_type
+            ).values_list("route_type", "seq", "planned_time")
+        }
+        for checkin in checkins:
+            checkin.planned_time = planned_times.get((checkin.route_type, checkin.seq))
+
         sort = self.request.GET.get("sort", "-date")
         reverse = sort.startswith("-")
         sort_key = sort.lstrip("-")
