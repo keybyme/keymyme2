@@ -51,7 +51,6 @@ urlpatterns = [
     # I am here
     path("im-here/", views.ImHereView.as_view(), name="im_here"),
     path("im-here/send/", views.ImHereSendLocationView.as_view(), name="im_here_send"),
-    path("im-here/close-day/", views.CloseDayView.as_view(), name="im_here_close_day"),
     path("im-here/load-route/", views.LoadRouteView.as_view(), name="im_here_load_route"),
     path("im-here/checkins/<int:pk>/edit/", views.LocationCheckInUpdateView.as_view(), name="location_checkin_update"),
     path("im-here/checkins/<int:pk>/delete/", views.LocationCheckInDeleteView.as_view(), name="location_checkin_delete"),
@@ -65,6 +64,7 @@ urlpatterns = [
     path("im-here/administrator/routes/<str:route_number>/<str:route_type>/delete-route/", views.RouteDeleteView.as_view(), name="route_delete"),
     path("im-here/administrator/dispatch/", views.DispatchView.as_view(), name="im_here_dispatch"),
     path("im-here/administrator/dispatch/close-day/", views.DispatchCloseDayView.as_view(), name="im_here_dispatch_close_day"),
+    path("im-here/administrator/dispatch/close-day-driver/", views.DispatchCloseDriverDayView.as_view(), name="im_here_dispatch_close_driver_day"),
 
     # Cron externo (ver config/settings.py CRON_SECRET)
     path("cron/send-reminders/", views.SendDueRemindersCronView.as_view(), name="cron_send_reminders"),

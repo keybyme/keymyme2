@@ -14,6 +14,19 @@
     Delay/ETA compare the current time against each stop's reference Time in Rutas — routes without a Time set on their stops show "—".
 </p>
 
+<div class="mb-6 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+    <form method="post" action="{% url 'vault:im_here_dispatch_close_driver_day' %}" class="flex flex-wrap items-end gap-3"
+          onsubmit="return confirm('Close ALL open stops for this driver (every route, plus any stop not tied to a route)? They will move to History and fresh working copies will be ready for next time.');">
+        {% csrf_token %}
+        <div>
+            <label for="dispatch-close-driver-route" class="mb-1 block text-xs font-medium text-gray-700">Close day for a driver (all routes)</label>
+            <input type="text" name="route_number" id="dispatch-close-driver-route" placeholder="Route number, e.g. s2112"
+                   class="rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-cafe focus:outline-none focus:ring-1 focus:ring-cafe" required>
+        </div>
+        <button type="submit" class="rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">Close day</button>
+    </form>
+</div>
+
 <div class="mt-6 overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
 <table class="min-w-full divide-y divide-gray-100">
     <thead class="bg-cafe-dark">
@@ -69,7 +82,7 @@
             </td>
             <td class="whitespace-nowrap px-4 py-3 text-right text-sm">
                 <form method="post" action="{% url 'vault:im_here_dispatch_close_day' %}"
-                      onsubmit="return confirm('Close today\'s stops for {{ row.owner.route|default:"9999" }} {{ row.route_type }}? They will move to History.');">
+                      onsubmit="return confirm('Close today\'s stops for {{ row.owner.route|default:"9999" }} {{ row.route_type }}? They will move to History and a fresh working copy will be ready for next time.');">
                     {% csrf_token %}
                     <input type="hidden" name="route_number" value="{{ row.owner.route }}">
                     <input type="hidden" name="route_type" value="{{ row.route_type }}">
