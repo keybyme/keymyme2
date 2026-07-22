@@ -603,7 +603,8 @@ class LoadRouteView(LoginRequiredMixin, View):
         # otra ruta ya cargada — se copia el seq de la plantilla tal cual.
         LocationCheckIn.objects.bulk_create([
             LocationCheckIn(owner=request.user, check_date=today, seq=stop.seq,
-                             stop_number=stop.stop_number, remarks=stop.remarks, route_type=stop.route_type)
+                             stop_number=stop.stop_number, remarks=stop.remarks, address=stop.address,
+                             route_type=stop.route_type)
             for stop in stops
         ])
         # Este es ahora el único route_type que ImHereView muestra — tocar

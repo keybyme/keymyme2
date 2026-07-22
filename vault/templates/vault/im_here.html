@@ -68,6 +68,7 @@
                         {% endif %}
                     </a>
                 </th>
+                <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Address</th>
                 <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Time</th>
                 <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Loc</th>
                 <th class="px-4 py-3"></th>
@@ -86,6 +87,7 @@
                 <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-900">{{ checkin.stop_number|default:"—" }}</td>
                 <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-900">{{ checkin.seq }}</td>
                 <td class="max-w-xs px-4 py-3 text-sm text-gray-600">{{ checkin.remarks|default:"—" }}</td>
+                <td class="max-w-xs px-4 py-3 text-sm text-gray-600">{{ checkin.address|default:"—" }}</td>
                 <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-900">{% if checkin.created_at %}{{ checkin.check_date|date:"m/d/Y" }}{% else %}—{% endif %}</td>
                 <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-900">
                     {% if checkin.created_at %}{{ checkin.created_at|time:"g:i A" }}{% endif %}

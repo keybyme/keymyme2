@@ -185,7 +185,7 @@ class NormalizeRouteTypeMixin:
 class LocationCheckInForm(NormalizeRouteTypeMixin, TailwindFormMixin, forms.ModelForm):
     class Meta:
         model = LocationCheckIn
-        fields = ["stop_number", "seq", "route_type", "remarks"]
+        fields = ["stop_number", "seq", "route_type", "remarks", "address"]
         labels = {"remarks": "Name/Act"}
         widgets = {
             "remarks": forms.Textarea(attrs={"rows": 3}),
