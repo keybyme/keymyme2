@@ -14,6 +14,8 @@
         </button>
         {% if show_dispatch_link %}
         <a href="{% url 'vault:im_here_dispatch' %}" class="rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">Dispatch</a>
+        <a href="{% url 'vault:im_here_history' %}" class="rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">History</a>
+        <a href="{% url 'vault:im_here_admin_routes' %}" class="rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">Rutas</a>
         {% endif %}
     </div>
 </div>
