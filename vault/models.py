@@ -245,19 +245,7 @@ class LocationCheckIn(models.Model):
     coordenadas que el navegador capturó en ese momento. También puede ser
     una parada precargada desde RouteStop (ver LoadRouteView/ImHereView):
     en ese caso latitude/longitude/created_at quedan en None hasta que el
-    usuario la marca con el ícono 'Here'.
-
-    is_closed es el único límite entre "activo" (I am here / Dispatch) e
-    "historia" (LocationCheckInHistoryView) — ya NO depende de check_date,
-    porque una "copia de trabajo" (ver LoadRouteView/DispatchCloseDayView)
-    puede quedar abierta a través de varios días si nadie la cierra.
-
-    is_loaded distingue, dentro de lo abierto (is_closed=False), lo que ya
-    se le muestra al chofer en I am here (is_loaded=True) de la "copia de
-    trabajo" que Dispatch ya generó para la próxima vez pero que el chofer
-    todavía no pidió con el botón de esa ruta (is_loaded=False) — así
-    entrar a I am here nunca muestra una ruta sola, incluso si Dispatch ya
-    la dejó lista de antemano."""
+    usuario la marca con el ícono 'Here'."""
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="location_checkins")
     latitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
@@ -272,13 +260,8 @@ class LocationCheckIn(models.Model):
     created_at = models.DateTimeField(null=True, blank=True, verbose_name="Time")
     is_closed = models.BooleanField(
         default=False,
-        help_text="Set by Dispatch's 'Close day': moves this check-in from I am here "
-        "(and Dispatch) into History.",
-    )
-    is_loaded = models.BooleanField(
-        default=True,
-        help_text="False only for a working-copy row Dispatch pre-created on Close day "
-        "that the driver hasn't loaded yet via the route button on I am here.",
+        help_text="Set by Dispatch's 'Close day': moves this check-in from today's "
+        "'I am here' table into History, without waiting for the calendar date to change.",
     )
 
     class Meta:

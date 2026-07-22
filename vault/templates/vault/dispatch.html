@@ -16,7 +16,7 @@
 
 <div class="mb-6 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
     <form method="post" action="{% url 'vault:im_here_dispatch_close_driver_day' %}" class="flex flex-wrap items-end gap-3"
-          onsubmit="return confirm('Close ALL open stops for this driver (every route, plus any stop not tied to a route)? They will move to History and fresh working copies will be ready for next time.');">
+          onsubmit="return confirm('Close ALL of today\'s open stops for this driver (every route, plus any stop not tied to a route)? They will move to History.');">
         {% csrf_token %}
         <div>
             <label for="dispatch-close-driver-route" class="mb-1 block text-xs font-medium text-gray-700">Close day for a driver (all routes)</label>
@@ -82,7 +82,7 @@
             </td>
             <td class="whitespace-nowrap px-4 py-3 text-right text-sm">
                 <form method="post" action="{% url 'vault:im_here_dispatch_close_day' %}"
-                      onsubmit="return confirm('Close today\'s stops for {{ row.owner.route|default:"9999" }} {{ row.route_type }}? They will move to History and a fresh working copy will be ready for next time.');">
+                      onsubmit="return confirm('Close today\'s stops for {{ row.owner.route|default:"9999" }} {{ row.route_type }}? They will move to History.');">
                     {% csrf_token %}
                     <input type="hidden" name="route_number" value="{{ row.owner.route }}">
                     <input type="hidden" name="route_type" value="{{ row.route_type }}">

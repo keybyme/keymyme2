@@ -15,7 +15,7 @@ from django.contrib import messages
 from django.core.mail import send_mail
 from django.core.management import call_command
 from django.core.paginator import Paginator
-from django.db.models import Max
+from django.db.models import Max, Q
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse, reverse_lazy
@@ -411,15 +411,12 @@ class ImHereView(LoginRequiredMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Todo lo abierto (is_closed=False) y ya cargado (is_loaded=True):
-        # puede venir de "Add stop", del ícono 'Here', o de una ruta que el
-        # chofer ya pidió con el botón de LoadRouteView. Una copia de
-        # trabajo que Dispatch dejó lista de antemano (is_loaded=False)
-        # nunca aparece acá hasta que el chofer la pide. Lo cerrado con
-        # "Close day" (Dispatch) vive en Historia (LocationCheckInHistoryView).
+        # Solo check-ins de la fecha actual y no cerrados; los de días
+        # anteriores, y los de hoy ya cerrados con "Close day" (Dispatch),
+        # viven en la página de Historia (LocationCheckInHistoryView).
         checkins = list(
             LocationCheckIn.objects.filter(
-                owner=self.request.user, is_closed=False, is_loaded=True
+                owner=self.request.user, check_date=timezone.localdate(), is_closed=False
             )
         )
         # Si el usuario tiene rutas guardadas (RouteStop, por route_type,
@@ -477,13 +474,13 @@ class ImHereSendLocationView(LoginRequiredMixin, View):
             return JsonResponse({"error": "Invalid location data."}, status=400)
 
         today = timezone.localdate()
-        open_checkins = LocationCheckIn.objects.filter(
-            owner=request.user, is_closed=False, is_loaded=True
+        todays_checkins = LocationCheckIn.objects.filter(
+            owner=request.user, check_date=today, is_closed=False
         )
-        last_seq = open_checkins.aggregate(Max("seq"))["seq__max"]
+        last_seq = todays_checkins.aggregate(Max("seq"))["seq__max"]
         next_seq = (last_seq or 0) + 10
         active_route_type = (
-            open_checkins.exclude(route_type="").order_by("seq").values_list("route_type", flat=True).first() or ""
+            todays_checkins.exclude(route_type="").order_by("seq").values_list("route_type", flat=True).first() or ""
         )
         LocationCheckIn.objects.create(
             owner=request.user, latitude=latitude, longitude=longitude,
@@ -530,82 +527,65 @@ class LocationCheckInHereView(LoginRequiredMixin, View):
         return JsonResponse({"status": "ok"})
 
 
-def _create_working_copy(owner, route_type, check_date, seq_start=0, is_loaded=False):
-    """Copia RouteStop (la plantilla, nunca modificada acá) a nuevas filas
-    de LocationCheckIn para (owner, route_type). Con is_loaded=False es la
-    "copia de trabajo" que Dispatch deja lista para la próxima vez (ver
-    DispatchCloseDayView/DispatchCloseDriverDayView) — invisible en I am
-    here hasta que LoadRouteView la marque is_loaded=True. Devuelve la
-    lista de filas creadas (vacía si esa ruta no tiene paradas guardadas)."""
-    stops = RouteStop.objects.filter(owner=owner, route_type=route_type).order_by("seq")
-    if not stops:
-        return []
-    return list(LocationCheckIn.objects.bulk_create([
-        LocationCheckIn(owner=owner, check_date=check_date, seq=seq_start + (index + 1) * 10,
-                         stop_number=stop.stop_number, remarks=stop.remarks, route_type=stop.route_type,
-                         is_loaded=is_loaded)
-        for index, stop in enumerate(stops)
-    ]))
-
-
 class LoadRouteView(LoginRequiredMixin, View):
     """
-    Botón de ruta en ImHereView: el chofer pide ver la ruta de hoy. La
-    plantilla (RouteStop, administrada solo desde Dispatch/Rutas) nunca se
-    modifica desde acá.
+    Botón de ruta en ImHereView: el usuario elige qué route_type hacer hoy.
+    La plantilla (RouteStop, administrada solo desde Dispatch/Rutas) nunca
+    se modifica desde acá — esta vista solo LEE de ella.
 
-    - Lo normal: Dispatch ya dejó lista una "copia de trabajo" para este
-      route_type al cerrar el día anterior (is_closed=False,
-      is_loaded=False — ver DispatchCloseDayView). Este botón solo la hace
-      visible (is_loaded=True) en la tabla de hoy; no la recrea.
-    - Si ya está visible (con o sin avance), no hace nada — solo confirma
-      que ya se está mostrando.
-    - Arranque en frío: si esta ruta nunca pasó por un Close day (recién
-      creada en Rutas, sin copia de trabajo todavía), se copia la plantilla
-      acá mismo, ya visible de una — único caso donde este botón "crea"
-      algo en vez de solo revelarlo.
+    - Si para ESTE route_type todavía no se marcó ningún stop como 'Here'
+      hoy (sin importar cuántas veces se haya tocado el botón antes: cero
+      veces, o varias sin avanzar), se descarta lo que hubiera y se vuelve
+      a copiar la plantilla tal como está AHORA en Rutas — así el usuario
+      siempre ve la versión más reciente hasta que empieza a avanzar.
+    - En cuanto al menos un stop de hoy para ese route_type ya tiene
+      'Here' marcado (created_at), esa es la "otra copia" con el avance del
+      día: ya no se toca ni se reemplaza por la plantilla — un load
+      posterior el mismo día solo vuelve a mostrar la tabla con ese
+      avance, sin perderlo y sin alterar el original de Rutas.
     """
 
     def post(self, request):
         route_type = request.POST.get("route_type", "").strip()
+        today = timezone.localdate()
 
-        open_qs = LocationCheckIn.objects.filter(
-            owner=request.user, route_type=route_type, is_closed=False
+        existing = LocationCheckIn.objects.filter(
+            owner=request.user, check_date=today, route_type=route_type, is_closed=False
         )
-        if open_qs.filter(is_loaded=True).exists():
-            messages.success(request, f'Route "{route_type}" is already loaded — showing today\'s latest update.')
+        if existing.filter(created_at__isnull=False).exists():
+            messages.success(request, f'Route "{route_type}" already has progress today — showing today\'s latest update.')
             return redirect("vault:im_here")
 
-        last_seq = LocationCheckIn.objects.filter(
-            owner=request.user, is_closed=False, is_loaded=True
-        ).aggregate(Max("seq"))["seq__max"] or 0
-
-        working_copy = list(open_qs.order_by("seq"))
-        if working_copy:
-            for index, checkin in enumerate(working_copy):
-                checkin.seq = last_seq + (index + 1) * 10
-                checkin.is_loaded = True
-            LocationCheckIn.objects.bulk_update(working_copy, ["seq", "is_loaded"])
-        elif not _create_working_copy(
-            request.user, route_type, timezone.localdate(), seq_start=last_seq, is_loaded=True
-        ):
+        stops = RouteStop.objects.filter(owner=request.user, route_type=route_type).order_by("seq")
+        if not stops:
             messages.error(request, f'No stops saved for route "{route_type}".')
             return redirect("vault:im_here")
 
+        existing.delete()
+
+        last_seq = LocationCheckIn.objects.filter(
+            owner=request.user, check_date=today, is_closed=False
+        ).aggregate(Max("seq"))["seq__max"] or 0
+
+        LocationCheckIn.objects.bulk_create([
+            LocationCheckIn(owner=request.user, check_date=today, seq=last_seq + (index + 1) * 10,
+                             stop_number=stop.stop_number, remarks=stop.remarks, route_type=stop.route_type)
+            for index, stop in enumerate(stops)
+        ])
         messages.success(request, f'Route "{route_type}" loaded for today.')
         return redirect("vault:im_here")
 
 
 class LocationCheckInSuccessUrlMixin:
     """Send the user back to History if the check-in being edited/deleted
-    lives there (closed by Dispatch), otherwise back to today's I am here
-    table — matches the filter LocationCheckInHistoryView uses. When going
-    back to History, carries the route/type along so the admin lands back
-    on the same search instead of the empty prompt."""
+    lives there (past day or closed today), otherwise back to today's I am
+    here table — matches the filter LocationCheckInHistoryView uses. When
+    going back to History, carries the route/type along so the admin lands
+    back on the same search instead of the empty prompt."""
 
     def get_success_url(self):
         checkin = self.object
-        if checkin.is_closed:
+        if checkin.check_date < timezone.localdate() or checkin.is_closed:
             if checkin.route_type:
                 query = urlencode({"route": checkin.owner.route, "route_type": checkin.route_type})
                 return f"{reverse('vault:im_here_history')}?{query}"
@@ -761,16 +741,13 @@ class RouteDeleteView(AdminRoleRequiredMixin, TemplateView):
 
 
 class LocationCheckInHistoryView(AdminRoleRequiredMixin, TemplateView):
-    """Check-ins cerrados por Dispatch ('Close day', ver DispatchCloseDayView
-    / DispatchCloseDriverDayView) — ya fuera de la tabla de ImHereView,
-    conservados aquí para análisis posterior. is_closed=True es el único
-    criterio: ya no depende de check_date, porque una copia de trabajo
-    puede quedar abierta a través de varios días si Dispatch no la cierra.
-    Cross-driver como Rutas (AdminRoleRequiredMixin ya exige role_level >
-    ADMIN_MIN_ROLE_LEVEL): en vez de listar todo mezclado, el admin busca
-    un número de ruta + tipo (AM/PM/...) a la vez — con más choferes
-    activos, la lista de rutas solo va a crecer, así que cada búsqueda
-    queda separada."""
+    """Check-ins de días anteriores a hoy, más los de hoy ya cerrados con
+    'Close day' (ver DispatchCloseDayView) — ya fuera de la tabla de
+    ImHereView, conservados aquí para análisis posterior. Cross-driver como
+    Rutas (AdminRoleRequiredMixin ya exige role_level > ADMIN_MIN_ROLE_LEVEL):
+    en vez de listar todo mezclado, el admin busca un número de ruta + tipo
+    (AM/PM/...) a la vez — con más choferes activos, la lista de rutas solo
+    va a crecer, así que cada búsqueda queda separada."""
     template_name = "vault/im_here_history.html"
 
     def get_context_data(self, **kwargs):
@@ -783,7 +760,9 @@ class LocationCheckInHistoryView(AdminRoleRequiredMixin, TemplateView):
         if searched:
             checkins = list(
                 LocationCheckIn.objects.filter(
-                    owner__route=search_route, route_type__iexact=search_route_type, is_closed=True
+                    owner__route=search_route, route_type__iexact=search_route_type
+                ).filter(
+                    Q(check_date__lt=timezone.localdate()) | Q(check_date=timezone.localdate(), is_closed=True)
                 )
             )
         context["search_route"] = search_route
@@ -832,7 +811,7 @@ class DispatchView(AdminRoleRequiredMixin, TemplateView):
 
         checkins_by_route = {}
         todays_checkins = LocationCheckIn.objects.select_related("owner").filter(
-            is_closed=False, is_loaded=True
+            check_date=today, is_closed=False
         ).exclude(route_type="").order_by("seq")
         for checkin in todays_checkins:
             checkins_by_route.setdefault((checkin.owner_id, checkin.route_type), []).append(checkin)
@@ -898,14 +877,12 @@ class DispatchView(AdminRoleRequiredMixin, TemplateView):
 
 
 class DispatchCloseDayView(AdminRoleRequiredMixin, View):
-    """Botón 'Close day' por fila en Dispatch: cierra un chofer/route_type
-    puntual — el único lugar donde un día se cierra ahora (ya no existe un
-    botón de Close day del lado del chofer en 'I am here'). Justo antes de
-    cerrar, la copia de trabajo actual (con todo el avance del chofer) es
-    lo que se manda a History; inmediatamente después se genera una copia
-    de trabajo nueva desde la plantilla (RouteStop) para la próxima vez —
-    invisible en 'I am here' hasta que el chofer la pida con el botón de
-    esa ruta (ver LoadRouteView)."""
+    """Botón 'Close day' por fila en Dispatch: le permite a un admin cerrar
+    el día de un chofer/route_type puntual — el único lugar donde un día se
+    cierra ahora (ya no existe un botón de Close day del lado del chofer en
+    'I am here'). Solo manda a History lo abierto de hoy; mañana el primer
+    load-route de esa ruta se refresca solo desde la plantilla (ver
+    LoadRouteView), sin que este botón tenga que preparar nada."""
 
     def post(self, request):
         route_number = request.POST.get("route_number", "").strip()
@@ -916,27 +893,21 @@ class DispatchCloseDayView(AdminRoleRequiredMixin, View):
             return redirect("vault:im_here_dispatch")
 
         updated = LocationCheckIn.objects.filter(
-            owner=owner, route_type=route_type, is_closed=False
+            owner=owner, check_date=timezone.localdate(), route_type=route_type, is_closed=False
         ).update(is_closed=True)
         if not updated:
-            messages.error(request, f'No open stops for route "{route_number} {route_type}".')
+            messages.error(request, f'No open stops today for route "{route_number} {route_type}".')
         else:
-            _create_working_copy(owner, route_type, timezone.localdate())
-            messages.success(
-                request,
-                f'Day closed for route "{route_number} {route_type}" — {updated} stop(s) moved to History. '
-                f'A fresh working copy is ready for next time.',
-            )
+            messages.success(request, f'Day closed for route "{route_number} {route_type}" — {updated} stop(s) moved to History.')
         return redirect("vault:im_here_dispatch")
 
 
 class DispatchCloseDriverDayView(AdminRoleRequiredMixin, View):
     """Botón 'Close day' por chofer en Dispatch (no por fila de ruta):
-    cierra TODO lo abierto de ese chofer, incluidas paradas sueltas sin
-    route_type (Add stop antes de cargar cualquier ruta) que
+    cierra TODO lo abierto de HOY para ese chofer, incluidas paradas
+    sueltas sin route_type (Add stop antes de cargar cualquier ruta) que
     DispatchCloseDayView no puede alcanzar porque exige un route_type
-    puntual. Para cada route_type que sí tenía algo abierto, genera
-    también su copia de trabajo nueva, igual que DispatchCloseDayView."""
+    puntual."""
 
     def post(self, request):
         route_number = request.POST.get("route_number", "").strip()
@@ -945,17 +916,11 @@ class DispatchCloseDriverDayView(AdminRoleRequiredMixin, View):
             messages.error(request, f'No driver account found with route number "{route_number}".')
             return redirect("vault:im_here_dispatch")
 
-        open_qs = LocationCheckIn.objects.filter(owner=owner, is_closed=False)
-        route_types = set(open_qs.exclude(route_type="").values_list("route_type", flat=True))
-        updated = open_qs.update(is_closed=True)
+        updated = LocationCheckIn.objects.filter(
+            owner=owner, check_date=timezone.localdate(), is_closed=False
+        ).update(is_closed=True)
         if not updated:
-            messages.error(request, f'No open stops for driver "{route_number}".')
+            messages.error(request, f'No open stops today for driver "{route_number}".')
         else:
-            for route_type in route_types:
-                _create_working_copy(owner, route_type, timezone.localdate())
-            messages.success(
-                request,
-                f'Day closed for driver "{route_number}" — {updated} stop(s) moved to History. '
-                f'Fresh working copies are ready for next time.',
-            )
+            messages.success(request, f'Day closed for driver "{route_number}" — {updated} stop(s) moved to History.')
         return redirect("vault:im_here_dispatch")
