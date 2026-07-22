@@ -295,6 +295,7 @@ class RouteStop(models.Model):
         help_text="Reference time this stop is expected to happen — not the actual captured time.",
     )
     remarks = models.CharField(max_length=255, blank=True)
+    address = models.CharField(max_length=255, blank=True)
 
     class Meta:
         ordering = ["route_type", "seq"]
