@@ -4,7 +4,7 @@
 {% block content %}
 <div class="mb-2 flex flex-wrap items-center justify-between gap-3">
     <div>
-        <h1 class="text-2xl font-semibold text-gray-900">I am here</h1>
+        <h1 id="im-here-clock" class="text-2xl font-semibold text-gray-900"></h1>
     </div>
     <div class="flex items-center gap-3">
         <button type="button" id="im-here-btn"
@@ -124,6 +124,21 @@
 
 <script>
 (function () {
+    const clock = document.getElementById('im-here-clock');
+
+    function updateClock() {
+        clock.textContent = new Date().toLocaleString('en-US', {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+            second: '2-digit',
+        });
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+
     const button = document.getElementById('im-here-btn');
     const label = document.getElementById('im-here-btn-label');
     const status = document.getElementById('im-here-status');
