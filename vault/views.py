@@ -807,23 +807,23 @@ class LocationCheckInHistoryView(AdminRoleRequiredMixin, TemplateView):
         context["search_route_type"] = search_route_type
         context["searched"] = searched
 
-        sort = self.request.GET.get("sort", "-date")
+        sort = self.request.GET.get("sort", "seq")
         reverse = sort.startswith("-")
         sort_key = sort.lstrip("-")
         if sort_key == "remarks":
             checkins.sort(key=lambda c: c.remarks.lower(), reverse=reverse)
-        elif sort_key == "seq":
-            checkins.sort(key=lambda c: c.seq, reverse=reverse)
-        else:
-            sort_key = "date"
+        elif sort_key == "date":
             checkins.sort(key=lambda c: c.created_at or dt.datetime.min.replace(tzinfo=dt.timezone.utc), reverse=reverse)
+        else:
+            sort_key = "seq"
+            checkins.sort(key=lambda c: c.seq, reverse=reverse)
 
         paginator = Paginator(checkins, 15)
         context["page_obj"] = paginator.get_page(self.request.GET.get("page"))
         context["sort"] = sort
         context["sort_key"] = sort_key
         context["sort_reverse"] = reverse
-        context["date_sort_next"] = "date" if sort == "-date" else "-date"
+        context["date_sort_next"] = "-date" if sort == "date" else "date"
         context["remarks_sort_next"] = "-remarks" if sort == "remarks" else "remarks"
         context["seq_sort_next"] = "-seq" if sort == "seq" else "seq"
         return context
