@@ -422,9 +422,8 @@ class ImHereView(LoginRequiredMixin, TemplateView):
         # Si el usuario tiene rutas guardadas (RouteStop, por route_type,
         # administradas desde Dispatch/Rutas), siempre le ofrecemos elegir
         # cuál hacer (LoadRouteView) — incluso si ya hay check-ins hoy, para
-        # poder sumar una ruta distinta (p. ej. cargar PM más tarde en el
-        # mismo día después de haber hecho AM en la mañana), sin autocargar
-        # nada.
+        # poder cargar una ruta distinta (p. ej. PM más tarde en el mismo
+        # día después de haber hecho AM en la mañana), sin autocargar nada.
         context["route_choices"] = list(
             RouteStop.objects.filter(owner=self.request.user)
             .order_by("route_type").values_list("route_type", flat=True).distinct()
@@ -440,11 +439,19 @@ class ImHereView(LoginRequiredMixin, TemplateView):
             sort_key = "date"
             checkins.sort(key=lambda c: c.created_at or dt.datetime.min.replace(tzinfo=dt.timezone.utc), reverse=reverse)
 
-        # Sin paginar: la tabla de hoy debe mostrar TODAS las paradas del
-        # día en una sola vista (a diferencia de la Historia, que sí pagina
-        # por acumular muchos días).
-        paginator = Paginator(checkins, max(len(checkins), 1))
-        context["page_obj"] = paginator.get_page(1)
+        # Cada route_type se muestra en su propia tabla, nunca mezcladas —
+        # cargar PM no debe agregarse al final de la tabla de AM. El grupo
+        # "" (paradas sueltas de "Add stop" antes de cargar cualquier ruta)
+        # va al final. El orden dentro de cada grupo respeta el sort elegido
+        # arriba; el orden de los grupos entre sí es alfabético por
+        # route_type, para que no salte de lugar según lo que se cargó último.
+        groups = {}
+        for checkin in checkins:
+            groups.setdefault(checkin.route_type, []).append(checkin)
+        context["route_groups"] = [
+            {"route_type": route_type, "checkins": groups[route_type]}
+            for route_type in sorted(groups, key=lambda rt: (rt == "", rt))
+        ]
         context["sort"] = sort
         context["sort_key"] = sort_key
         context["sort_reverse"] = reverse
@@ -477,11 +484,15 @@ class ImHereSendLocationView(LoginRequiredMixin, View):
         todays_checkins = LocationCheckIn.objects.filter(
             owner=request.user, check_date=today, is_closed=False
         )
-        last_seq = todays_checkins.aggregate(Max("seq"))["seq__max"]
-        next_seq = (last_seq or 0) + 10
+        # Se suma a la tabla de la ruta ya activa hoy (si hay una cargada),
+        # o al grupo sin ruta ("") si "Add stop" es lo único que se usó —
+        # nunca mezclado con el seq de otra ruta (cada route_type es su
+        # propia tabla en ImHereView).
         active_route_type = (
             todays_checkins.exclude(route_type="").order_by("seq").values_list("route_type", flat=True).first() or ""
         )
+        last_seq = todays_checkins.filter(route_type=active_route_type).aggregate(Max("seq"))["seq__max"]
+        next_seq = (last_seq or 0) + 10
         LocationCheckIn.objects.create(
             owner=request.user, latitude=latitude, longitude=longitude,
             check_date=today, created_at=timezone.now(), seq=next_seq, route_type=active_route_type,
@@ -563,14 +574,13 @@ class LoadRouteView(LoginRequiredMixin, View):
 
         existing.delete()
 
-        last_seq = LocationCheckIn.objects.filter(
-            owner=request.user, check_date=today, is_closed=False
-        ).aggregate(Max("seq"))["seq__max"] or 0
-
+        # Cada route_type tiene su propia tabla en ImHereView (nunca se
+        # mezclan), así que no hace falta correr el seq para no chocar con
+        # otra ruta ya cargada — se copia el seq de la plantilla tal cual.
         LocationCheckIn.objects.bulk_create([
-            LocationCheckIn(owner=request.user, check_date=today, seq=last_seq + (index + 1) * 10,
+            LocationCheckIn(owner=request.user, check_date=today, seq=stop.seq,
                              stop_number=stop.stop_number, remarks=stop.remarks, route_type=stop.route_type)
-            for index, stop in enumerate(stops)
+            for stop in stops
         ])
         messages.success(request, f'Route "{route_type}" loaded for today.')
         return redirect("vault:im_here")
