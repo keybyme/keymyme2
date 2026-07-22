@@ -1,29 +1,26 @@
 {% extends "base.html" %}
 {% block title %}I am here{% endblock %}
+{% block messages %}{% for message in messages %}{% endfor %}{% endblock %}
 {% block content %}
-<div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+<div class="mb-2 flex flex-wrap items-center justify-between gap-3">
     <div>
         <h1 class="text-2xl font-semibold text-gray-900">I am here</h1>
     </div>
     <div class="flex items-center gap-3">
+        <button type="button" id="im-here-btn"
+                class="inline-flex items-center gap-2 whitespace-nowrap rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60">
+            {% include "icons/map-pin.html" with class="w-4 h-4" %}
+            <span id="im-here-btn-label">Add stop</span>
+        </button>
         {% if show_dispatch_link %}
         <a href="{% url 'vault:im_here_dispatch' %}" class="rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">Dispatch</a>
         {% endif %}
     </div>
 </div>
-
-<div class="mb-6 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-    <button type="button" id="im-here-btn"
-            class="inline-flex items-center gap-2 whitespace-nowrap rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60">
-        {% include "icons/map-pin.html" with class="w-4 h-4" %}
-        <span id="im-here-btn-label">Add stop</span>
-    </button>
-    <p id="im-here-status" class="mt-2 text-sm"></p>
-</div>
+<p id="im-here-status" class="mb-6 text-sm"></p>
 
 {% if route_choices %}
 <div class="mb-6 rounded-xl border border-gold bg-cream-soft p-4 shadow-sm">
-    <p class="mb-3 text-sm font-medium text-gray-700">Start a route (loads it fresh the first time today; if already started today, just shows today's latest update):</p>
     <div class="flex flex-wrap gap-2">
         {% for rt in route_choices %}
         <form method="post" action="{% url 'vault:im_here_load_route' %}">
