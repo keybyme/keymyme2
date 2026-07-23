@@ -65,6 +65,9 @@
                         <a href="{% url 'vault:im_here' %}" class="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 hover:text-blue-700">
                             {% include "icons/map-pin.html" with class="w-4 h-4" %} I am here
                         </a>
+                        <a href="{% url 'vault:vehicle_list' %}" class="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 hover:text-blue-700">
+                            {% include "icons/car.html" with class="w-4 h-4" %} Mis Carros
+                        </a>
                     </div>
                 </details>
             </div>
@@ -135,6 +138,9 @@
                         </a>
                         <a href="{% url 'vault:im_here' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
                             {% include "icons/map-pin.html" with class="w-5 h-5" %} I am here
+                        </a>
+                        <a href="{% url 'vault:vehicle_list' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
+                            {% include "icons/car.html" with class="w-5 h-5" %} Mis Carros
                         </a>
                     </div>
                 </details>

@@ -1,9 +1,11 @@
 import calendar
 import os
+import uuid
 from datetime import timedelta
 
 from cryptography.fernet import Fernet
 from django.conf import settings
+from django.contrib.auth.hashers import check_password, make_password
 from django.core.validators import FileExtensionValidator
 from django.db import models
 
@@ -18,6 +20,9 @@ ALLOWED_MEDIA_EXTENSIONS = [
     # Videos
     "mp4", "mov", "avi", "mkv", "webm",
 ]
+
+# Extensiones permitidas para la tarjeta de seguro de un Vehicle.
+ALLOWED_INSURANCE_CARD_EXTENSIONS = ["pdf", "jpg", "jpeg", "png", "webp"]
 
 
 def get_fernet() -> Fernet:
@@ -307,3 +312,63 @@ class RouteStop(models.Model):
 
     def __str__(self):
         return f"{self.owner} {self.route_type} route stop #{self.seq}"
+
+
+class Vehicle(models.Model):
+    """Un vehículo del usuario. Tiene una URL pública (por public_token, no
+    por pk, para que no sea adivinable) que muestra su historial de
+    mantenimiento sin necesidad de login — pensada para imprimirse como QR
+    y pegarse en el carro. Agregar un MaintenanceRecord desde esa página
+    pública requiere conocer el PIN (ver set_pin/verify_pin)."""
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="vehicles")
+    make = models.CharField(max_length=100, verbose_name="Make")
+    model = models.CharField(max_length=100, verbose_name="Model")
+    year = models.PositiveIntegerField(verbose_name="Year")
+    license_plate = models.CharField(max_length=20, blank=True, verbose_name="License plate")
+    insurance_broker_phone = models.CharField(max_length=30, blank=True, verbose_name="Insurance broker phone")
+    insurance_card = models.FileField(
+        upload_to=user_upload_path,
+        validators=[FileExtensionValidator(allowed_extensions=ALLOWED_INSURANCE_CARD_EXTENSIONS)],
+        blank=True, null=True,
+        verbose_name="Insurance card",
+    )
+    _pin_hash = models.CharField(max_length=128, db_column="pin_hash", editable=False)
+    public_token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["make", "model", "-year"]
+        verbose_name = "Vehicle"
+        verbose_name_plural = "Vehicles"
+
+    def __str__(self):
+        return f"{self.year} {self.make} {self.model}"
+
+    def set_pin(self, raw_pin: str) -> None:
+        self._pin_hash = make_password(raw_pin)
+
+    def verify_pin(self, raw_pin: str) -> bool:
+        return bool(raw_pin) and check_password(raw_pin, self._pin_hash)
+
+
+class MaintenanceRecord(models.Model):
+    """Un evento de mantenimiento (reparación, cambio de aceite, llantas,
+    etc.) de un Vehicle. Puede haber sido agregado por el dueño logueado o,
+    con el PIN correcto, desde la página pública del vehículo — ver
+    created_via_public_link."""
+    vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, related_name="maintenance_records")
+    service_date = models.DateField(verbose_name="Date")
+    performed_by = models.CharField(max_length=150, verbose_name="Performed by (company or person)")
+    mileage = models.PositiveIntegerField(verbose_name="Mileage")
+    comment = models.TextField(blank=True, verbose_name="Comment")
+    created_via_public_link = models.BooleanField(default=False, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-service_date", "-created_at"]
+        verbose_name = "Maintenance record"
+        verbose_name_plural = "Maintenance records"
+
+    def __str__(self):
+        return f"{self.vehicle} — {self.service_date}"

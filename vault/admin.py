@@ -1,7 +1,10 @@
 from django import forms
 from django.contrib import admin
 
-from .models import Category, Contact, LocationCheckIn, VaultPassword, MediaFile, Reminder, RouteStop, Url
+from .models import (
+    Category, Contact, LocationCheckIn, MaintenanceRecord, VaultPassword, MediaFile, Reminder,
+    RouteStop, Url, Vehicle,
+)
 
 
 @admin.register(Category)
@@ -83,3 +86,40 @@ class LocationCheckInAdmin(admin.ModelAdmin):
 class RouteStopAdmin(admin.ModelAdmin):
     list_display = ("owner", "route_type", "seq", "remarks", "address", "phone_number")
     list_filter = ("owner", "route_type")
+
+
+class VehicleAdminForm(forms.ModelForm):
+    pin = forms.CharField(
+        label="PIN",
+        required=False,
+        widget=forms.PasswordInput(render_value=False),
+        help_text="Leave blank to keep the current PIN unchanged.",
+    )
+
+    class Meta:
+        model = Vehicle
+        exclude = ("_pin_hash",)
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        raw_pin = self.cleaned_data.get("pin")
+        if raw_pin:
+            instance.set_pin(raw_pin)
+        if commit:
+            instance.save()
+        return instance
+
+
+@admin.register(Vehicle)
+class VehicleAdmin(admin.ModelAdmin):
+    form = VehicleAdminForm
+    list_display = ("__str__", "owner", "license_plate", "insurance_broker_phone", "updated_at")
+    list_filter = ("owner",)
+    search_fields = ("make", "model", "license_plate")
+
+
+@admin.register(MaintenanceRecord)
+class MaintenanceRecordAdmin(admin.ModelAdmin):
+    list_display = ("vehicle", "service_date", "performed_by", "mileage", "created_via_public_link")
+    list_filter = ("created_via_public_link",)
+    search_fields = ("performed_by",)

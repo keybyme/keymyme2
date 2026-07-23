@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Mis Carros{% endblock %}
+{% block content %}
+<div class="mb-6 flex items-center justify-between">
+    <h1 class="text-2xl font-semibold text-gray-900">Mis Carros</h1>
+    <a href="{% url 'vault:vehicle_create' %}" class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700">
+        {% include "icons/plus.html" with class="w-4 h-4" %} New vehicle
+    </a>
+</div>
+
+<div class="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+<table class="min-w-full divide-y divide-gray-100">
+    <thead class="bg-cafe-dark">
+        <tr>
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Vehicle</th>
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Plate</th>
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Insurance broker phone</th>
+            <th class="px-4 py-3"></th>
+        </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100">
+        {% for vehicle in vehicles %}
+        <tr class="group odd:bg-white even:bg-cream-soft hover:bg-beige">
+            <td class="whitespace-nowrap px-4 py-3 text-sm">
+                <span class="inline-flex items-center gap-1.5 text-gray-900">
+                    {% include "icons/car.html" with class="w-4 h-4 text-blue-600" %} {{ vehicle }}
+                </span>
+            </td>
+            <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-700">{{ vehicle.license_plate|default:"—" }}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-700">{{ vehicle.insurance_broker_phone|default:"—" }}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-right text-sm">
+                <div class="flex justify-end gap-3">
+                    <a href="{% url 'vault:vehicle_qr' vehicle.pk %}" class="text-cafe hover:text-cafe-darker" title="QR / Public link">
+                        {% include "icons/qr-code.html" with class="w-5 h-5" %}
+                    </a>
+                    <a href="{% url 'vault:vehicle_update' vehicle.pk %}" class="text-cafe hover:text-cafe-darker" title="Edit">
+                        {% include "icons/pencil.html" with class="w-5 h-5" %}
+                    </a>
+                    <a href="{% url 'vault:vehicle_delete' vehicle.pk %}" class="text-crimson hover:text-red-800" title="Delete">
+                        {% include "icons/trash.html" with class="w-5 h-5" %}
+                    </a>
+                </div>
+            </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4" class="px-4 py-6 text-center text-sm text-gray-500">You don't have any vehicles yet.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+{% endblock %}

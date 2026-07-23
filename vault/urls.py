@@ -66,6 +66,19 @@ urlpatterns = [
     path("im-here/administrator/dispatch/close-day/", views.DispatchCloseDayView.as_view(), name="im_here_dispatch_close_day"),
     path("im-here/administrator/dispatch/close-day-driver/", views.DispatchCloseDriverDayView.as_view(), name="im_here_dispatch_close_driver_day"),
 
+    # Mis Carros
+    path("cars/", views.VehicleListView.as_view(), name="vehicle_list"),
+    path("cars/new/", views.VehicleCreateView.as_view(), name="vehicle_create"),
+    path("cars/<int:pk>/edit/", views.VehicleUpdateView.as_view(), name="vehicle_update"),
+    path("cars/<int:pk>/delete/", views.VehicleDeleteView.as_view(), name="vehicle_delete"),
+    path("cars/<int:pk>/qr/", views.VehicleQRView.as_view(), name="vehicle_qr"),
+    path("cars/public/<uuid:token>/", views.VehiclePublicDetailView.as_view(), name="vehicle_public_detail"),
+    path(
+        "cars/public/<uuid:token>/add/",
+        views.VehiclePublicAddMaintenanceView.as_view(),
+        name="vehicle_public_add_maintenance",
+    ),
+
     # Cron externo (ver config/settings.py CRON_SECRET)
     path("cron/send-reminders/", views.SendDueRemindersCronView.as_view(), name="cron_send_reminders"),
 ]

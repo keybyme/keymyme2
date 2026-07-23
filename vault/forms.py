@@ -3,7 +3,10 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.core.files.uploadedfile import UploadedFile
 
 from .image_compression import compress_image
-from .models import Category, Contact, LocationCheckIn, MediaFile, Reminder, RouteStop, Url, VaultPassword
+from .models import (
+    Category, Contact, LocationCheckIn, MaintenanceRecord, MediaFile, Reminder, RouteStop, Url,
+    VaultPassword, Vehicle,
+)
 
 INPUT_CLASSES = (
     "block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 "
@@ -203,3 +206,65 @@ class RouteStopForm(NormalizeRouteTypeMixin, TailwindFormMixin, forms.ModelForm)
             "route_type": forms.TextInput(attrs={"placeholder": "AM"}),
             "planned_time": forms.TimeInput(attrs={"type": "time"}),
         }
+
+
+class VehicleForm(TailwindFormMixin, forms.ModelForm):
+    pin = forms.CharField(
+        label="PIN",
+        required=False,
+        widget=forms.PasswordInput(render_value=False),
+        help_text="4-6 digits. Required to authorize adding a maintenance record from the "
+        "public QR page. Leave blank to keep the current PIN unchanged.",
+    )
+
+    class Meta:
+        model = Vehicle
+        fields = ["make", "model", "year", "license_plate", "insurance_broker_phone", "insurance_card"]
+
+    def __init__(self, *args, user=None, **kwargs):
+        # user viene de UserFormKwargsMixin (OwnerCreateMixin lo inyecta
+        # siempre); VehicleForm no lo necesita, solo lo acepta y descarta.
+        super().__init__(*args, **kwargs)
+
+    def clean_pin(self):
+        pin = self.cleaned_data["pin"]
+        if pin and not pin.isdigit():
+            raise forms.ValidationError("PIN must contain only digits.")
+        if pin and not (4 <= len(pin) <= 6):
+            raise forms.ValidationError("PIN must be 4 to 6 digits long.")
+        return pin
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if not self.instance.pk and not cleaned_data.get("pin"):
+            self.add_error("pin", "This field is required when creating a new vehicle.")
+        return cleaned_data
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        raw_pin = self.cleaned_data.get("pin")
+        if raw_pin:
+            instance.set_pin(raw_pin)
+        if commit:
+            instance.save()
+        return instance
+
+
+class PublicMaintenanceRecordForm(TailwindFormMixin, forms.ModelForm):
+    pin = forms.CharField(
+        label="Vehicle PIN",
+        widget=forms.PasswordInput(render_value=False),
+        help_text="Ask the vehicle owner for the PIN.",
+    )
+
+    class Meta:
+        model = MaintenanceRecord
+        fields = ["service_date", "performed_by", "mileage", "comment"]
+        widgets = {
+            "service_date": forms.DateInput(attrs={"type": "date"}),
+            "comment": forms.Textarea(attrs={"rows": 3}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.order_fields(["pin", "service_date", "performed_by", "mileage", "comment"])

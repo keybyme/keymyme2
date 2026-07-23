@@ -17,7 +17,7 @@ from django.core.management import call_command
 from django.core.paginator import Paginator
 from django.db.models import Max, Q
 from django.http import HttpResponseForbidden, JsonResponse
-from django.shortcuts import get_object_or_404, redirect
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
 from django.utils import timezone
 from django.utils.decorators import method_decorator
@@ -34,14 +34,19 @@ from .forms import (
     ContactImportForm,
     LocationCheckInForm,
     MediaFileForm,
+    PublicMaintenanceRecordForm,
     QRCodeForm,
     ReminderForm,
     RouteStopForm,
     UrlForm,
     VaultPasswordForm,
+    VehicleForm,
 )
 from .mixins import AjaxPartialTemplateMixin, OwnerCreateMixin, OwnerQuerysetMixin, SearchableListMixin, UserFormKwargsMixin
-from .models import Category, Contact, LocationCheckIn, MediaFile, Reminder, RouteStop, Url, VaultPassword
+from .models import (
+    Category, Contact, LocationCheckIn, MaintenanceRecord, MediaFile, Reminder, RouteStop, Url,
+    VaultPassword, Vehicle,
+)
 
 
 # ---------- Categories ----------
@@ -962,3 +967,97 @@ class DispatchCloseDriverDayView(AdminRoleRequiredMixin, View):
         else:
             messages.success(request, f'Day closed for driver "{route_number}" — {updated} stop(s) moved to History.')
         return redirect("vault:im_here_dispatch")
+
+
+# ---------- Mis Carros ----------
+
+class VehicleListView(OwnerQuerysetMixin, ListView):
+    model = Vehicle
+    template_name = "vault/vehicle_list.html"
+    context_object_name = "vehicles"
+
+
+class VehicleCreateView(OwnerCreateMixin, CreateView):
+    model = Vehicle
+    form_class = VehicleForm
+    template_name = "vault/vehicle_form.html"
+    success_url = reverse_lazy("vault:vehicle_list")
+
+
+class VehicleUpdateView(OwnerQuerysetMixin, UpdateView):
+    model = Vehicle
+    form_class = VehicleForm
+    template_name = "vault/vehicle_form.html"
+    success_url = reverse_lazy("vault:vehicle_list")
+
+
+class VehicleDeleteView(OwnerQuerysetMixin, DeleteView):
+    model = Vehicle
+    template_name = "vault/vehicle_confirm_delete.html"
+    success_url = reverse_lazy("vault:vehicle_list")
+
+
+class VehicleQRView(OwnerQuerysetMixin, DetailView):
+    """Genera al vuelo (sin persistir nada) el QR que apunta a la página
+    pública del vehículo, con el mismo patrón que QRCodeGeneratorView."""
+    model = Vehicle
+    template_name = "vault/vehicle_qr.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        public_url = self.request.build_absolute_uri(
+            reverse("vault:vehicle_public_detail", args=[self.object.public_token])
+        )
+        image = qrcode.make(public_url)
+        buffer = io.BytesIO()
+        image.save(buffer, format="PNG")
+        context["qr_image_base64"] = base64.b64encode(buffer.getvalue()).decode("ascii")
+        context["public_url"] = public_url
+        return context
+
+
+class VehiclePublicDetailView(DetailView):
+    """Página pública (sin login) identificada por public_token, no por pk,
+    para que la URL impresa en el QR no sea adivinable. Muestra el
+    historial de mantenimiento y un formulario para agregar un registro
+    nuevo, protegido por el PIN del vehículo (ver VehiclePublicAddMaintenanceView)."""
+    model = Vehicle
+    template_name = "vault/vehicle_public_detail.html"
+    context_object_name = "vehicle"
+
+    def get_object(self, queryset=None):
+        return get_object_or_404(Vehicle, public_token=self.kwargs["token"])
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["maintenance_records"] = self.object.maintenance_records.all()
+        context.setdefault("maintenance_form", PublicMaintenanceRecordForm())
+        return context
+
+
+class VehiclePublicAddMaintenanceView(View):
+    """Único paso: PIN + campos del registro en el mismo POST. Si el PIN no
+    coincide no se crea nada, sin importar si el resto del form es válido."""
+
+    def post(self, request, token):
+        vehicle = get_object_or_404(Vehicle, public_token=token)
+        form = PublicMaintenanceRecordForm(request.POST)
+        pin = request.POST.get("pin", "")
+        pin_valid = vehicle.verify_pin(pin)
+        if not pin_valid:
+            form.add_error("pin", "Incorrect PIN.")
+
+        if pin_valid and form.is_valid():
+            record = form.save(commit=False)
+            record.vehicle = vehicle
+            record.created_via_public_link = True
+            record.save()
+            messages.success(request, "Maintenance record added.")
+            return redirect("vault:vehicle_public_detail", token=token)
+
+        context = {
+            "vehicle": vehicle,
+            "maintenance_records": vehicle.maintenance_records.all(),
+            "maintenance_form": form,
+        }
+        return render(request, "vault/vehicle_public_detail.html", context)
