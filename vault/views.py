@@ -3,6 +3,7 @@ import datetime as dt
 import hmac
 import io
 import json
+import random
 from decimal import Decimal, InvalidOperation
 from itertools import groupby
 from urllib.parse import urlencode
@@ -329,9 +330,11 @@ class MediaFileSlideshowView(SearchableListMixin, OwnerQuerysetMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["photos_data"] = [
+        photos_data = [
             {"url": f.file.url, "name": f.original_name} for f in context["files"]
         ]
+        random.shuffle(photos_data)
+        context["photos_data"] = photos_data
         return context
 
 
@@ -372,7 +375,9 @@ class MediaFileSlideshowPublicView(DetailView):
             files = files.filter(category_id=self.object.category_id)
         context["files"] = files
         context["slideshow_title"] = self.object.category.name if self.object.category_id else "All photos"
-        context["photos_data"] = [{"url": f.file.url, "name": f.original_name} for f in files]
+        photos_data = [{"url": f.file.url, "name": f.original_name} for f in files]
+        random.shuffle(photos_data)
+        context["photos_data"] = photos_data
         return context
 
 
