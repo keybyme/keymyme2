@@ -33,6 +33,7 @@ from .forms import (
     ContactForm,
     ContactImportForm,
     LocationCheckInForm,
+    MediaFileBulkUploadForm,
     MediaFileForm,
     PublicMaintenanceRecordForm,
     QRCodeForm,
@@ -42,10 +43,11 @@ from .forms import (
     VaultPasswordForm,
     VehicleForm,
 )
+from .image_compression import compress_image
 from .mixins import AjaxPartialTemplateMixin, OwnerCreateMixin, OwnerQuerysetMixin, SearchableListMixin, UserFormKwargsMixin
 from .models import (
-    Category, Contact, LocationCheckIn, MaintenanceRecord, MediaFile, Reminder, RouteStop, Url,
-    VaultPassword, Vehicle,
+    ALLOWED_MEDIA_EXTENSIONS, Category, Contact, LocationCheckIn, MaintenanceRecord, MediaFile,
+    Reminder, RouteStop, Url, VaultPassword, Vehicle,
 )
 
 
@@ -287,6 +289,60 @@ class MediaFileCreateView(OwnerCreateMixin, CreateView):
         user.storage_used_bytes += self.object.file_size_bytes
         user.save(update_fields=["storage_used_bytes"])
         return response
+
+
+class MediaFileBulkCreateView(UserFormKwargsMixin, LoginRequiredMixin, FormView):
+    """Sube varios archivos con la misma calidad/tipo/categoría. Comprime
+    primero (si aplica) y recién entonces valida la cuota, así el chequeo
+    refleja el tamaño que realmente se va a guardar."""
+
+    template_name = "vault/mediafile_bulk_form.html"
+    form_class = MediaFileBulkUploadForm
+    success_url = reverse_lazy("vault:mediafile_list")
+
+    def form_valid(self, form):
+        uploaded_files = form.cleaned_data["files"]
+        quality = form.cleaned_data.get("photo_quality") or "alta"
+        file_type = form.cleaned_data["file_type"]
+        category = form.cleaned_data.get("category")
+
+        invalid_names = [
+            f.name for f in uploaded_files
+            if f.name.rsplit(".", 1)[-1].lower() not in ALLOWED_MEDIA_EXTENSIONS
+        ]
+        if invalid_names:
+            form.add_error("files", f"Unsupported file extension: {', '.join(invalid_names)}")
+            return self.form_invalid(form)
+
+        prepared_files = []
+        for uploaded_file in uploaded_files:
+            compressed = compress_image(uploaded_file, quality)
+            prepared_files.append(compressed if compressed is not None else uploaded_file)
+
+        user = self.request.user
+        total_size = sum(f.size for f in prepared_files)
+        if not user.has_space_for(total_size):
+            form.add_error(
+                "files",
+                f"Not enough storage space available in your quota: this batch needs "
+                f"{total_size / 1024 ** 2:.1f} MB but only "
+                f"{user.storage_available_bytes / 1024 ** 2:.1f} MB are available.",
+            )
+            return self.form_invalid(form)
+
+        bytes_saved = 0
+        for f in prepared_files:
+            media_file = MediaFile(
+                owner=user, file=f, file_type=file_type, original_name=f.name[:255], category=category,
+            )
+            media_file.save()
+            bytes_saved += media_file.file_size_bytes
+
+        user.storage_used_bytes += bytes_saved
+        user.save(update_fields=["storage_used_bytes"])
+
+        messages.success(self.request, f"Uploaded {len(prepared_files)} file(s).")
+        return super().form_valid(form)
 
 
 class MediaFileUpdateView(UserFormKwargsMixin, OwnerQuerysetMixin, UpdateView):

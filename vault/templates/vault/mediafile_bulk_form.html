@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Upload multiple files{% endblock %}
+{% block content %}
+<h1 class="mb-6 text-2xl font-semibold text-gray-900">Upload multiple files</h1>
+<form method="post" enctype="multipart/form-data" class="max-w-lg rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+    {% csrf_token %}
+    {% include "_form_fields.html" %}
+    <p class="mt-4 text-xs text-gray-500">
+        Each file keeps its own name. Photo quality, file type, and category apply to the whole batch.
+        The upload is rejected if the batch would exceed your storage quota.
+    </p>
+    <div class="mt-6 flex items-center gap-3">
+        <button type="submit" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700">Upload</button>
+        <a href="{% url 'vault:mediafile_list' %}" class="text-sm font-medium text-gray-600 hover:text-gray-900">Cancel</a>
+    </div>
+</form>
+{% endblock %}

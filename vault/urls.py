@@ -36,6 +36,7 @@ urlpatterns = [
     path("files/", views.MediaFileListView.as_view(), name="mediafile_list"),
     path("files/gallery/", views.MediaFilePhotoGalleryView.as_view(), name="mediafile_gallery"),
     path("files/new/", views.MediaFileCreateView.as_view(), name="mediafile_create"),
+    path("files/upload-multiple/", views.MediaFileBulkCreateView.as_view(), name="mediafile_bulk_create"),
     path("files/<int:pk>/edit/", views.MediaFileUpdateView.as_view(), name="mediafile_update"),
     path("files/<int:pk>/delete/", views.MediaFileDeleteView.as_view(), name="mediafile_delete"),
 

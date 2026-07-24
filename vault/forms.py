@@ -29,7 +29,7 @@ class TailwindFormMixin:
             existing = widget.attrs.get("class", "")
             if isinstance(widget, forms.CheckboxInput):
                 widget.attrs["class"] = f"{existing} {CHECKBOX_CLASSES}".strip()
-            elif isinstance(widget, forms.ClearableFileInput):
+            elif isinstance(widget, forms.FileInput):
                 widget.attrs["class"] = f"{existing} {FILE_CLASSES}".strip()
             else:
                 widget.attrs["class"] = f"{existing} {INPUT_CLASSES}".strip()
@@ -141,6 +141,47 @@ class MediaFileForm(TailwindFormMixin, UserCategoryFormMixin, forms.ModelForm):
             if compressed is not None:
                 cleaned_data["file"] = compressed
         return cleaned_data
+
+
+class MultipleFileInput(forms.ClearableFileInput):
+    allow_multiple_selected = True
+
+
+class MultipleFileField(forms.FileField):
+    """FileField que acepta y valida una lista de archivos (patrón oficial
+    de Django para <input multiple> — ver docs 'Uploading multiple files')."""
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault("widget", MultipleFileInput())
+        super().__init__(*args, **kwargs)
+
+    def clean(self, data, initial=None):
+        single_file_clean = super().clean
+        if isinstance(data, (list, tuple)):
+            return [single_file_clean(d, initial) for d in data]
+        return single_file_clean(data, initial)
+
+
+class MediaFileBulkUploadForm(TailwindFormMixin, UserCategoryFormMixin, forms.Form):
+    """Selecciona N archivos a la vez; calidad/tipo/categoría se aplican a todos."""
+
+    files = MultipleFileField(
+        label="Files",
+        help_text="Select multiple files. The same quality, type, and category are applied to all of them.",
+    )
+    photo_quality = forms.ChoiceField(
+        choices=MediaFileForm.PHOTO_QUALITY_CHOICES,
+        initial="alta",
+        required=False,
+        label="Photo quality",
+        help_text="Reduces the size (KB) of any photos in the batch. Does not apply to videos or documents.",
+    )
+    file_type = forms.ChoiceField(choices=MediaFile.FileType.choices, label="File type")
+    category = forms.ModelChoiceField(queryset=Category.objects.none(), required=False, label="Category")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.order_fields(["files", "photo_quality", "file_type", "category"])
 
 
 class ReminderForm(TailwindFormMixin, UserCategoryFormMixin, forms.ModelForm):
