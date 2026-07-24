@@ -316,20 +316,29 @@ class MediaFilePhotoGalleryView(SearchableListMixin, OwnerQuerysetMixin, ListVie
         return super().get_queryset().filter(file_type=MediaFile.FileType.PHOTO)
 
 
-class MediaFileSlideshowView(SearchableListMixin, OwnerQuerysetMixin, ListView):
+class MediaFileSlideshowView(OwnerQuerysetMixin, ListView):
     """Slideshow a pantalla completa (todas las fotos de golpe, sin
-    paginar) filtrable por categoría vía el mismo ?category= que la
-    galería. Desde acá se pide el link público (MediaFileSlideshowShareView)."""
+    paginar), filtrable por una o más categorías vía ?category=<id>
+    (repetido). Sin categorías marcadas = todas las fotos. Desde acá se
+    pide el link público (MediaFileSlideshowShareView)."""
     model = MediaFile
     template_name = "vault/mediafile_slideshow.html"
     context_object_name = "files"
-    category_kind = Category.Kind.FILES
+
+    def get_selected_category_ids(self):
+        return [int(c) for c in self.request.GET.getlist("category") if c.isdigit()]
 
     def get_queryset(self):
-        return super().get_queryset().filter(file_type=MediaFile.FileType.PHOTO)
+        queryset = super().get_queryset().filter(file_type=MediaFile.FileType.PHOTO)
+        category_ids = self.get_selected_category_ids()
+        if category_ids:
+            queryset = queryset.filter(category_id__in=category_ids)
+        return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context["categories"] = Category.objects.filter(owner=self.request.user, kind=Category.Kind.FILES)
+        context["selected_category_ids"] = self.get_selected_category_ids()
         photos_data = [
             {"url": f.file.url, "name": f.original_name} for f in context["files"]
         ]
@@ -340,16 +349,27 @@ class MediaFileSlideshowView(SearchableListMixin, OwnerQuerysetMixin, ListView):
 
 class MediaFileSlideshowShareView(LoginRequiredMixin, View):
     """Devuelve (creando si hace falta) el link público del slideshow para
-    la categoría pedida vía ?category=; el mismo (owner, category) siempre
-    reutiliza el mismo token en vez de generar uno nuevo cada vez."""
+    las categorías pedidas vía ?category= (repetido); el mismo (owner,
+    set de categorías) siempre reutiliza el mismo token en vez de generar
+    uno nuevo cada vez."""
 
     def get(self, request):
-        category = None
-        category_id = request.GET.get("category")
-        if category_id:
-            category = get_object_or_404(Category, pk=category_id, owner=request.user, kind=Category.Kind.FILES)
+        category_ids = [c for c in request.GET.getlist("category") if c.isdigit()]
+        categories = list(
+            Category.objects.filter(pk__in=category_ids, owner=request.user, kind=Category.Kind.FILES)
+        )
+        target_ids = {c.pk for c in categories}
 
-        link, _ = PhotoSlideshowLink.objects.get_or_create(owner=request.user, category=category)
+        link = None
+        for candidate in PhotoSlideshowLink.objects.filter(owner=request.user).prefetch_related("categories"):
+            if {c.pk for c in candidate.categories.all()} == target_ids:
+                link = candidate
+                break
+        if link is None:
+            link = PhotoSlideshowLink.objects.create(owner=request.user)
+            if categories:
+                link.categories.set(categories)
+
         public_url = request.build_absolute_uri(
             reverse("vault:mediafile_slideshow_public", args=[link.public_token])
         )
@@ -370,11 +390,12 @@ class MediaFileSlideshowPublicView(DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        categories = list(self.object.categories.all())
         files = MediaFile.objects.filter(owner=self.object.owner, file_type=MediaFile.FileType.PHOTO)
-        if self.object.category_id:
-            files = files.filter(category_id=self.object.category_id)
+        if categories:
+            files = files.filter(category_id__in=[c.pk for c in categories])
         context["files"] = files
-        context["slideshow_title"] = self.object.category.name if self.object.category_id else "All photos"
+        context["slideshow_title"] = ", ".join(c.name for c in categories) if categories else "All photos"
         photos_data = [{"url": f.file.url, "name": f.original_name} for f in files]
         random.shuffle(photos_data)
         context["photos_data"] = photos_data

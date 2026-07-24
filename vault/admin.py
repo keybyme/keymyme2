@@ -67,7 +67,7 @@ class MediaFileAdmin(admin.ModelAdmin):
 
 @admin.register(PhotoSlideshowLink)
 class PhotoSlideshowLinkAdmin(admin.ModelAdmin):
-    list_display = ("__str__", "owner", "category", "public_token", "created_at")
+    list_display = ("__str__", "owner", "public_token", "created_at")
     list_filter = ("owner",)
 
 

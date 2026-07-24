@@ -188,15 +188,13 @@ class PhotoSlideshowLink(models.Model):
     """Token público (por public_token, no por pk) que habilita ver un
     slideshow de fotos sin login y sin PIN — a diferencia de Vehicle, acá
     no hay ninguna acción de escritura detrás del link, solo lectura, así
-    que no hace falta ese paso extra. `category=None` significa "todas las
-    fotos" del dueño; un valor puntual restringe el slideshow a esa
-    categoría. Un mismo (owner, category) siempre reutiliza el mismo token
-    (ver get_or_create en MediaFileSlideshowShareView) en vez de generar
-    uno nuevo cada vez que se pide el link."""
+    que no hace falta ese paso extra. `categories` vacío significa "todas
+    las fotos" del dueño; una o más categorías restringen el slideshow a
+    esas. Un mismo (owner, set de categorías) siempre reutiliza el mismo
+    token (ver MediaFileSlideshowShareView) en vez de generar uno nuevo
+    cada vez que se pide el link."""
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="photo_slideshow_links")
-    category = models.ForeignKey(
-        Category, on_delete=models.CASCADE, null=True, blank=True, related_name="photo_slideshow_links"
-    )
+    categories = models.ManyToManyField(Category, blank=True, related_name="+")
     public_token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -205,7 +203,8 @@ class PhotoSlideshowLink(models.Model):
         verbose_name_plural = "Photo slideshow links"
 
     def __str__(self):
-        return f"{self.owner} — {self.category.name if self.category else 'All photos'}"
+        names = ", ".join(c.name for c in self.categories.all())
+        return f"{self.owner} — {names or 'All photos'}"
 
 
 class Reminder(models.Model):
