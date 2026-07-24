@@ -2,8 +2,8 @@ from django import forms
 from django.contrib import admin
 
 from .models import (
-    Category, Contact, LocationCheckIn, MaintenanceRecord, VaultPassword, MediaFile, Reminder,
-    RouteStop, Url, Vehicle,
+    Category, Contact, LocationCheckIn, MaintenanceRecord, VaultPassword, MediaFile, PhotoSlideshowLink,
+    Reminder, RouteStop, Url, Vehicle,
 )
 
 
@@ -63,6 +63,12 @@ class MediaFileAdmin(admin.ModelAdmin):
     list_display = ("original_name", "owner", "category", "file_type", "file_size_bytes", "uploaded_at")
     list_filter = ("file_type", "owner", "category")
     search_fields = ("original_name",)
+
+
+@admin.register(PhotoSlideshowLink)
+class PhotoSlideshowLinkAdmin(admin.ModelAdmin):
+    list_display = ("__str__", "owner", "category", "public_token", "created_at")
+    list_filter = ("owner",)
 
 
 @admin.register(Reminder)

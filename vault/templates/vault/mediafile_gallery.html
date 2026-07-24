@@ -3,9 +3,14 @@
 {% block content %}
 <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
     <h1 class="text-2xl font-semibold text-gray-900">Photo gallery</h1>
-    <a href="{% url 'vault:mediafile_list' %}" class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">
-        {% include "icons/paper-clip.html" with class="w-4 h-4" %} View file list
-    </a>
+    <div class="flex items-center gap-3">
+        <a href="{% url 'vault:mediafile_slideshow' %}{% if selected_category %}?category={{ selected_category }}{% endif %}" class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">
+            {% include "icons/play-circle.html" with class="w-4 h-4" %} Slideshow
+        </a>
+        <a href="{% url 'vault:mediafile_list' %}" class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">
+            {% include "icons/paper-clip.html" with class="w-4 h-4" %} View file list
+        </a>
+    </div>
 </div>
 
 {% include "vault/_search_form.html" %}

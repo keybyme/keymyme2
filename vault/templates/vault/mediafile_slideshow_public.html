@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ slideshow_title }} — Slideshow{% endblock %}
+{% block content %}
+<style>body { overflow: hidden; }</style>
+
+{% if files %}
+<div id="slideshow-container" class="fixed inset-0 z-40 flex items-center justify-center bg-black">
+    <img data-slide-img src="" alt="" class="max-h-full max-w-full object-contain transition-opacity duration-500">
+
+    <div class="pointer-events-none absolute inset-x-0 top-0 flex items-center justify-between gap-3 bg-gradient-to-b from-black/70 to-transparent px-6 py-4">
+        <div class="flex items-center gap-2 text-white">
+            <img src="{% static 'images/logo_keybyme.png' %}" alt="" class="h-7 w-7 rounded-full object-cover opacity-90">
+            <span class="text-sm font-semibold tracking-wide">{{ slideshow_title }}</span>
+        </div>
+        <span data-slide-name class="max-w-[40%] truncate text-xs text-white/70"></span>
+    </div>
+
+    <button type="button" data-prev aria-label="Previous"
+            class="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-3 text-white backdrop-blur transition hover:bg-white/20 sm:left-6">
+        {% include "icons/chevron-left.html" with class="w-7 h-7" %}
+    </button>
+    <button type="button" data-next aria-label="Next"
+            class="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-3 text-white backdrop-blur transition hover:bg-white/20 sm:right-6">
+        {% include "icons/chevron-right.html" with class="w-7 h-7" %}
+    </button>
+
+    <div class="absolute inset-x-0 bottom-0 flex flex-col gap-3 bg-gradient-to-t from-black/80 to-transparent px-6 py-5">
+        <div class="h-1 w-full overflow-hidden rounded-full bg-white/20">
+            <div data-slide-progress class="h-full bg-gold transition-all duration-300" style="width:0%"></div>
+        </div>
+        <div class="flex items-center justify-center gap-6">
+            <button type="button" data-toggle-play aria-label="Play/Pause" class="text-white transition hover:text-gold">
+                <span data-pause-icon>{% include "icons/pause-circle.html" with class="w-8 h-8" %}</span>
+                <span data-play-icon class="hidden">{% include "icons/play-circle.html" with class="w-8 h-8" %}</span>
+            </button>
+            <span data-slide-counter class="text-sm font-medium text-white/80"></span>
+            <button type="button" data-fullscreen aria-label="Fullscreen" class="text-white transition hover:text-gold">
+                {% include "icons/arrows-pointing-out.html" with class="w-6 h-6" %}
+            </button>
+        </div>
+    </div>
+</div>
+
+{{ photos_data|json_script:"photos-data" }}
+<script src="{% static 'js/slideshow.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    initSlideshow('slideshow-container', 'photos-data', { interval: 5000 });
+});
+</script>
+{% else %}
+<div class="fixed inset-0 z-40 flex flex-col items-center justify-center gap-3 bg-black text-white">
+    <img src="{% static 'images/logo_keybyme.png' %}" alt="" class="h-12 w-12 rounded-full object-cover opacity-80">
+    <p class="text-sm text-white/70">No photos to show yet.</p>
+</div>
+{% endif %}
+{% endblock %}

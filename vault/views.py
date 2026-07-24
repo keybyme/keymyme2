@@ -47,7 +47,7 @@ from .image_compression import compress_image
 from .mixins import AjaxPartialTemplateMixin, OwnerCreateMixin, OwnerQuerysetMixin, SearchableListMixin, UserFormKwargsMixin
 from .models import (
     ALLOWED_MEDIA_EXTENSIONS, Category, Contact, LocationCheckIn, MaintenanceRecord, MediaFile,
-    Reminder, RouteStop, Url, VaultPassword, Vehicle,
+    PhotoSlideshowLink, Reminder, RouteStop, Url, VaultPassword, Vehicle,
 )
 
 
@@ -313,6 +313,67 @@ class MediaFilePhotoGalleryView(SearchableListMixin, OwnerQuerysetMixin, ListVie
 
     def get_queryset(self):
         return super().get_queryset().filter(file_type=MediaFile.FileType.PHOTO)
+
+
+class MediaFileSlideshowView(SearchableListMixin, OwnerQuerysetMixin, ListView):
+    """Slideshow a pantalla completa (todas las fotos de golpe, sin
+    paginar) filtrable por categoría vía el mismo ?category= que la
+    galería. Desde acá se pide el link público (MediaFileSlideshowShareView)."""
+    model = MediaFile
+    template_name = "vault/mediafile_slideshow.html"
+    context_object_name = "files"
+    category_kind = Category.Kind.FILES
+
+    def get_queryset(self):
+        return super().get_queryset().filter(file_type=MediaFile.FileType.PHOTO)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["photos_data"] = [
+            {"url": f.file.url, "name": f.original_name} for f in context["files"]
+        ]
+        return context
+
+
+class MediaFileSlideshowShareView(LoginRequiredMixin, View):
+    """Devuelve (creando si hace falta) el link público del slideshow para
+    la categoría pedida vía ?category=; el mismo (owner, category) siempre
+    reutiliza el mismo token en vez de generar uno nuevo cada vez."""
+
+    def get(self, request):
+        category = None
+        category_id = request.GET.get("category")
+        if category_id:
+            category = get_object_or_404(Category, pk=category_id, owner=request.user, kind=Category.Kind.FILES)
+
+        link, _ = PhotoSlideshowLink.objects.get_or_create(owner=request.user, category=category)
+        public_url = request.build_absolute_uri(
+            reverse("vault:mediafile_slideshow_public", args=[link.public_token])
+        )
+        return JsonResponse({"url": public_url})
+
+
+class MediaFileSlideshowPublicView(DetailView):
+    """Página pública (sin login, sin PIN) identificada por public_token,
+    no por pk. Solo lectura: a diferencia de Vehicle acá no hay ninguna
+    acción de escritura detrás del link, así que no hace falta el paso
+    del PIN."""
+    model = PhotoSlideshowLink
+    template_name = "vault/mediafile_slideshow_public.html"
+    context_object_name = "link"
+
+    def get_object(self, queryset=None):
+        return get_object_or_404(PhotoSlideshowLink, public_token=self.kwargs["token"])
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        files = MediaFile.objects.filter(owner=self.object.owner, file_type=MediaFile.FileType.PHOTO)
+        if self.object.category_id:
+            files = files.filter(category_id=self.object.category_id)
+        context["files"] = files
+        context["slideshow_title"] = self.object.category.name if self.object.category_id else "All photos"
+        context["photos_data"] = [{"url": f.file.url, "name": f.original_name} for f in files]
+        return context
 
 
 class MediaFileCreateView(OwnerCreateMixin, CreateView):

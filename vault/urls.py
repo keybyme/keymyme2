@@ -35,6 +35,13 @@ urlpatterns = [
     # Media files
     path("files/", views.MediaFileListView.as_view(), name="mediafile_list"),
     path("files/gallery/", views.MediaFilePhotoGalleryView.as_view(), name="mediafile_gallery"),
+    path("files/slideshow/", views.MediaFileSlideshowView.as_view(), name="mediafile_slideshow"),
+    path("files/slideshow/share/", views.MediaFileSlideshowShareView.as_view(), name="mediafile_slideshow_share"),
+    path(
+        "files/slideshow/public/<uuid:token>/",
+        views.MediaFileSlideshowPublicView.as_view(),
+        name="mediafile_slideshow_public",
+    ),
     path("files/new/", views.MediaFileCreateView.as_view(), name="mediafile_create"),
     path("files/upload-multiple/", views.MediaFileBulkCreateView.as_view(), name="mediafile_bulk_create"),
     path("files/<int:pk>/edit/", views.MediaFileUpdateView.as_view(), name="mediafile_update"),

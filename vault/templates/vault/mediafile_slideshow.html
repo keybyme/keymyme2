@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Slideshow{% endblock %}
+{% block content %}
+<div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+    <h1 class="text-2xl font-semibold text-gray-900">Slideshow</h1>
+    <div class="flex flex-wrap items-center gap-3">
+        <form method="get">
+            <select name="category" onchange="this.form.submit()"
+                    class="rounded-lg border border-gray-300 py-2 px-3 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                <option value="">All photos</option>
+                {% for cat in categories %}
+                <option value="{{ cat.pk }}" {% if selected_category == cat.pk|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
+                {% endfor %}
+            </select>
+        </form>
+        <button type="button" id="share-btn" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
+            {% include "icons/link.html" with class="w-4 h-4" %} Get public link
+        </button>
+        <a href="{% url 'vault:mediafile_gallery' %}" class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">
+            {% include "icons/photo.html" with class="w-4 h-4" %} Back to gallery
+        </a>
+    </div>
+</div>
+
+<div id="share-box" class="mb-6 hidden flex-wrap items-center gap-2 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+    <span class="shrink-0 text-sm text-gray-500">Public link (no login required):</span>
+    <input id="share-url" type="text" readonly
+           class="min-w-0 flex-1 rounded-lg border border-gray-300 bg-gray-50 px-3 py-1.5 text-sm text-gray-700">
+    <button type="button" id="copy-btn" class="shrink-0 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50">Copy</button>
+    <span id="copy-feedback" class="hidden shrink-0 text-sm font-medium text-emerald-600">Copied!</span>
+</div>
+
+{% if files %}
+<div id="slideshow-container" class="relative mx-auto flex aspect-video max-w-4xl items-center justify-center overflow-hidden rounded-2xl bg-black shadow-lg">
+    <img data-slide-img src="" alt="" class="max-h-full max-w-full object-contain transition-opacity duration-300">
+
+    <div class="pointer-events-none absolute left-4 top-4 max-w-[70%] truncate rounded-full bg-black/40 px-3 py-1 text-xs font-medium text-white" data-slide-name></div>
+
+    <button type="button" data-prev aria-label="Previous"
+            class="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-black/40 p-2 text-white transition hover:bg-black/60">
+        {% include "icons/chevron-left.html" with class="w-6 h-6" %}
+    </button>
+    <button type="button" data-next aria-label="Next"
+            class="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-black/40 p-2 text-white transition hover:bg-black/60">
+        {% include "icons/chevron-right.html" with class="w-6 h-6" %}
+    </button>
+
+    <div class="absolute inset-x-0 bottom-0 flex items-center gap-3 bg-gradient-to-t from-black/70 to-transparent px-4 py-3">
+        <button type="button" data-toggle-play aria-label="Play/Pause" class="text-white">
+            <span data-pause-icon>{% include "icons/pause-circle.html" with class="w-6 h-6" %}</span>
+            <span data-play-icon class="hidden">{% include "icons/play-circle.html" with class="w-6 h-6" %}</span>
+        </button>
+        <div class="h-1 flex-1 overflow-hidden rounded-full bg-white/20">
+            <div data-slide-progress class="h-full bg-white transition-all duration-300" style="width:0%"></div>
+        </div>
+        <span data-slide-counter class="shrink-0 text-xs font-medium text-white"></span>
+        <button type="button" data-fullscreen aria-label="Fullscreen" class="text-white">
+            {% include "icons/arrows-pointing-out.html" with class="w-5 h-5" %}
+        </button>
+    </div>
+</div>
+<p class="mt-3 text-center text-xs text-gray-500">Use the arrow keys, swipe, or the on-screen controls to navigate. Space bar plays/pauses.</p>
+
+{{ photos_data|json_script:"photos-data" }}
+<script src="{% static 'js/slideshow.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    initSlideshow('slideshow-container', 'photos-data', { interval: 4500 });
+
+    const shareBtn = document.getElementById('share-btn');
+    const shareBox = document.getElementById('share-box');
+    const shareUrl = document.getElementById('share-url');
+    const copyBtn = document.getElementById('copy-btn');
+    const copyFeedback = document.getElementById('copy-feedback');
+    const categorySelect = document.querySelector('select[name="category"]');
+
+    shareBtn.addEventListener('click', function () {
+        const category = categorySelect ? categorySelect.value : '';
+        const params = category ? ('?category=' + encodeURIComponent(category)) : '';
+        fetch('{% url "vault:mediafile_slideshow_share" %}' + params)
+            .then((response) => response.json())
+            .then((data) => {
+                shareUrl.value = data.url;
+                shareBox.classList.remove('hidden');
+                shareBox.classList.add('flex');
+                shareUrl.select();
+            });
+    });
+
+    copyBtn.addEventListener('click', function () {
+        shareUrl.select();
+        navigator.clipboard.writeText(shareUrl.value).then(function () {
+            copyFeedback.classList.remove('hidden');
+            window.setTimeout(() => copyFeedback.classList.add('hidden'), 1500);
+        });
+    });
+});
+</script>
+{% else %}
+<div class="rounded-xl border border-gray-200 bg-white px-4 py-12 text-center text-sm text-gray-500 shadow-sm">
+    You don't have any photos yet{% if selected_category %} in this category{% endif %}.
+</div>
+{% endif %}
+{% endblock %}
