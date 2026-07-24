@@ -7,6 +7,9 @@
         <a href="{% url 'vault:mediafile_gallery' %}" class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">
             {% include "icons/photo.html" with class="w-4 h-4" %} View photos
         </a>
+        <a href="{% url 'vault:mediafile_category_list' %}" class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">
+            {% include "icons/tag.html" with class="w-4 h-4" %} Categories
+        </a>
         <a href="{% url 'vault:mediafile_bulk_create' %}" class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">
             {% include "icons/plus.html" with class="w-4 h-4" %} Upload multiple
         </a>

@@ -52,12 +52,19 @@ from .models import (
 
 
 # ---------- Categories ----------
+# 'general' is shared by Contacts/Passwords/Links/Reminders; 'files' is its
+# own separate catalog for MediaFile. The MediaFileCategory* views below
+# reuse this same logic with category_kind swapped to FILES.
 
 class CategoryListView(OwnerQuerysetMixin, ListView):
     model = Category
     template_name = "vault/category_list.html"
     context_object_name = "categories"
     paginate_by = 15
+    category_kind = Category.Kind.GENERAL
+
+    def get_queryset(self):
+        return super().get_queryset().filter(kind=self.category_kind)
 
 
 class CategoryCreateView(OwnerCreateMixin, CreateView):
@@ -65,6 +72,11 @@ class CategoryCreateView(OwnerCreateMixin, CreateView):
     form_class = CategoryForm
     template_name = "vault/category_form.html"
     success_url = reverse_lazy("vault:category_list")
+    category_kind = Category.Kind.GENERAL
+
+    def form_valid(self, form):
+        form.instance.kind = self.category_kind
+        return super().form_valid(form)
 
 
 class CategoryUpdateView(UserFormKwargsMixin, OwnerQuerysetMixin, UpdateView):
@@ -72,12 +84,43 @@ class CategoryUpdateView(UserFormKwargsMixin, OwnerQuerysetMixin, UpdateView):
     form_class = CategoryForm
     template_name = "vault/category_form.html"
     success_url = reverse_lazy("vault:category_list")
+    category_kind = Category.Kind.GENERAL
+
+    def get_queryset(self):
+        return super().get_queryset().filter(kind=self.category_kind)
 
 
 class CategoryDeleteView(OwnerQuerysetMixin, DeleteView):
     model = Category
     template_name = "vault/category_confirm_delete.html"
     success_url = reverse_lazy("vault:category_list")
+    category_kind = Category.Kind.GENERAL
+
+    def get_queryset(self):
+        return super().get_queryset().filter(kind=self.category_kind)
+
+
+class MediaFileCategoryListView(CategoryListView):
+    template_name = "vault/mediafile_category_list.html"
+    category_kind = Category.Kind.FILES
+
+
+class MediaFileCategoryCreateView(CategoryCreateView):
+    template_name = "vault/mediafile_category_form.html"
+    success_url = reverse_lazy("vault:mediafile_category_list")
+    category_kind = Category.Kind.FILES
+
+
+class MediaFileCategoryUpdateView(CategoryUpdateView):
+    template_name = "vault/mediafile_category_form.html"
+    success_url = reverse_lazy("vault:mediafile_category_list")
+    category_kind = Category.Kind.FILES
+
+
+class MediaFileCategoryDeleteView(CategoryDeleteView):
+    template_name = "vault/mediafile_category_confirm_delete.html"
+    success_url = reverse_lazy("vault:mediafile_category_list")
+    category_kind = Category.Kind.FILES
 
 
 # ---------- Contacts ----------
@@ -256,6 +299,7 @@ class MediaFileListView(AjaxPartialTemplateMixin, SearchableListMixin, OwnerQuer
     context_object_name = "files"
     paginate_by = 15
     search_fields = ("original_name",)
+    category_kind = Category.Kind.FILES
 
 
 class MediaFilePhotoGalleryView(SearchableListMixin, OwnerQuerysetMixin, ListView):
@@ -265,6 +309,7 @@ class MediaFilePhotoGalleryView(SearchableListMixin, OwnerQuerysetMixin, ListVie
     context_object_name = "files"
     paginate_by = 15
     search_fields = ("original_name",)
+    category_kind = Category.Kind.FILES
 
     def get_queryset(self):
         return super().get_queryset().filter(file_type=MediaFile.FileType.PHOTO)

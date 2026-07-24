@@ -43,14 +43,21 @@ def user_upload_path(instance, filename):
 
 
 class Category(models.Model):
-    """Categoría definida por el usuario (ej: familia, trabajo, tecnología),
-    reutilizable entre Contact, VaultPassword, Url, MediaFile y Reminder."""
+    """Categoría definida por el usuario (ej: familia, trabajo, tecnología).
+    'general' se comparte entre Contact, VaultPassword, Url y Reminder;
+    'files' es un catálogo aparte, exclusivo de MediaFile."""
+
+    class Kind(models.TextChoices):
+        GENERAL = "general", "General"
+        FILES = "files", "Files"
+
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="categories")
     name = models.CharField(max_length=100)
+    kind = models.CharField(max_length=10, choices=Kind.choices, default=Kind.GENERAL)
 
     class Meta:
         ordering = ["name"]
-        unique_together = ("owner", "name")
+        unique_together = ("owner", "name", "kind")
         verbose_name = "Category"
         verbose_name_plural = "Categories"
 

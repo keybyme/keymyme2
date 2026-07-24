@@ -39,6 +39,18 @@ urlpatterns = [
     path("files/upload-multiple/", views.MediaFileBulkCreateView.as_view(), name="mediafile_bulk_create"),
     path("files/<int:pk>/edit/", views.MediaFileUpdateView.as_view(), name="mediafile_update"),
     path("files/<int:pk>/delete/", views.MediaFileDeleteView.as_view(), name="mediafile_delete"),
+    path("files/categories/", views.MediaFileCategoryListView.as_view(), name="mediafile_category_list"),
+    path("files/categories/new/", views.MediaFileCategoryCreateView.as_view(), name="mediafile_category_create"),
+    path(
+        "files/categories/<int:pk>/edit/",
+        views.MediaFileCategoryUpdateView.as_view(),
+        name="mediafile_category_update",
+    ),
+    path(
+        "files/categories/<int:pk>/delete/",
+        views.MediaFileCategoryDeleteView.as_view(),
+        name="mediafile_category_delete",
+    ),
 
     # Reminders
     path("reminders/", views.ReminderListView.as_view(), name="reminder_list"),

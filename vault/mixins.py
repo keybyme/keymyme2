@@ -64,6 +64,7 @@ class SearchableListMixin:
     declarados en `search_fields`.
     """
     search_fields = ()
+    category_kind = Category.Kind.GENERAL
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -83,7 +84,7 @@ class SearchableListMixin:
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["categories"] = Category.objects.filter(owner=self.request.user)
+        context["categories"] = Category.objects.filter(owner=self.request.user, kind=self.category_kind)
         context["selected_category"] = self.request.GET.get("category", "")
         context["query"] = self.request.GET.get("q", "")
         return context

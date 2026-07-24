@@ -9,8 +9,8 @@ from .models import (
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
-    list_display = ("name", "owner")
-    list_filter = ("owner",)
+    list_display = ("name", "kind", "owner")
+    list_filter = ("owner", "kind")
     search_fields = ("name",)
 
 

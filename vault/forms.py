@@ -36,12 +36,16 @@ class TailwindFormMixin:
 
 
 class UserCategoryFormMixin:
-    """Restringe el choice de 'category' a las categorías del usuario dueño del registro."""
+    """Restringe el choice de 'category' a las categorías del usuario dueño del
+    registro, y al 'kind' que le corresponde a ese modelo (ver Category.Kind:
+    'files' es un catálogo aparte de las categorías 'general')."""
+
+    category_kind = Category.Kind.GENERAL
 
     def __init__(self, *args, user=None, **kwargs):
         super().__init__(*args, **kwargs)
         if user is not None and "category" in self.fields:
-            self.fields["category"].queryset = Category.objects.filter(owner=user)
+            self.fields["category"].queryset = Category.objects.filter(owner=user, kind=self.category_kind)
 
 
 class CategoryForm(TailwindFormMixin, UserCategoryFormMixin, forms.ModelForm):
@@ -111,6 +115,8 @@ class UrlForm(TailwindFormMixin, UserCategoryFormMixin, forms.ModelForm):
 
 
 class MediaFileForm(TailwindFormMixin, UserCategoryFormMixin, forms.ModelForm):
+    category_kind = Category.Kind.FILES
+
     PHOTO_QUALITY_CHOICES = [
         ("alta", "High (uncompressed)"),
         ("media", "Medium"),
@@ -164,6 +170,8 @@ class MultipleFileField(forms.FileField):
 
 class MediaFileBulkUploadForm(TailwindFormMixin, UserCategoryFormMixin, forms.Form):
     """Selecciona N archivos a la vez; calidad/tipo/categoría se aplican a todos."""
+
+    category_kind = Category.Kind.FILES
 
     files = MultipleFileField(
         label="Files",
