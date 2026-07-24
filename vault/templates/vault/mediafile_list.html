@@ -26,4 +26,36 @@
 </div>
 
 {% include "vault/_live_search.html" with results_id="mediafile-results" %}
+
+<img id="mediafile-hover-preview" alt=""
+     class="pointer-events-none fixed z-50 hidden max-h-64 max-w-xs rounded-lg border border-gray-200 bg-white object-contain p-1 shadow-lg">
+<script>
+(function () {
+    const preview = document.getElementById('mediafile-hover-preview');
+    const previewWidth = 320; // matches max-w-xs
+
+    function positionPreview(link) {
+        const rect = link.getBoundingClientRect();
+        const left = Math.max(8, Math.min(rect.left, window.innerWidth - previewWidth - 8));
+        preview.style.left = left + 'px';
+        preview.style.top = (rect.bottom + 6) + 'px';
+    }
+
+    document.addEventListener('mouseover', function (event) {
+        const link = event.target.closest('[data-preview-url]');
+        if (!link) return;
+        preview.src = link.dataset.previewUrl;
+        preview.classList.remove('hidden');
+        positionPreview(link);
+    });
+    document.addEventListener('mousemove', function (event) {
+        if (preview.classList.contains('hidden')) return;
+        const link = event.target.closest('[data-preview-url]');
+        if (link) positionPreview(link);
+    });
+    document.addEventListener('mouseout', function (event) {
+        if (event.target.closest('[data-preview-url]')) preview.classList.add('hidden');
+    });
+})();
+</script>
 {% endblock %}
