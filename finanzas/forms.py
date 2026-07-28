@@ -75,7 +75,7 @@ class DeudaForm(TailwindFormMixin, forms.ModelForm):
     class Meta:
         model = Deuda
         fields = [
-            "deuda", "tipo", "monto", "saldo", "cuenta", "credito", "dia", "flag",
+            "deuda", "tipo", "monto", "saldo", "cuenta", "credito", "dia", "tasa_interes", "flag",
             "password", "remarks",
         ]
 

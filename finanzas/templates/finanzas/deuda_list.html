@@ -29,6 +29,7 @@
             <th class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wide text-white">Credit limit</th>
             <th class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wide text-white">Available credit</th>
             <th class="px-4 py-3 text-center text-xs font-bold uppercase tracking-wide text-white">Day</th>
+            <th class="px-4 py-3 text-right text-xs font-bold uppercase tracking-wide text-white">Interest %</th>
             <th class="px-4 py-3 text-center text-xs font-bold uppercase tracking-wide text-white">Paid</th>
             <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Remarks</th>
             <th class="px-4 py-3"></th>
@@ -54,6 +55,9 @@
                 {% if deuda.credito_disponible is not None %}${{ deuda.credito_disponible }}{% else %}<span class="text-gray-400">—</span>{% endif %}
             </td>
             <td class="whitespace-nowrap px-4 py-3 text-center text-sm text-gray-600">{{ deuda.dia }}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-right text-sm text-gray-600">
+                {% if deuda.tasa_interes is not None %}{{ deuda.tasa_interes }}%{% else %}<span class="text-gray-400">—</span>{% endif %}
+            </td>
             <td class="whitespace-nowrap px-4 py-3 text-center text-sm">
                 {% if deuda.flag == 'P' %}
                 <span class="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700">P</span>
@@ -79,7 +83,7 @@
             </td>
         </tr>
         {% empty %}
-        <tr><td colspan="12" class="px-4 py-6 text-center text-sm text-gray-500">You have no debts on record.</td></tr>
+        <tr><td colspan="13" class="px-4 py-6 text-center text-sm text-gray-500">You have no debts on record.</td></tr>
         {% endfor %}
     </tbody>
 </table>

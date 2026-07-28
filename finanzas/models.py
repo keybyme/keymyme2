@@ -1,8 +1,14 @@
+import calendar
+from datetime import datetime
+
 from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import models
+from django.utils import timezone
 
-from vault.models import Category, MediaFile, VaultPassword
+from vault.models import Category, MediaFile, Reminder, VaultPassword
+
+DEUDA_REMINDER_EMAIL = "wesnetwork@gmail.com"
 
 numero_cuenta_validator = RegexValidator(
     regex=r"^\d+$",
@@ -107,6 +113,11 @@ class Deuda(models.Model):
         verbose_name="Payment day",
         help_text="Day of the month the payment is due (1-31).",
     )
+    tasa_interes = models.DecimalField(
+        max_digits=5, decimal_places=2, null=True, blank=True,
+        validators=[MinValueValidator(0)],
+        verbose_name="Interest rate (%)",
+    )
     flag = models.CharField(
         max_length=1, choices=Flag.choices, default=Flag.NO_PAGADO,
         verbose_name="Paid this month", help_text="Payment status for the current month.",
@@ -116,6 +127,10 @@ class Deuda(models.Model):
         VaultPassword, on_delete=models.SET_NULL, null=True, blank=True,
         related_name="deudas", verbose_name="Related password",
         help_text="Password record you use to log in and pay this debt.",
+    )
+    reminder = models.OneToOneField(
+        Reminder, on_delete=models.SET_NULL, null=True, blank=True,
+        editable=False, related_name="deuda",
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -130,6 +145,61 @@ class Deuda(models.Model):
         if self.credito is None:
             return None
         return self.credito - (self.saldo or 0)
+
+    def next_due_datetime(self, hour=9):
+        """Próxima fecha/hora (America/New_York) en que cae el día de pago
+        (`dia`), recortado al último día del mes si el mes es más corto."""
+        now = timezone.localtime(timezone.now())
+
+        def _candidate(year, month):
+            last_day = calendar.monthrange(year, month)[1]
+            day = min(self.dia, last_day)
+            return timezone.make_aware(datetime(year, month, day, hour, 0))
+
+        candidate = _candidate(now.year, now.month)
+        if candidate <= now:
+            month = now.month % 12 + 1
+            year = now.year + (now.month // 12)
+            candidate = _candidate(year, month)
+        return candidate
+
+    def sync_reminder(self):
+        """Crea o actualiza el Reminder mensual que avisa por correo el día
+        de pago de esta deuda. Se llama a mano desde las vistas de
+        create/update (mismo patrón manual que la cuota de MediaFile)."""
+        title = f"Pay: {self.deuda}"
+        monto_txt = f"${self.monto}" if self.monto is not None else "amount varies"
+        description = f"Payment due for '{self.deuda}' (day {self.dia} of the month). Amount: {monto_txt}."
+        remind_at = self.next_due_datetime()
+
+        if self.reminder_id:
+            reminder = self.reminder
+            reminder.title = title
+            reminder.description = description
+            reminder.remind_at = remind_at
+            reminder.frequency = "mensual"
+            reminder.recipient_email = DEUDA_REMINDER_EMAIL
+            reminder.is_completed = False
+            reminder.email_sent_at = None
+            reminder.save()
+        else:
+            reminder = Reminder.objects.create(
+                owner=self.owner,
+                title=title,
+                description=description,
+                remind_at=remind_at,
+                frequency="mensual",
+                recipient_email=DEUDA_REMINDER_EMAIL,
+            )
+            Deuda.objects.filter(pk=self.pk).update(reminder=reminder)
+            self.reminder = reminder
+
+    def delete(self, *args, **kwargs):
+        reminder = self.reminder
+        result = super().delete(*args, **kwargs)
+        if reminder is not None:
+            reminder.delete()
+        return result
 
     def __str__(self):
         return self.deuda

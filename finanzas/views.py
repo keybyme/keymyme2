@@ -269,12 +269,22 @@ class DeudaCreateView(OwnerCreateMixin, CreateView):
     template_name = "finanzas/deuda_form.html"
     success_url = reverse_lazy("finanzas:deuda_list")
 
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        self.object.sync_reminder()
+        return response
+
 
 class DeudaUpdateView(UserFormKwargsMixin, OwnerQuerysetMixin, UpdateView):
     model = Deuda
     form_class = DeudaForm
     template_name = "finanzas/deuda_form.html"
     success_url = reverse_lazy("finanzas:deuda_list")
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        self.object.sync_reminder()
+        return response
 
 
 class DeudaDeleteView(OwnerQuerysetMixin, DeleteView):

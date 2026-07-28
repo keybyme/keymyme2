@@ -20,6 +20,6 @@ class TransaccionAdmin(admin.ModelAdmin):
 
 @admin.register(Deuda)
 class DeudaAdmin(admin.ModelAdmin):
-    list_display = ("deuda", "owner", "tipo", "monto", "saldo", "cuenta", "credito", "dia", "flag")
+    list_display = ("deuda", "owner", "tipo", "monto", "saldo", "cuenta", "credito", "dia", "tasa_interes", "flag")
     list_filter = ("tipo", "flag", "owner", "cuenta")
     search_fields = ("deuda",)
