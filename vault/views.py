@@ -65,7 +65,8 @@ class CategoryListView(OwnerQuerysetMixin, ListView):
     context_object_name = "categories"
     paginate_by = 15
     category_kind = Category.Kind.GENERAL
-    module_codename = "categories"
+    # Sin module_codename a propósito: Categories es accesible para
+    # cualquier usuario logueado, sin importar sus roles/módulos.
 
     def get_queryset(self):
         return super().get_queryset().filter(kind=self.category_kind)
@@ -77,7 +78,6 @@ class CategoryCreateView(OwnerCreateMixin, CreateView):
     template_name = "vault/category_form.html"
     success_url = reverse_lazy("vault:category_list")
     category_kind = Category.Kind.GENERAL
-    module_codename = "categories"
 
     def form_valid(self, form):
         form.instance.kind = self.category_kind
@@ -90,7 +90,6 @@ class CategoryUpdateView(UserFormKwargsMixin, OwnerQuerysetMixin, UpdateView):
     template_name = "vault/category_form.html"
     success_url = reverse_lazy("vault:category_list")
     category_kind = Category.Kind.GENERAL
-    module_codename = "categories"
 
     def get_queryset(self):
         return super().get_queryset().filter(kind=self.category_kind)
@@ -101,7 +100,6 @@ class CategoryDeleteView(OwnerQuerysetMixin, DeleteView):
     template_name = "vault/category_confirm_delete.html"
     success_url = reverse_lazy("vault:category_list")
     category_kind = Category.Kind.GENERAL
-    module_codename = "categories"
 
     def get_queryset(self):
         return super().get_queryset().filter(kind=self.category_kind)

@@ -13,7 +13,7 @@
     {% if user.is_authenticated %}
     <nav class="border-b-2 border-gold bg-white shadow-sm">
         <div class="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
-            <a href="{% url 'vault:contact_list' %}" class="flex items-center gap-2 shrink-0">
+            <a href="{{ user.default_landing_url }}" class="flex items-center gap-2 shrink-0">
                 <img src="{% static 'images/logo_keybyme.png' %}" alt="KeyByMe" class="h-9 w-9 rounded-full object-cover">
                 <span class="text-lg font-semibold tracking-tight text-blue-900">KeyByMe</span>
             </a>
@@ -69,11 +69,9 @@
                     </div>
                 </details>
                 {% endif %}
-                {% if request.user|has_module_access:"categories" %}
                 <a href="{% url 'vault:category_list' %}" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-gray-100 hover:text-blue-700">
                     {% include "icons/tag.html" with class="w-4 h-4" %} Categories
                 </a>
-                {% endif %}
                 {% if request.user|has_module_access:"artifacts_qr" or request.user|has_module_access:"artifacts_imhere" or request.user|has_module_access:"cars" %}
                 <details class="nav-dropdown relative">
                     <summary class="flex list-none items-center gap-1.5 rounded-md px-3 py-1.5 cursor-pointer hover:bg-gray-100 hover:text-blue-700 [&::-webkit-details-marker]:hidden">
@@ -171,11 +169,9 @@
                     </div>
                 </details>
                 {% endif %}
-                {% if request.user|has_module_access:"categories" %}
                 <a href="{% url 'vault:category_list' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
                     {% include "icons/tag.html" with class="w-5 h-5" %} Categories
                 </a>
-                {% endif %}
                 {% if request.user|has_module_access:"artifacts_qr" or request.user|has_module_access:"artifacts_imhere" or request.user|has_module_access:"cars" %}
                 <details class="nav-dropdown">
                     <summary class="flex list-none items-center gap-2 rounded-md px-3 py-2.5 cursor-pointer hover:bg-gray-100 hover:text-blue-700 [&::-webkit-details-marker]:hidden">
