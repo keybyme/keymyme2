@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Module, SubModule, Role, RolePermission, UserPermissionOverride
+from .models import Module, SubModule, Role, RolePermission, UserRole, UserPermissionOverride
 
 
 class SubModuleInline(admin.TabularInline):
@@ -23,6 +23,7 @@ class RolePermissionInline(admin.TabularInline):
 @admin.register(Role)
 class RoleAdmin(admin.ModelAdmin):
     list_display = ("name", "level", "description")
+    search_fields = ("name",)
     inlines = [RolePermissionInline]
 
 
@@ -36,3 +37,10 @@ class SubModuleAdmin(admin.ModelAdmin):
 class UserPermissionOverrideAdmin(admin.ModelAdmin):
     list_display = ("user", "submodule", "granted")
     list_filter = ("granted",)
+
+
+@admin.register(UserRole)
+class UserRoleAdmin(admin.ModelAdmin):
+    list_display = ("user", "role", "valid_from", "valid_until")
+    list_filter = ("role",)
+    autocomplete_fields = ("user",)

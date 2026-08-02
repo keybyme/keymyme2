@@ -87,9 +87,12 @@ y todo el contenido desde el panel de administración incluido de Django.
 
 - **Module**: sección principal del menú (Contactos, Passwords, Documentos...).
 - **SubModule**: acción dentro de un módulo (Ver, Crear, Eliminar...).
-- **Role**: conjunto reutilizable de permisos, asignable a varios usuarios.
+- **Role**: conjunto reutilizable de permisos.
+- **UserRole**: asigna un Role a un usuario; un usuario puede tener varios
+  Roles a la vez, cada uno opcionalmente acotado a un rango de fechas
+  (`valid_from`/`valid_until`) para asignaciones temporales.
 - **UserPermissionOverride**: excepción puntual para un usuario específico
-  (otorga o revoca un permiso sin tocar su Role).
+  (otorga o revoca un permiso sin tocar sus Roles).
 
 La lógica de chequeo vive en `CustomUser.has_permission(codename)`.
 

@@ -86,7 +86,7 @@ urlpatterns = [
     path("im-here/administrator/dispatch/close-day/", views.DispatchCloseDayView.as_view(), name="im_here_dispatch_close_day"),
     path("im-here/administrator/dispatch/close-day-driver/", views.DispatchCloseDriverDayView.as_view(), name="im_here_dispatch_close_driver_day"),
 
-    # Mis Carros
+    # My Cars
     path("cars/", views.VehicleListView.as_view(), name="vehicle_list"),
     path("cars/new/", views.VehicleCreateView.as_view(), name="vehicle_create"),
     path("cars/<int:pk>/edit/", views.VehicleUpdateView.as_view(), name="vehicle_update"),

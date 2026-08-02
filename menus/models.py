@@ -67,6 +67,45 @@ class RolePermission(models.Model):
         return f"{self.role.name} → {self.submodule.codename}"
 
 
+class UserRole(models.Model):
+    """Assigns a Role to a user. Leaving both dates blank makes the assignment
+    permanent; setting either lets the admin grant a role temporarily, for a
+    specific date range, to a specific user."""
+    user = models.ForeignKey("accounts.CustomUser", on_delete=models.CASCADE, related_name="user_roles")
+    role = models.ForeignKey(Role, on_delete=models.CASCADE, related_name="user_roles")
+    valid_from = models.DateField(
+        null=True, blank=True,
+        help_text="First date this role is active. Leave blank for no start limit.",
+    )
+    valid_until = models.DateField(
+        null=True, blank=True,
+        help_text="Last date this role is active (inclusive). Leave blank for a permanent assignment.",
+    )
+
+    class Meta:
+        unique_together = ("user", "role")
+        ordering = ["user", "role"]
+        verbose_name = "User role"
+        verbose_name_plural = "User roles"
+
+    def __str__(self):
+        if self.valid_from or self.valid_until:
+            return f"{self.user} → {self.role.name} ({self.valid_from or '…'} to {self.valid_until or '…'})"
+        return f"{self.user} → {self.role.name}"
+
+    def clean(self):
+        from django.core.exceptions import ValidationError
+        if self.valid_from and self.valid_until and self.valid_from > self.valid_until:
+            raise ValidationError("The start date must be on or before the end date.")
+
+    def is_active_on(self, date) -> bool:
+        if self.valid_from and date < self.valid_from:
+            return False
+        if self.valid_until and date > self.valid_until:
+            return False
+        return True
+
+
 class UserPermissionOverride(models.Model):
     """Excepción puntual: otorga o quita un permiso a un usuario específico,
     sin importar lo que diga su Role."""

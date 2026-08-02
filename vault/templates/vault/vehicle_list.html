@@ -1,8 +1,8 @@
 {% extends "base.html" %}
-{% block title %}Mis Carros{% endblock %}
+{% block title %}My Cars{% endblock %}
 {% block content %}
 <div class="mb-6 flex items-center justify-between">
-    <h1 class="text-2xl font-semibold text-gray-900">Mis Carros</h1>
+    <h1 class="text-2xl font-semibold text-gray-900">My Cars</h1>
     <a href="{% url 'vault:vehicle_create' %}" class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700">
         {% include "icons/plus.html" with class="w-4 h-4" %} New vehicle
     </a>

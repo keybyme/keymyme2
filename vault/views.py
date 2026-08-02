@@ -1157,7 +1157,7 @@ class DispatchCloseDriverDayView(AdminRoleRequiredMixin, View):
         return redirect("vault:im_here_dispatch")
 
 
-# ---------- Mis Carros ----------
+# ---------- My Cars ----------
 
 class VehicleListView(OwnerQuerysetMixin, ListView):
     model = Vehicle

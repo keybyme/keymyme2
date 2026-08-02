@@ -1,5 +1,7 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.db.models import Q
+from django.utils import timezone
 
 
 class CustomUser(AbstractUser):
@@ -9,9 +11,6 @@ class CustomUser(AbstractUser):
     is_admin_principal = models.BooleanField(
         default=False,
         help_text="If True, this user can create/manage other accounts and their permissions.",
-    )
-    role = models.ForeignKey(
-        "menus.Role", on_delete=models.SET_NULL, null=True, blank=True, related_name="users"
     )
     storage_quota_gb = models.DecimalField(
         max_digits=10, decimal_places=2, default=5.0,
@@ -61,9 +60,28 @@ class CustomUser(AbstractUser):
             return f"{self.phone}{self.carrier}"
         return ""
 
+    def _active_user_roles(self):
+        """UserRole assignments currently in effect: permanent ones (no dates
+        set) plus temporary ones whose date range includes today."""
+        today = timezone.localdate()
+        return self.user_roles.filter(
+            Q(valid_from__isnull=True) | Q(valid_from__lte=today)
+        ).filter(
+            Q(valid_until__isnull=True) | Q(valid_until__gte=today)
+        )
+
+    @property
+    def active_roles(self):
+        """Roles currently active for this user (excludes assignments that
+        haven't started yet or have already expired)."""
+        from menus.models import Role
+        return Role.objects.filter(user_roles__in=self._active_user_roles()).distinct()
+
     @property
     def role_level(self):
-        return self.role.level if self.role_id else 0
+        """Highest level among the user's currently active roles, or 0 if none."""
+        levels = self._active_user_roles().values_list("role__level", flat=True)
+        return max(levels, default=0)
 
     @property
     def storage_quota_bytes(self):
@@ -78,13 +96,13 @@ class CustomUser(AbstractUser):
 
     def has_permission(self, submodule_codename: str) -> bool:
         """Checks whether the user has access to a submodule, honoring
-        per-user overrides first, then falling back to the role."""
+        per-user overrides first, then falling back to the user's active roles."""
         override = self.permission_overrides.filter(submodule__codename=submodule_codename).first()
         if override is not None:
             return override.granted
-        if self.role_id is None:
-            return False
-        return self.role.submodules.filter(codename=submodule_codename, is_active=True).exists()
+        return self._active_user_roles().filter(
+            role__submodules__codename=submodule_codename, role__submodules__is_active=True
+        ).exists()
 
     def __str__(self):
         return self.username
