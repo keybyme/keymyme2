@@ -770,12 +770,13 @@ class ImHereSendLocationView(ModuleAccessRequiredMixin, View):
 
 class EmergencyLocationView(ModuleAccessRequiredMixin, View):
     """
-    Botón "Emergency" del nav (ver base.html), disponible para cualquier
-    usuario logueado sin importar sus módulos/roles. Recibe (vía fetch) las
-    coordenadas y la hora local capturadas por el navegador y las envía por
-    correo a emergency_emails (lista separada por comas, configurada por
-    el admin en /admin — ver CustomUser.emergency_emails).
+    Botón "Emergency" del nav (ver base.html), visible solo para usuarios
+    cuyo Role tiene el módulo 'emergency' habilitado (o is_admin_principal).
+    Recibe (vía fetch) las coordenadas y la hora local capturadas por el
+    navegador y las envía por correo a emergency_emails (lista separada por
+    comas, configurada por el admin en /admin — ver CustomUser.emergency_emails).
     """
+    module_codename = "emergency"
 
     def post(self, request):
         recipients = request.user.emergency_email_list
@@ -792,12 +793,14 @@ class EmergencyLocationView(ModuleAccessRequiredMixin, View):
         except (KeyError, TypeError, ValueError, InvalidOperation, json.JSONDecodeError):
             return JsonResponse({"error": "Invalid location data."}, status=400)
 
+        full_name = request.user.get_full_name() or request.user.username
         maps_url = f"https://www.google.com/maps/search/?api=1&query={latitude},{longitude}"
         send_mail(
-            subject=f"EMERGENCY: {request.user.username}'s location",
+            subject=f"EMERGENCY: {full_name}'s location",
             message=(
                 "my location for emergency\n\n"
-                f"User: {request.user.username}\n"
+                f"Name: {full_name}\n"
+                f"Username: {request.user.username}\n"
                 f"Coordinates: {latitude}, {longitude}\n"
                 f"Map: {maps_url}\n"
                 f"Date/time: {local_time}"
