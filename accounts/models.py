@@ -64,6 +64,14 @@ class CustomUser(AbstractUser):
         verbose_name="Location alert email",
         help_text="Where the 'I am here' button sends your coordinates and local time.",
     )
+    emergency_emails = models.CharField(
+        max_length=500, blank=True,
+        verbose_name="Emergency alert email(s)",
+        help_text=(
+            "Where the 'Emergency' button sends your GPS location, date, and time. "
+            "Separate multiple addresses with commas."
+        ),
+    )
     route = models.CharField(
         max_length=100, default="9999", blank=True,
         verbose_name="Route",
@@ -100,6 +108,11 @@ class CustomUser(AbstractUser):
         """Highest level among the user's currently active roles, or 0 if none."""
         levels = self._active_user_roles().values_list("role__level", flat=True)
         return max(levels, default=0)
+
+    @property
+    def emergency_email_list(self):
+        """emergency_emails split on commas into a clean list of addresses."""
+        return [addr.strip() for addr in self.emergency_emails.split(",") if addr.strip()]
 
     @property
     def storage_quota_bytes(self):

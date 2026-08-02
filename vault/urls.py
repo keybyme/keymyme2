@@ -99,6 +99,9 @@ urlpatterns = [
         name="vehicle_public_add_maintenance",
     ),
 
+    # Emergency
+    path("emergency/send/", views.EmergencyLocationView.as_view(), name="emergency_send"),
+
     # Cron externo (ver config/settings.py CRON_SECRET)
     path("cron/send-reminders/", views.SendDueRemindersCronView.as_view(), name="cron_send_reminders"),
 ]

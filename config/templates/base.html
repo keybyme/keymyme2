@@ -72,6 +72,9 @@
                 <a href="{% url 'vault:category_list' %}" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-gray-100 hover:text-blue-700">
                     {% include "icons/tag.html" with class="w-4 h-4" %} Categories
                 </a>
+                <button type="button" id="emergency-btn" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-base font-bold text-red-600 hover:bg-red-50 hover:text-red-700">
+                    {% include "icons/exclamation-triangle.html" with class="w-5 h-5" %} Emergency
+                </button>
                 {% if request.user|has_module_access:"artifacts_qr" or request.user|has_module_access:"artifacts_imhere" or request.user|has_module_access:"cars" %}
                 <details class="nav-dropdown relative">
                     <summary class="flex list-none items-center gap-1.5 rounded-md px-3 py-1.5 cursor-pointer hover:bg-gray-100 hover:text-blue-700 [&::-webkit-details-marker]:hidden">
@@ -100,7 +103,11 @@
             </div>
 
             <div class="hidden items-center gap-3 text-sm text-gray-600 md:flex">
+                {% if user.is_staff or user.is_superuser %}
+                <a href="{% url 'admin:login' %}?next={% url 'admin:index' %}" class="hover:text-blue-700 hover:underline">{{ user.username }}</a>
+                {% else %}
                 <span>{{ user.username }}</span>
+                {% endif %}
                 <form method="post" action="{% url 'logout' %}">
                     {% csrf_token %}
                     <button type="submit" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 font-medium text-gray-600 hover:bg-red-50 hover:text-red-600">
@@ -172,6 +179,9 @@
                 <a href="{% url 'vault:category_list' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
                     {% include "icons/tag.html" with class="w-5 h-5" %} Categories
                 </a>
+                <button type="button" id="emergency-btn-mobile" class="flex items-center gap-2 rounded-md px-3 py-2.5 text-base font-bold text-red-600 hover:bg-red-50 hover:text-red-700">
+                    {% include "icons/exclamation-triangle.html" with class="w-5 h-5" %} Emergency
+                </button>
                 {% if request.user|has_module_access:"artifacts_qr" or request.user|has_module_access:"artifacts_imhere" or request.user|has_module_access:"cars" %}
                 <details class="nav-dropdown">
                     <summary class="flex list-none items-center gap-2 rounded-md px-3 py-2.5 cursor-pointer hover:bg-gray-100 hover:text-blue-700 [&::-webkit-details-marker]:hidden">
@@ -199,7 +209,11 @@
                 {% endif %}
             </div>
             <div class="flex items-center justify-between gap-3 border-t border-gray-100 px-4 py-3 text-sm text-gray-600">
+                {% if user.is_staff or user.is_superuser %}
+                <a href="{% url 'admin:login' %}?next={% url 'admin:index' %}" class="font-medium hover:text-blue-700 hover:underline">{{ user.username }}</a>
+                {% else %}
                 <span class="font-medium">{{ user.username }}</span>
+                {% endif %}
                 <form method="post" action="{% url 'logout' %}">
                     {% csrf_token %}
                     <button type="submit" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 font-medium text-gray-600 hover:bg-red-50 hover:text-red-600">
@@ -264,6 +278,62 @@
                     menu.removeAttribute('open');
                 }
             });
+        });
+
+        function getCsrfToken() {
+            const match = document.cookie.match(/(?:^|;\s*)csrftoken=([^;]+)/);
+            return match ? match[1] : '';
+        }
+
+        function sendEmergencyLocation(button) {
+            if (!navigator.geolocation) {
+                alert('Your browser does not support geolocation.');
+                return;
+            }
+            const originalText = button.textContent;
+            button.disabled = true;
+            button.textContent = 'Locating...';
+            const restore = () => {
+                button.disabled = false;
+                button.textContent = originalText;
+            };
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    fetch("{% url 'vault:emergency_send' %}", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCsrfToken(),
+                        },
+                        body: JSON.stringify({
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude,
+                            local_time: new Date().toString(),
+                        }),
+                    })
+                        .then((response) => response.json().then((data) => ({ ok: response.ok, data })))
+                        .then((result) => {
+                            restore();
+                            if (result.ok) {
+                                alert('Your location was sent for emergency.');
+                            } else {
+                                alert(result.data.error || 'Could not send your location.');
+                            }
+                        })
+                        .catch(() => {
+                            restore();
+                            alert('Could not send your location.');
+                        });
+                },
+                () => {
+                    restore();
+                    alert('Location permission was denied or is unavailable.');
+                }
+            );
+        }
+
+        document.querySelectorAll('#emergency-btn, #emergency-btn-mobile').forEach((button) => {
+            button.addEventListener('click', () => sendEmergencyLocation(button));
         });
     </script>
     {% endif %}

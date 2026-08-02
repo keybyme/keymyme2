@@ -768,6 +768,47 @@ class ImHereSendLocationView(ModuleAccessRequiredMixin, View):
         return JsonResponse({"status": "ok"})
 
 
+class EmergencyLocationView(ModuleAccessRequiredMixin, View):
+    """
+    Botón "Emergency" del nav (ver base.html), disponible para cualquier
+    usuario logueado sin importar sus módulos/roles. Recibe (vía fetch) las
+    coordenadas y la hora local capturadas por el navegador y las envía por
+    correo a emergency_emails (lista separada por comas, configurada por
+    el admin en /admin — ver CustomUser.emergency_emails).
+    """
+
+    def post(self, request):
+        recipients = request.user.emergency_email_list
+        if not recipients:
+            return JsonResponse(
+                {"error": "No emergency email is configured for your account. Ask your admin to set one up."},
+                status=400,
+            )
+        try:
+            payload = json.loads(request.body)
+            latitude = Decimal(str(payload["latitude"]))
+            longitude = Decimal(str(payload["longitude"]))
+            local_time = str(payload.get("local_time", ""))[:100]
+        except (KeyError, TypeError, ValueError, InvalidOperation, json.JSONDecodeError):
+            return JsonResponse({"error": "Invalid location data."}, status=400)
+
+        maps_url = f"https://www.google.com/maps/search/?api=1&query={latitude},{longitude}"
+        send_mail(
+            subject=f"EMERGENCY: {request.user.username}'s location",
+            message=(
+                "my location for emergency\n\n"
+                f"User: {request.user.username}\n"
+                f"Coordinates: {latitude}, {longitude}\n"
+                f"Map: {maps_url}\n"
+                f"Date/time: {local_time}"
+            ),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=recipients,
+            fail_silently=False,
+        )
+        return JsonResponse({"status": "ok"})
+
+
 class LocationCheckInHereView(ModuleAccessRequiredMixin, View):
     """
     Ícono 'Here' de cada fila en la tabla de hoy: captura la ubicación

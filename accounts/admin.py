@@ -26,7 +26,7 @@ class CustomUserAdmin(UserAdmin):
             "fields": (
                 "is_admin_principal", "route", "storage_quota_gb",
                 "storage_used_bytes", "is_suspended", "created_by",
-                "phone", "carrier", "location_alert_email",
+                "phone", "carrier", "location_alert_email", "emergency_emails",
             )
         }),
     )
