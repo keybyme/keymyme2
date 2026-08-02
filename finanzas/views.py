@@ -1,7 +1,6 @@
 from decimal import Decimal
 
 from django.contrib import messages
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Sum
 from django.db.models.deletion import ProtectedError
 from django.shortcuts import redirect, render
@@ -10,7 +9,9 @@ from django.utils import timezone
 from django.utils.dateparse import parse_date
 from django.views.generic import CreateView, DeleteView, ListView, UpdateView, View
 
-from vault.mixins import OwnerCreateMixin, OwnerQuerysetMixin, SearchableListMixin, UserFormKwargsMixin
+from vault.mixins import (
+    ModuleAccessRequiredMixin, OwnerCreateMixin, OwnerQuerysetMixin, SearchableListMixin, UserFormKwargsMixin,
+)
 from vault.models import MediaFile
 
 from .forms import CuentaForm, DeudaForm, TransaccionForm
@@ -60,6 +61,7 @@ class CuentaListView(OwnerQuerysetMixin, ListView):
     context_object_name = "cuentas"
     paginate_by = 15
     SORTABLE_FIELDS = ("name", "numero")
+    module_codename = "finanzas_cuentas"
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -79,6 +81,7 @@ class CuentaCreateView(OwnerCreateMixin, CreateView):
     form_class = CuentaForm
     template_name = "finanzas/cuenta_form.html"
     success_url = reverse_lazy("finanzas:cuenta_list")
+    module_codename = "finanzas_cuentas"
 
 
 class CuentaUpdateView(UserFormKwargsMixin, OwnerQuerysetMixin, UpdateView):
@@ -86,12 +89,14 @@ class CuentaUpdateView(UserFormKwargsMixin, OwnerQuerysetMixin, UpdateView):
     form_class = CuentaForm
     template_name = "finanzas/cuenta_form.html"
     success_url = reverse_lazy("finanzas:cuenta_list")
+    module_codename = "finanzas_cuentas"
 
 
 class CuentaDeleteView(OwnerQuerysetMixin, DeleteView):
     model = Cuenta
     template_name = "finanzas/cuenta_confirm_delete.html"
     success_url = reverse_lazy("finanzas:cuenta_list")
+    module_codename = "finanzas_cuentas"
 
     def form_valid(self, form):
         # cuenta.on_delete=PROTECT: no se puede borrar si tiene transacciones.
@@ -114,6 +119,7 @@ class TransaccionListView(SearchableListMixin, OwnerQuerysetMixin, ListView):
     context_object_name = "transacciones"
     paginate_by = 15
     search_fields = ("concepto",)
+    module_codename = "finanzas_transacciones"
 
     MESES = [
         (1, "January"), (2, "February"), (3, "March"), (4, "April"),
@@ -209,6 +215,7 @@ class TransaccionCreateView(OwnerCreateMixin, CreateView):
     form_class = TransaccionForm
     template_name = "finanzas/transaccion_form.html"
     success_url = reverse_lazy("finanzas:transaccion_list")
+    module_codename = "finanzas_transacciones"
 
     def form_valid(self, form):
         if not _attach_recibo(form, self.request):
@@ -221,6 +228,7 @@ class TransaccionUpdateView(UserFormKwargsMixin, OwnerQuerysetMixin, UpdateView)
     form_class = TransaccionForm
     template_name = "finanzas/transaccion_form.html"
     success_url = reverse_lazy("finanzas:transaccion_list")
+    module_codename = "finanzas_transacciones"
 
     def form_valid(self, form):
         old_recibo = self.object.recibo
@@ -239,6 +247,7 @@ class TransaccionDeleteView(OwnerQuerysetMixin, DeleteView):
     model = Transaccion
     template_name = "finanzas/transaccion_confirm_delete.html"
     success_url = reverse_lazy("finanzas:transaccion_list")
+    module_codename = "finanzas_transacciones"
     # OJO: el recibo (MediaFile) NO se borra aquí a propósito — sigue viviendo
     # en Archivos aunque se borre la transacción, por si el usuario lo quiere
     # conservar.
@@ -251,6 +260,7 @@ class DeudaListView(OwnerQuerysetMixin, ListView):
     template_name = "finanzas/deuda_list.html"
     context_object_name = "deudas"
     paginate_by = 15
+    module_codename = "finanzas_deudas"
 
     def get_queryset(self):
         # "N" (Aún sin pagar) < "P" (Pagado) alfabéticamente, así que ordenar
@@ -268,6 +278,7 @@ class DeudaCreateView(OwnerCreateMixin, CreateView):
     form_class = DeudaForm
     template_name = "finanzas/deuda_form.html"
     success_url = reverse_lazy("finanzas:deuda_list")
+    module_codename = "finanzas_deudas"
 
     def form_valid(self, form):
         response = super().form_valid(form)
@@ -280,6 +291,7 @@ class DeudaUpdateView(UserFormKwargsMixin, OwnerQuerysetMixin, UpdateView):
     form_class = DeudaForm
     template_name = "finanzas/deuda_form.html"
     success_url = reverse_lazy("finanzas:deuda_list")
+    module_codename = "finanzas_deudas"
 
     def form_valid(self, form):
         response = super().form_valid(form)
@@ -291,13 +303,15 @@ class DeudaDeleteView(OwnerQuerysetMixin, DeleteView):
     model = Deuda
     template_name = "finanzas/deuda_confirm_delete.html"
     success_url = reverse_lazy("finanzas:deuda_list")
+    module_codename = "finanzas_deudas"
 
 
-class DeudaResetFlagsView(LoginRequiredMixin, View):
+class DeudaResetFlagsView(ModuleAccessRequiredMixin, View):
     """Reinicia el flag de pago (a 'Aún sin pagar') de todas las deudas del
     usuario, para arrancar el mes en curso. Pide confirmación en GET porque
     afecta todos los registros a la vez."""
     template_name = "finanzas/deuda_confirm_reset_flags.html"
+    module_codename = "finanzas_deudas"
 
     def get(self, request):
         return render(request, self.template_name)

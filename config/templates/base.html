@@ -1,4 +1,5 @@
 {% load static %}
+{% load permissions %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -18,58 +19,86 @@
             </a>
 
             <div class="hidden flex-1 flex-wrap items-center gap-1 text-sm font-medium text-gray-600 md:flex">
+                {% if request.user|has_module_access:"contacts" %}
                 <a href="{% url 'vault:contact_list' %}" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-gray-100 hover:text-blue-700">
                     {% include "icons/users.html" with class="w-4 h-4" %} Contacts
                 </a>
+                {% endif %}
+                {% if request.user|has_module_access:"passwords" %}
                 <a href="{% url 'vault:password_list' %}" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-gray-100 hover:text-blue-700">
                     {% include "icons/key.html" with class="w-4 h-4" %} Passwords
                 </a>
+                {% endif %}
+                {% if request.user|has_module_access:"links" %}
                 <a href="{% url 'vault:url_list' %}" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-gray-100 hover:text-blue-700">
                     {% include "icons/link.html" with class="w-4 h-4" %} Links
                 </a>
+                {% endif %}
+                {% if request.user|has_module_access:"files" %}
                 <a href="{% url 'vault:mediafile_list' %}" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-gray-100 hover:text-blue-700">
                     {% include "icons/paper-clip.html" with class="w-4 h-4" %} Files
                 </a>
+                {% endif %}
+                {% if request.user|has_module_access:"reminders" %}
                 <a href="{% url 'vault:reminder_list' %}" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-gray-100 hover:text-blue-700">
                     {% include "icons/bell.html" with class="w-4 h-4" %} Reminders
                 </a>
+                {% endif %}
+                {% if request.user|has_module_access:"finanzas_transacciones" or request.user|has_module_access:"finanzas_cuentas" or request.user|has_module_access:"finanzas_deudas" %}
                 <details class="nav-dropdown relative">
                     <summary class="flex list-none items-center gap-1.5 rounded-md px-3 py-1.5 cursor-pointer hover:bg-gray-100 hover:text-blue-700 [&::-webkit-details-marker]:hidden">
                         {% include "icons/banknotes.html" with class="w-4 h-4" %} Finances
                         {% include "icons/chevron-down.html" with class="w-3.5 h-3.5" %}
                     </summary>
                     <div class="absolute left-0 z-10 mt-1 w-44 rounded-md border border-gray-100 bg-white py-1 shadow-lg">
+                        {% if request.user|has_module_access:"finanzas_transacciones" %}
                         <a href="{% url 'finanzas:transaccion_list' %}" class="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 hover:text-blue-700">
                             {% include "icons/banknotes.html" with class="w-4 h-4" %} Transactions
                         </a>
+                        {% endif %}
+                        {% if request.user|has_module_access:"finanzas_cuentas" %}
                         <a href="{% url 'finanzas:cuenta_list' %}" class="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 hover:text-blue-700">
                             {% include "icons/credit-card.html" with class="w-4 h-4" %} Accounts
                         </a>
+                        {% endif %}
+                        {% if request.user|has_module_access:"finanzas_deudas" %}
                         <a href="{% url 'finanzas:deuda_list' %}" class="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 hover:text-blue-700">
                             {% include "icons/credit-card.html" with class="w-4 h-4" %} Debts
                         </a>
+                        {% endif %}
                     </div>
                 </details>
+                {% endif %}
+                {% if request.user|has_module_access:"categories" %}
                 <a href="{% url 'vault:category_list' %}" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-gray-100 hover:text-blue-700">
                     {% include "icons/tag.html" with class="w-4 h-4" %} Categories
                 </a>
+                {% endif %}
+                {% if request.user|has_module_access:"artifacts_qr" or request.user|has_module_access:"artifacts_imhere" or request.user|has_module_access:"cars" %}
                 <details class="nav-dropdown relative">
                     <summary class="flex list-none items-center gap-1.5 rounded-md px-3 py-1.5 cursor-pointer hover:bg-gray-100 hover:text-blue-700 [&::-webkit-details-marker]:hidden">
                         {% include "icons/qr-code.html" with class="w-4 h-4" %} Artifacts
                         {% include "icons/chevron-down.html" with class="w-3.5 h-3.5" %}
                     </summary>
                     <div class="absolute left-0 z-10 mt-1 w-44 rounded-md border border-gray-100 bg-white py-1 shadow-lg">
+                        {% if request.user|has_module_access:"artifacts_qr" %}
                         <a href="{% url 'vault:qrcode_generate' %}" class="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 hover:text-blue-700">
                             {% include "icons/qr-code.html" with class="w-4 h-4" %} QR
                         </a>
+                        {% endif %}
+                        {% if request.user|has_module_access:"artifacts_imhere" %}
                         <a href="{% url 'vault:im_here' %}" class="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 hover:text-blue-700">
                             {% include "icons/map-pin.html" with class="w-4 h-4" %} I am here
                         </a>
+                        {% endif %}
+                        {% if request.user|has_module_access:"cars" %}
                         <a href="{% url 'vault:vehicle_list' %}" class="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 hover:text-blue-700">
                             {% include "icons/car.html" with class="w-4 h-4" %} My Cars
                         </a>
+                        {% endif %}
                     </div>
                 </details>
+                {% endif %}
             </div>
 
             <div class="hidden items-center gap-3 text-sm text-gray-600 md:flex">
@@ -92,58 +121,86 @@
 
         <div id="mobile-menu" class="hidden border-t border-gray-100 md:hidden">
             <div class="flex flex-col gap-1 px-4 py-3 text-sm font-medium text-gray-600">
+                {% if request.user|has_module_access:"contacts" %}
                 <a href="{% url 'vault:contact_list' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
                     {% include "icons/users.html" with class="w-5 h-5" %} Contacts
                 </a>
+                {% endif %}
+                {% if request.user|has_module_access:"passwords" %}
                 <a href="{% url 'vault:password_list' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
                     {% include "icons/key.html" with class="w-5 h-5" %} Passwords
                 </a>
+                {% endif %}
+                {% if request.user|has_module_access:"links" %}
                 <a href="{% url 'vault:url_list' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
                     {% include "icons/link.html" with class="w-5 h-5" %} Links
                 </a>
+                {% endif %}
+                {% if request.user|has_module_access:"files" %}
                 <a href="{% url 'vault:mediafile_list' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
                     {% include "icons/paper-clip.html" with class="w-5 h-5" %} Files
                 </a>
+                {% endif %}
+                {% if request.user|has_module_access:"reminders" %}
                 <a href="{% url 'vault:reminder_list' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
                     {% include "icons/bell.html" with class="w-5 h-5" %} Reminders
                 </a>
+                {% endif %}
+                {% if request.user|has_module_access:"finanzas_transacciones" or request.user|has_module_access:"finanzas_cuentas" or request.user|has_module_access:"finanzas_deudas" %}
                 <details class="nav-dropdown">
                     <summary class="flex list-none items-center gap-2 rounded-md px-3 py-2.5 cursor-pointer hover:bg-gray-100 hover:text-blue-700 [&::-webkit-details-marker]:hidden">
                         {% include "icons/banknotes.html" with class="w-5 h-5" %} Finances
                         {% include "icons/chevron-down.html" with class="w-4 h-4" %}
                     </summary>
                     <div class="flex flex-col gap-1 pl-6">
+                        {% if request.user|has_module_access:"finanzas_transacciones" %}
                         <a href="{% url 'finanzas:transaccion_list' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
                             {% include "icons/banknotes.html" with class="w-5 h-5" %} Transactions
                         </a>
+                        {% endif %}
+                        {% if request.user|has_module_access:"finanzas_cuentas" %}
                         <a href="{% url 'finanzas:cuenta_list' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
                             {% include "icons/credit-card.html" with class="w-5 h-5" %} Accounts
                         </a>
+                        {% endif %}
+                        {% if request.user|has_module_access:"finanzas_deudas" %}
                         <a href="{% url 'finanzas:deuda_list' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
                             {% include "icons/credit-card.html" with class="w-5 h-5" %} Debts
                         </a>
+                        {% endif %}
                     </div>
                 </details>
+                {% endif %}
+                {% if request.user|has_module_access:"categories" %}
                 <a href="{% url 'vault:category_list' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
                     {% include "icons/tag.html" with class="w-5 h-5" %} Categories
                 </a>
+                {% endif %}
+                {% if request.user|has_module_access:"artifacts_qr" or request.user|has_module_access:"artifacts_imhere" or request.user|has_module_access:"cars" %}
                 <details class="nav-dropdown">
                     <summary class="flex list-none items-center gap-2 rounded-md px-3 py-2.5 cursor-pointer hover:bg-gray-100 hover:text-blue-700 [&::-webkit-details-marker]:hidden">
                         {% include "icons/qr-code.html" with class="w-5 h-5" %} Artifacts
                         {% include "icons/chevron-down.html" with class="w-4 h-4" %}
                     </summary>
                     <div class="flex flex-col gap-1 pl-6">
+                        {% if request.user|has_module_access:"artifacts_qr" %}
                         <a href="{% url 'vault:qrcode_generate' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
                             {% include "icons/qr-code.html" with class="w-5 h-5" %} QR
                         </a>
+                        {% endif %}
+                        {% if request.user|has_module_access:"artifacts_imhere" %}
                         <a href="{% url 'vault:im_here' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
                             {% include "icons/map-pin.html" with class="w-5 h-5" %} I am here
                         </a>
+                        {% endif %}
+                        {% if request.user|has_module_access:"cars" %}
                         <a href="{% url 'vault:vehicle_list' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
                             {% include "icons/car.html" with class="w-5 h-5" %} My Cars
                         </a>
+                        {% endif %}
                     </div>
                 </details>
+                {% endif %}
             </div>
             <div class="flex items-center justify-between gap-3 border-t border-gray-100 px-4 py-3 text-sm text-gray-600">
                 <span class="font-medium">{{ user.username }}</span>

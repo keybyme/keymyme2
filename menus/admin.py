@@ -24,6 +24,7 @@ class RolePermissionInline(admin.TabularInline):
 class RoleAdmin(admin.ModelAdmin):
     list_display = ("name", "level", "description")
     search_fields = ("name",)
+    filter_horizontal = ("modules",)
     inlines = [RolePermissionInline]
 
 

@@ -94,6 +94,14 @@ class CustomUser(AbstractUser):
     def has_space_for(self, additional_bytes: int) -> bool:
         return (self.storage_used_bytes + additional_bytes) <= self.storage_quota_bytes
 
+    def has_module_access(self, module_codename: str) -> bool:
+        """Whether the user's currently active roles grant access to a
+        Module (e.g. 'contacts', 'passwords'). The main admin always has
+        access to every module."""
+        if self.is_admin_principal:
+            return True
+        return self._active_user_roles().filter(role__modules__codename=module_codename).exists()
+
     def has_permission(self, submodule_codename: str) -> bool:
         """Checks whether the user has access to a submodule, honoring
         per-user overrides first, then falling back to the user's active roles."""

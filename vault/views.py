@@ -11,7 +11,6 @@ from urllib.parse import urlencode
 import qrcode
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib import messages
 from django.core.mail import send_mail
 from django.core.management import call_command
@@ -45,7 +44,10 @@ from .forms import (
     VehicleForm,
 )
 from .image_compression import compress_image
-from .mixins import AjaxPartialTemplateMixin, OwnerCreateMixin, OwnerQuerysetMixin, SearchableListMixin, UserFormKwargsMixin
+from .mixins import (
+    AjaxPartialTemplateMixin, ModuleAccessRequiredMixin, OwnerCreateMixin, OwnerQuerysetMixin,
+    SearchableListMixin, UserFormKwargsMixin,
+)
 from .models import (
     ALLOWED_MEDIA_EXTENSIONS, Category, Contact, LocationCheckIn, MaintenanceRecord, MediaFile,
     PhotoSlideshowLink, Reminder, RouteStop, Url, VaultPassword, Vehicle,
@@ -63,6 +65,7 @@ class CategoryListView(OwnerQuerysetMixin, ListView):
     context_object_name = "categories"
     paginate_by = 15
     category_kind = Category.Kind.GENERAL
+    module_codename = "categories"
 
     def get_queryset(self):
         return super().get_queryset().filter(kind=self.category_kind)
@@ -74,6 +77,7 @@ class CategoryCreateView(OwnerCreateMixin, CreateView):
     template_name = "vault/category_form.html"
     success_url = reverse_lazy("vault:category_list")
     category_kind = Category.Kind.GENERAL
+    module_codename = "categories"
 
     def form_valid(self, form):
         form.instance.kind = self.category_kind
@@ -86,6 +90,7 @@ class CategoryUpdateView(UserFormKwargsMixin, OwnerQuerysetMixin, UpdateView):
     template_name = "vault/category_form.html"
     success_url = reverse_lazy("vault:category_list")
     category_kind = Category.Kind.GENERAL
+    module_codename = "categories"
 
     def get_queryset(self):
         return super().get_queryset().filter(kind=self.category_kind)
@@ -96,6 +101,7 @@ class CategoryDeleteView(OwnerQuerysetMixin, DeleteView):
     template_name = "vault/category_confirm_delete.html"
     success_url = reverse_lazy("vault:category_list")
     category_kind = Category.Kind.GENERAL
+    module_codename = "categories"
 
     def get_queryset(self):
         return super().get_queryset().filter(kind=self.category_kind)
@@ -104,24 +110,28 @@ class CategoryDeleteView(OwnerQuerysetMixin, DeleteView):
 class MediaFileCategoryListView(CategoryListView):
     template_name = "vault/mediafile_category_list.html"
     category_kind = Category.Kind.FILES
+    module_codename = "files"
 
 
 class MediaFileCategoryCreateView(CategoryCreateView):
     template_name = "vault/mediafile_category_form.html"
     success_url = reverse_lazy("vault:mediafile_category_list")
     category_kind = Category.Kind.FILES
+    module_codename = "files"
 
 
 class MediaFileCategoryUpdateView(CategoryUpdateView):
     template_name = "vault/mediafile_category_form.html"
     success_url = reverse_lazy("vault:mediafile_category_list")
     category_kind = Category.Kind.FILES
+    module_codename = "files"
 
 
 class MediaFileCategoryDeleteView(CategoryDeleteView):
     template_name = "vault/mediafile_category_confirm_delete.html"
     success_url = reverse_lazy("vault:mediafile_category_list")
     category_kind = Category.Kind.FILES
+    module_codename = "files"
 
 
 # ---------- Contacts ----------
@@ -133,6 +143,7 @@ class ContactListView(AjaxPartialTemplateMixin, SearchableListMixin, OwnerQuerys
     context_object_name = "contacts"
     paginate_by = 15
     search_fields = ("name", "phone", "email", "address", "notes")
+    module_codename = "contacts"
 
 
 class ContactCreateView(OwnerCreateMixin, CreateView):
@@ -140,6 +151,7 @@ class ContactCreateView(OwnerCreateMixin, CreateView):
     form_class = ContactForm
     template_name = "vault/contact_form.html"
     success_url = reverse_lazy("vault:contact_list")
+    module_codename = "contacts"
 
 
 class ContactUpdateView(UserFormKwargsMixin, OwnerQuerysetMixin, UpdateView):
@@ -147,19 +159,22 @@ class ContactUpdateView(UserFormKwargsMixin, OwnerQuerysetMixin, UpdateView):
     form_class = ContactForm
     template_name = "vault/contact_form.html"
     success_url = reverse_lazy("vault:contact_list")
+    module_codename = "contacts"
 
 
 class ContactDeleteView(OwnerQuerysetMixin, DeleteView):
     model = Contact
     template_name = "vault/contact_confirm_delete.html"
     success_url = reverse_lazy("vault:contact_list")
+    module_codename = "contacts"
 
 
-class ContactImportView(UserFormKwargsMixin, LoginRequiredMixin, FormView):
+class ContactImportView(UserFormKwargsMixin, ModuleAccessRequiredMixin, FormView):
     """Importa contactos en bloque desde un .vcf (vCard) o un .csv."""
     template_name = "vault/contact_import.html"
     form_class = ContactImportForm
     success_url = reverse_lazy("vault:contact_list")
+    module_codename = "contacts"
 
     def form_valid(self, form):
         uploaded_file = form.cleaned_data["file"]
@@ -202,6 +217,7 @@ class PasswordListView(AjaxPartialTemplateMixin, SearchableListMixin, OwnerQuery
     context_object_name = "passwords"
     paginate_by = 15
     search_fields = ("site_name", "username", "site_url", "notes")
+    module_codename = "passwords"
     # OJO: el template NUNCA debe imprimir get_password() aquí.
     # El password se revela client-side vía fetch a password_reveal_json.
 
@@ -211,6 +227,7 @@ class PasswordCreateView(OwnerCreateMixin, CreateView):
     form_class = VaultPasswordForm
     template_name = "vault/password_form.html"
     success_url = reverse_lazy("vault:password_list")
+    module_codename = "passwords"
 
 
 class PasswordUpdateView(UserFormKwargsMixin, OwnerQuerysetMixin, UpdateView):
@@ -218,12 +235,14 @@ class PasswordUpdateView(UserFormKwargsMixin, OwnerQuerysetMixin, UpdateView):
     form_class = VaultPasswordForm
     template_name = "vault/password_form.html"
     success_url = reverse_lazy("vault:password_list")
+    module_codename = "passwords"
 
 
 class PasswordDeleteView(OwnerQuerysetMixin, DeleteView):
     model = VaultPassword
     template_name = "vault/password_confirm_delete.html"
     success_url = reverse_lazy("vault:password_list")
+    module_codename = "passwords"
 
 
 class PasswordRevealView(OwnerQuerysetMixin, DetailView):
@@ -236,6 +255,7 @@ class PasswordRevealView(OwnerQuerysetMixin, DetailView):
     model = VaultPassword
     template_name = "vault/password_reveal.html"
     context_object_name = "password_obj"
+    module_codename = "passwords"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -254,6 +274,7 @@ class PasswordRevealJSONView(OwnerQuerysetMixin, DetailView):
     valor inline sin navegar a PasswordRevealView. Sigue siendo la única otra
     vía que llama a get_password(): el template de la lista nunca lo imprime."""
     model = VaultPassword
+    module_codename = "passwords"
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object()
@@ -269,6 +290,7 @@ class UrlListView(AjaxPartialTemplateMixin, SearchableListMixin, OwnerQuerysetMi
     context_object_name = "urls"
     paginate_by = 15
     search_fields = ("name", "url", "notes")
+    module_codename = "links"
 
 
 class UrlCreateView(OwnerCreateMixin, CreateView):
@@ -276,6 +298,7 @@ class UrlCreateView(OwnerCreateMixin, CreateView):
     form_class = UrlForm
     template_name = "vault/url_form.html"
     success_url = reverse_lazy("vault:url_list")
+    module_codename = "links"
 
 
 class UrlUpdateView(UserFormKwargsMixin, OwnerQuerysetMixin, UpdateView):
@@ -283,12 +306,14 @@ class UrlUpdateView(UserFormKwargsMixin, OwnerQuerysetMixin, UpdateView):
     form_class = UrlForm
     template_name = "vault/url_form.html"
     success_url = reverse_lazy("vault:url_list")
+    module_codename = "links"
 
 
 class UrlDeleteView(OwnerQuerysetMixin, DeleteView):
     model = Url
     template_name = "vault/url_confirm_delete.html"
     success_url = reverse_lazy("vault:url_list")
+    module_codename = "links"
 
 
 # ---------- Media Files ----------
@@ -301,6 +326,7 @@ class MediaFileListView(AjaxPartialTemplateMixin, SearchableListMixin, OwnerQuer
     paginate_by = 15
     search_fields = ("original_name",)
     category_kind = Category.Kind.FILES
+    module_codename = "files"
 
 
 class MediaFilePhotoGalleryView(SearchableListMixin, OwnerQuerysetMixin, ListView):
@@ -311,6 +337,7 @@ class MediaFilePhotoGalleryView(SearchableListMixin, OwnerQuerysetMixin, ListVie
     paginate_by = 15
     search_fields = ("original_name",)
     category_kind = Category.Kind.FILES
+    module_codename = "files"
 
     def get_queryset(self):
         return super().get_queryset().filter(file_type=MediaFile.FileType.PHOTO)
@@ -324,6 +351,7 @@ class MediaFileSlideshowView(OwnerQuerysetMixin, ListView):
     model = MediaFile
     template_name = "vault/mediafile_slideshow.html"
     context_object_name = "files"
+    module_codename = "files"
 
     def get_selected_category_ids(self):
         return [int(c) for c in self.request.GET.getlist("category") if c.isdigit()]
@@ -347,11 +375,12 @@ class MediaFileSlideshowView(OwnerQuerysetMixin, ListView):
         return context
 
 
-class MediaFileSlideshowShareView(LoginRequiredMixin, View):
+class MediaFileSlideshowShareView(ModuleAccessRequiredMixin, View):
     """Devuelve (creando si hace falta) el link público del slideshow para
     las categorías pedidas vía ?category= (repetido); el mismo (owner,
     set de categorías) siempre reutiliza el mismo token en vez de generar
     uno nuevo cada vez."""
+    module_codename = "files"
 
     def get(self, request):
         category_ids = [c for c in request.GET.getlist("category") if c.isdigit()]
@@ -407,6 +436,7 @@ class MediaFileCreateView(OwnerCreateMixin, CreateView):
     form_class = MediaFileForm
     template_name = "vault/mediafile_form.html"
     success_url = reverse_lazy("vault:mediafile_list")
+    module_codename = "files"
 
     def form_valid(self, form):
         # Chequeo de cuota ANTES de guardar, para no permitir subir de más.
@@ -423,7 +453,7 @@ class MediaFileCreateView(OwnerCreateMixin, CreateView):
         return response
 
 
-class MediaFileBulkCreateView(UserFormKwargsMixin, LoginRequiredMixin, FormView):
+class MediaFileBulkCreateView(UserFormKwargsMixin, ModuleAccessRequiredMixin, FormView):
     """Sube varios archivos con la misma calidad/tipo/categoría. Comprime
     primero (si aplica) y recién entonces valida la cuota, así el chequeo
     refleja el tamaño que realmente se va a guardar."""
@@ -431,6 +461,7 @@ class MediaFileBulkCreateView(UserFormKwargsMixin, LoginRequiredMixin, FormView)
     template_name = "vault/mediafile_bulk_form.html"
     form_class = MediaFileBulkUploadForm
     success_url = reverse_lazy("vault:mediafile_list")
+    module_codename = "files"
 
     def form_valid(self, form):
         uploaded_files = form.cleaned_data["files"]
@@ -482,6 +513,7 @@ class MediaFileUpdateView(UserFormKwargsMixin, OwnerQuerysetMixin, UpdateView):
     form_class = MediaFileForm
     template_name = "vault/mediafile_form.html"
     success_url = reverse_lazy("vault:mediafile_list")
+    module_codename = "files"
 
     def form_valid(self, form):
         # OJO: para cuando llega aquí, Django ya sobrescribió self.object.file
@@ -517,6 +549,7 @@ class MediaFileDeleteView(OwnerQuerysetMixin, DeleteView):
     model = MediaFile
     template_name = "vault/mediafile_confirm_delete.html"
     success_url = reverse_lazy("vault:mediafile_list")
+    module_codename = "files"
     # El modelo ya resta storage_used_bytes en su propio método delete().
 
 
@@ -529,6 +562,7 @@ class ReminderListView(AjaxPartialTemplateMixin, SearchableListMixin, OwnerQuery
     context_object_name = "reminders"
     paginate_by = 15
     search_fields = ("title", "description")
+    module_codename = "reminders"
 
 
 class ReminderCreateView(OwnerCreateMixin, CreateView):
@@ -536,6 +570,7 @@ class ReminderCreateView(OwnerCreateMixin, CreateView):
     form_class = ReminderForm
     template_name = "vault/reminder_form.html"
     success_url = reverse_lazy("vault:reminder_list")
+    module_codename = "reminders"
 
 
 class ReminderUpdateView(UserFormKwargsMixin, OwnerQuerysetMixin, UpdateView):
@@ -543,12 +578,14 @@ class ReminderUpdateView(UserFormKwargsMixin, OwnerQuerysetMixin, UpdateView):
     form_class = ReminderForm
     template_name = "vault/reminder_form.html"
     success_url = reverse_lazy("vault:reminder_list")
+    module_codename = "reminders"
 
 
 class ReminderDeleteView(OwnerQuerysetMixin, DeleteView):
     model = Reminder
     template_name = "vault/reminder_confirm_delete.html"
     success_url = reverse_lazy("vault:reminder_list")
+    module_codename = "reminders"
 
 
 @method_decorator(csrf_exempt, name="dispatch")
@@ -570,13 +607,14 @@ class SendDueRemindersCronView(View):
 
 # ---------- QR Codes ----------
 
-class QRCodeGeneratorView(LoginRequiredMixin, FormView):
+class QRCodeGeneratorView(ModuleAccessRequiredMixin, FormView):
     """
     Herramienta sin persistencia: genera el QR al vuelo y lo muestra
     como imagen embebida (data URI), sin crear ningún registro en la BD.
     """
     template_name = "vault/qrcode_form.html"
     form_class = QRCodeForm
+    module_codename = "artifacts_qr"
 
     def form_valid(self, form):
         url = form.cleaned_data["url"]
@@ -596,7 +634,7 @@ ADMIN_MIN_ROLE_LEVEL = 70
 IM_HERE_ACTIVE_ROUTE_SESSION_KEY = "im_here_active_route_type"
 
 
-class ImHereView(LoginRequiredMixin, TemplateView):
+class ImHereView(ModuleAccessRequiredMixin, TemplateView):
     """
     Página con el botón que dispara la captura de ubicación en el navegador
     y la tabla con los últimos check-ins (ver im_here.html). El registro del
@@ -604,6 +642,7 @@ class ImHereView(LoginRequiredMixin, TemplateView):
     solo desde /admin) ocurren en ImHereSendLocationView, vía fetch.
     """
     template_name = "vault/im_here.html"
+    module_codename = "artifacts_imhere"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -675,7 +714,7 @@ class ImHereView(LoginRequiredMixin, TemplateView):
         return context
 
 
-class ImHereSendLocationView(LoginRequiredMixin, View):
+class ImHereSendLocationView(ModuleAccessRequiredMixin, View):
     """
     Recibe (vía fetch, como JSON) las coordenadas y la hora local que el
     navegador capturó con navigator.geolocation. Siempre crea un
@@ -683,6 +722,7 @@ class ImHereSendLocationView(LoginRequiredMixin, View):
     además envía el aviso por correo (best-effort: la falta de email no
     bloquea el registro del check-in).
     """
+    module_codename = "artifacts_imhere"
 
     def post(self, request):
         try:
@@ -730,13 +770,14 @@ class ImHereSendLocationView(LoginRequiredMixin, View):
         return JsonResponse({"status": "ok"})
 
 
-class LocationCheckInHereView(LoginRequiredMixin, View):
+class LocationCheckInHereView(ModuleAccessRequiredMixin, View):
     """
     Ícono 'Here' de cada fila en la tabla de hoy: captura la ubicación
     actual y actualiza ESE registro (pensado para las paradas precargadas
     por LoadRouteView), sin crear un check-in nuevo y sin enviar el email
     de aviso.
     """
+    module_codename = "artifacts_imhere"
 
     def post(self, request, pk):
         checkin = get_object_or_404(LocationCheckIn, pk=pk, owner=request.user)
@@ -754,7 +795,7 @@ class LocationCheckInHereView(LoginRequiredMixin, View):
         return JsonResponse({"status": "ok"})
 
 
-class LoadRouteView(LoginRequiredMixin, View):
+class LoadRouteView(ModuleAccessRequiredMixin, View):
     """
     Botón de ruta en ImHereView: el usuario elige qué route_type hacer hoy.
     La plantilla (RouteStop, administrada solo desde Dispatch/Rutas) nunca
@@ -771,6 +812,7 @@ class LoadRouteView(LoginRequiredMixin, View):
       posterior el mismo día solo vuelve a mostrar la tabla con ese
       avance, sin perderlo y sin alterar el original de Rutas.
     """
+    module_codename = "artifacts_imhere"
 
     def post(self, request):
         route_type = request.POST.get("route_type", "").strip()
@@ -824,10 +866,11 @@ class LocationCheckInSuccessUrlMixin:
         return reverse("vault:im_here")
 
 
-class LocationCheckInAccessMixin(LoginRequiredMixin):
+class LocationCheckInAccessMixin(ModuleAccessRequiredMixin):
     """Regular drivers can only edit/delete their own check-ins. Admins
     (role_level > ADMIN_MIN_ROLE_LEVEL) can reach any driver's, since
     History — which links here — is cross-driver like Rutas."""
+    module_codename = "artifacts_imhere"
 
     def get_queryset(self):
         queryset = LocationCheckIn.objects.all()
@@ -847,9 +890,11 @@ class LocationCheckInDeleteView(LocationCheckInSuccessUrlMixin, LocationCheckInA
     template_name = "vault/location_checkin_confirm_delete.html"
 
 
-class AdminRoleRequiredMixin(LoginRequiredMixin):
+class AdminRoleRequiredMixin(ModuleAccessRequiredMixin):
     """Para las vistas administrativas (Dispatch, Rutas, History): solo
-    visibles (link) y accesibles (dispatch) para roles con level > ADMIN_MIN_ROLE_LEVEL."""
+    visibles (link) y accesibles (dispatch) para roles con level > ADMIN_MIN_ROLE_LEVEL,
+    y además sujetas al mismo módulo 'artifacts_imhere' que el resto de I am here."""
+    module_codename = "artifacts_imhere"
 
     def dispatch(self, request, *args, **kwargs):
         if request.user.is_authenticated and request.user.role_level <= ADMIN_MIN_ROLE_LEVEL:
@@ -1163,6 +1208,7 @@ class VehicleListView(OwnerQuerysetMixin, ListView):
     model = Vehicle
     template_name = "vault/vehicle_list.html"
     context_object_name = "vehicles"
+    module_codename = "cars"
 
 
 class VehicleCreateView(OwnerCreateMixin, CreateView):
@@ -1170,6 +1216,7 @@ class VehicleCreateView(OwnerCreateMixin, CreateView):
     form_class = VehicleForm
     template_name = "vault/vehicle_form.html"
     success_url = reverse_lazy("vault:vehicle_list")
+    module_codename = "cars"
 
 
 class VehicleUpdateView(OwnerQuerysetMixin, UpdateView):
@@ -1177,12 +1224,14 @@ class VehicleUpdateView(OwnerQuerysetMixin, UpdateView):
     form_class = VehicleForm
     template_name = "vault/vehicle_form.html"
     success_url = reverse_lazy("vault:vehicle_list")
+    module_codename = "cars"
 
 
 class VehicleDeleteView(OwnerQuerysetMixin, DeleteView):
     model = Vehicle
     template_name = "vault/vehicle_confirm_delete.html"
     success_url = reverse_lazy("vault:vehicle_list")
+    module_codename = "cars"
 
 
 class VehicleQRView(OwnerQuerysetMixin, DetailView):
@@ -1190,6 +1239,7 @@ class VehicleQRView(OwnerQuerysetMixin, DetailView):
     pública del vehículo, con el mismo patrón que QRCodeGeneratorView."""
     model = Vehicle
     template_name = "vault/vehicle_qr.html"
+    module_codename = "cars"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

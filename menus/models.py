@@ -44,6 +44,10 @@ class Role(models.Model):
         help_text="Numeric rank used to gate level-based features (e.g. a user needs level > 70 to see 'History' on I am here).",
     )
     submodules = models.ManyToManyField(SubModule, through="RolePermission", related_name="roles")
+    modules = models.ManyToManyField(
+        Module, blank=True, related_name="roles",
+        help_text="Modules a user with this role can access (shown as on/off switches).",
+    )
 
     class Meta:
         verbose_name = "Role"

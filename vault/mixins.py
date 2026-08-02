@@ -1,14 +1,35 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 
 from .models import Category
 
 
-class OwnerQuerysetMixin(LoginRequiredMixin):
+class ModuleAccessRequiredMixin(LoginRequiredMixin):
+    """
+    Para cualquier CBV. Requiere que el usuario logueado tenga acceso al
+    Module `module_codename` (vía uno de sus Roles activos, o automático
+    para is_admin_principal) — ver CustomUser.has_module_access(). Dejar
+    `module_codename = None` (default) para no exigir ningún módulo.
+    """
+    module_codename = None
+
+    def dispatch(self, request, *args, **kwargs):
+        if (
+            request.user.is_authenticated
+            and self.module_codename is not None
+            and not request.user.has_module_access(self.module_codename)
+        ):
+            raise PermissionDenied("You don't have access to this section.")
+        return super().dispatch(request, *args, **kwargs)
+
+
+class OwnerQuerysetMixin(ModuleAccessRequiredMixin):
     """
     Para ListView, DetailView, UpdateView, DeleteView.
     Garantiza que el usuario SOLO pueda ver/editar/borrar sus propios registros,
-    sin importar qué ID pongan en la URL.
+    sin importar qué ID pongan en la URL. Setear `module_codename` en la vista
+    para además exigir acceso a ese módulo (ver ModuleAccessRequiredMixin).
     """
 
     def get_queryset(self):
@@ -29,11 +50,12 @@ class UserFormKwargsMixin:
         return kwargs
 
 
-class OwnerCreateMixin(LoginRequiredMixin, UserFormKwargsMixin):
+class OwnerCreateMixin(ModuleAccessRequiredMixin, UserFormKwargsMixin):
     """
     Para CreateView. Asigna automáticamente el owner = usuario actual,
     para que no se pueda crear un registro a nombre de otro usuario
-    manipulando el formulario.
+    manipulando el formulario. Setear `module_codename` en la vista para
+    además exigir acceso a ese módulo (ver ModuleAccessRequiredMixin).
     """
 
     def form_valid(self, form):
