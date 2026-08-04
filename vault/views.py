@@ -4,6 +4,7 @@ import hmac
 import io
 import json
 import random
+import time
 from decimal import Decimal, InvalidOperation
 from itertools import groupby
 from urllib.parse import urlencode
@@ -52,6 +53,7 @@ from .models import (
     ALLOWED_MEDIA_EXTENSIONS, Category, Contact, LocationCheckIn, MaintenanceRecord, MediaFile,
     PhotoSlideshowLink, Reminder, RouteStop, Url, VaultPassword, Vehicle,
 )
+from .routing import geocode_address, get_route_legs
 
 
 # ---------- Categories ----------
@@ -1056,6 +1058,60 @@ class RouteDeleteView(AdminRoleRequiredMixin, TemplateView):
         deleted, _ = RouteStop.objects.filter(owner__route=route_number, route_type=route_type).delete()
         messages.success(request, f'Route "{route_number} {route_type}" deleted ({deleted} stop(s)).')
         return redirect("vault:im_here_admin_routes")
+
+
+class RouteDirectionsView(AdminRoleRequiredMixin, TemplateView):
+    """Turn-by-turn left/right directions between consecutive stops of a
+    saved route, for a driver who's never run it before. Geocodes each
+    stop's address (cached on RouteStop.latitude/longitude — see its save())
+    the first time this is opened, then asks OSRM for the driving route and
+    keeps only the left/right/uturn maneuvers (see vault/routing.py) — a
+    cheat sheet, not full narration."""
+    template_name = "vault/route_directions.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        route_number = self.kwargs["route_number"]
+        route_type = self.kwargs["route_type"]
+        context["route_number"] = route_number
+        context["route_type"] = route_type
+
+        stops = list(
+            RouteStop.objects.filter(owner__route=route_number, route_type=route_type).order_by("seq")
+        )
+        error = None
+        legs = []
+
+        if len(stops) < 2:
+            error = "This route needs at least 2 stops with addresses to compute directions."
+        else:
+            for stop in stops:
+                if stop.latitude is not None and stop.longitude is not None:
+                    continue
+                if not stop.address:
+                    error = f'Stop #{stop.seq} ("{stop.remarks or "no name"}") has no address to geocode.'
+                    break
+                coords = geocode_address(stop.address)
+                if coords is None:
+                    error = f'Could not find coordinates for stop #{stop.seq}: "{stop.address}".'
+                    break
+                stop.latitude, stop.longitude = coords
+                stop.save(update_fields=["latitude", "longitude"])
+                time.sleep(1)  # Nominatim usage policy: max 1 request/second
+
+        if not error:
+            route_legs = get_route_legs([(float(s.latitude), float(s.longitude)) for s in stops])
+            if route_legs is None:
+                error = "Could not compute driving directions between these stops right now — try again shortly."
+            else:
+                legs = [
+                    {"from_stop": stops[i], "to_stop": stops[i + 1], "turns": turns}
+                    for i, turns in enumerate(route_legs)
+                ]
+
+        context["error"] = error
+        context["legs"] = legs
+        return context
 
 
 class LocationCheckInHistoryView(AdminRoleRequiredMixin, TemplateView):

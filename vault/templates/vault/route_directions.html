@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Directions{% endblock %}
+{% block content %}
+<div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+    <h1 class="text-2xl font-semibold text-gray-900">{{ route_number }} {{ route_type }} — Directions</h1>
+    <a href="{% url 'vault:im_here_admin_routes' %}" class="text-sm font-medium text-gray-600 hover:text-gray-900">← Back to Rutas</a>
+</div>
+
+{% if error %}
+<div class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+    {{ error }}
+</div>
+{% else %}
+<p class="mb-6 text-xs text-gray-500">Left/right turns only — computed by OpenStreetMap (OSRM), not Google. Addresses are geocoded once and cached; edit a stop's address to force a re-check.</p>
+<div class="space-y-6">
+    {% for leg in legs %}
+    <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+        <div class="bg-cafe-dark px-4 py-2 text-sm font-bold uppercase tracking-wide text-white">
+            Stop {{ leg.from_stop.seq }} → Stop {{ leg.to_stop.seq }}: {{ leg.to_stop.remarks|default:leg.to_stop.address }}
+        </div>
+        {% if leg.turns %}
+        <ol class="divide-y divide-gray-100">
+            {% for turn in leg.turns %}
+            <li class="flex items-center gap-3 px-4 py-2.5 text-sm">
+                <span class="inline-flex h-6 w-6 flex-none items-center justify-center rounded-full bg-cream-soft text-xs font-bold text-cafe-dark">{{ forloop.counter }}</span>
+                {% if "left" in turn.label|lower %}
+                    {% include "icons/chevron-left.html" with class="w-4 h-4 flex-none text-blue-600" %}
+                {% else %}
+                    {% include "icons/chevron-right.html" with class="w-4 h-4 flex-none text-blue-600" %}
+                {% endif %}
+                <span class="text-gray-900">{{ turn.label }} onto <strong>{{ turn.street }}</strong></span>
+                <span class="ml-auto whitespace-nowrap text-xs text-gray-400">{{ turn.distance_mi }} mi</span>
+            </li>
+            {% endfor %}
+        </ol>
+        {% else %}
+        <p class="px-4 py-3 text-sm text-gray-500">No turns — straight shot.</p>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,103 @@
+"""Free, no-API-key geocoding + turn-by-turn routing for Rutas' "Directions"
+view (RouteDirectionsView). Uses OpenStreetMap's public Nominatim (geocoding)
+and OSRM (routing) demo servers — no billing/API key setup, but both have
+usage policies (Nominatim: max 1 request/second) and can occasionally be
+slow/unavailable, unlike a paid provider such as Google Directions."""
+
+import json
+import re
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
+
+USER_AGENT = "KeyByMe/1.0 (personal app; contact: me@20874.com)"
+
+ZIP_RE = re.compile(r"\b\d{5}\b")
+
+NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
+OSRM_ROUTE_URL = "https://router.project-osrm.org/route/v1/driving/"
+
+# OSRM maneuver "modifier" -> human label. Only left/right/uturn maneuvers
+# are surfaced (see get_route_legs) — a driver doesn't need "go straight"
+# spelled out.
+MODIFIER_LABELS = {
+    "slight left": "Slight left",
+    "left": "Turn left",
+    "sharp left": "Sharp left",
+    "slight right": "Slight right",
+    "right": "Turn right",
+    "sharp right": "Sharp right",
+    "uturn": "U-turn",
+}
+
+
+def _fetch_json(url):
+    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    try:
+        with urllib.request.urlopen(request, timeout=15) as response:
+            return json.loads(response.read().decode("utf-8"))
+    except (urllib.error.URLError, json.JSONDecodeError, TimeoutError, ValueError):
+        return None
+
+
+def _geocode_query(query):
+    params = urllib.parse.urlencode({
+        "q": query, "format": "json", "limit": 1, "countrycodes": "us",
+    })
+    results = _fetch_json(f"{NOMINATIM_URL}?{params}")
+    if not results:
+        return None
+    return float(results[0]["lat"]), float(results[0]["lon"])
+
+
+def geocode_address(address):
+    """Returns (latitude, longitude) as floats, or None if the address
+    couldn't be resolved. Callers looping over several addresses must space
+    calls out themselves (Nominatim: max 1 req/sec) — see RouteDirectionsView.
+
+    Tries the address as typed first, then falls back to just "street + zip"
+    (dropping any city/state) — Nominatim frequently fails on "street, city,
+    state zip" when the mailing/USPS city doesn't exactly match OSM's
+    canonical locality name for that zip (common in MD, e.g. "Rockville" on
+    an envelope vs. "Aspen Hill" in OSM), even though the zip is correct."""
+    coords = _geocode_query(address)
+    if coords is not None:
+        return coords
+
+    zip_match = ZIP_RE.search(address)
+    street = address.split(",")[0].strip()
+    fallback_query = f"{street} {zip_match.group()}" if zip_match else None
+    if not fallback_query or fallback_query == address:
+        return None
+
+    time.sleep(1)  # second request for the same address — respect the 1 req/sec policy
+    return _geocode_query(fallback_query)
+
+
+def get_route_legs(coords):
+    """coords: ordered list of (latitude, longitude) tuples (one per stop).
+    Returns a list with one entry per consecutive pair of stops, each a list
+    of {"label", "street", "distance_mi"} dicts for left/right/uturn
+    maneuvers along that leg — or None if OSRM couldn't compute a route."""
+    coord_str = ";".join(f"{lon},{lat}" for lat, lon in coords)
+    params = urllib.parse.urlencode({"steps": "true", "geometries": "geojson", "overview": "false"})
+    data = _fetch_json(f"{OSRM_ROUTE_URL}{coord_str}?{params}")
+    if not data or data.get("code") != "Ok" or not data.get("routes"):
+        return None
+
+    legs = []
+    for leg in data["routes"][0]["legs"]:
+        turns = []
+        for step in leg.get("steps", []):
+            modifier = (step.get("maneuver") or {}).get("modifier", "")
+            label = MODIFIER_LABELS.get(modifier)
+            if not label:
+                continue
+            turns.append({
+                "label": label,
+                "street": step.get("name") or "unnamed road",
+                "distance_mi": round(step.get("distance", 0) / 1609.34, 2),
+            })
+        legs.append(turns)
+    return legs

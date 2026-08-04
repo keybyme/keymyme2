@@ -334,6 +334,11 @@ class RouteStop(models.Model):
     remarks = models.CharField(max_length=255, blank=True)
     address = models.CharField(max_length=255, blank=True)
     phone_number = models.CharField(max_length=30, blank=True, verbose_name="Phone")
+    latitude = models.DecimalField(
+        max_digits=9, decimal_places=6, null=True, blank=True,
+        help_text="Geocoded from address by RouteDirectionsView the first time Directions is opened; cached here to avoid re-geocoding on every visit.",
+    )
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
 
     class Meta:
         ordering = ["route_type", "seq"]
@@ -342,6 +347,21 @@ class RouteStop(models.Model):
 
     def __str__(self):
         return f"{self.owner} {self.route_type} route stop #{self.seq}"
+
+    def save(self, *args, **kwargs):
+        # Invalidate the cached geocode when the address changes, so
+        # RouteDirectionsView re-geocodes instead of routing to the old
+        # location. Skipped when the caller is *only* writing
+        # latitude/longitude (that's RouteDirectionsView itself caching a
+        # fresh geocode — nothing to invalidate there).
+        update_fields = kwargs.get("update_fields")
+        geocode_only = update_fields is not None and set(update_fields) <= {"latitude", "longitude"}
+        if not geocode_only and self.pk:
+            old_address = RouteStop.objects.filter(pk=self.pk).values_list("address", flat=True).first()
+            if old_address is not None and old_address != self.address:
+                self.latitude = None
+                self.longitude = None
+        super().save(*args, **kwargs)
 
 
 class Vehicle(models.Model):

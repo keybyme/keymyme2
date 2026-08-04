@@ -82,6 +82,7 @@ urlpatterns = [
     path("im-here/administrator/routes/<int:pk>/delete/", views.RouteStopDeleteView.as_view(), name="route_stop_delete"),
     path("im-here/administrator/routes/create/", views.RouteCreateView.as_view(), name="route_create"),
     path("im-here/administrator/routes/<str:route_number>/<str:route_type>/delete-route/", views.RouteDeleteView.as_view(), name="route_delete"),
+    path("im-here/administrator/routes/<str:route_number>/<str:route_type>/directions/", views.RouteDirectionsView.as_view(), name="route_directions"),
     path("im-here/administrator/dispatch/", views.DispatchView.as_view(), name="im_here_dispatch"),
     path("im-here/administrator/dispatch/close-day/", views.DispatchCloseDayView.as_view(), name="im_here_dispatch_close_day"),
     path("im-here/administrator/dispatch/close-day-driver/", views.DispatchCloseDriverDayView.as_view(), name="im_here_dispatch_close_driver_day"),

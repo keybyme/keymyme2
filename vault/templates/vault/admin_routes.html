@@ -35,9 +35,14 @@
     <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
         <div class="flex items-center justify-between bg-cafe-dark px-4 py-2 text-sm font-bold uppercase tracking-wide text-white">
             <span>{{ route_number }} {{ route_type }}</span>
-            <a href="{% url 'vault:route_delete' route_number route_type %}" class="text-white hover:text-red-300" title="Delete route">
-                {% include "icons/trash.html" with class="w-4 h-4" %}
-            </a>
+            <div class="flex items-center gap-3">
+                <a href="{% url 'vault:route_directions' route_number route_type %}" class="inline-flex items-center gap-1.5 hover:text-gold" title="Turn-by-turn left/right directions">
+                    {% include "icons/map-pin.html" with class="w-4 h-4" %} Directions
+                </a>
+                <a href="{% url 'vault:route_delete' route_number route_type %}" class="text-white hover:text-red-300" title="Delete route">
+                    {% include "icons/trash.html" with class="w-4 h-4" %}
+                </a>
+            </div>
         </div>
         <div class="overflow-x-auto">
         <table class="min-w-full divide-y divide-gray-100">
