@@ -29,3 +29,14 @@ class School(models.Model):
 
     def __str__(self):
         return self.name
+
+    @property
+    def full_address(self):
+        """Address + city/zip, for the Google Maps link — plain `address` alone
+        is often ambiguous (e.g. "6400 Rock Spring Dr" exists in many towns)."""
+        parts = [self.address]
+        if self.city:
+            parts.append(self.city)
+        if self.zip_code:
+            parts.append(f"MD {self.zip_code}")
+        return ", ".join(parts)
