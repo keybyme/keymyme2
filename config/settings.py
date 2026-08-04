@@ -75,6 +75,7 @@ INSTALLED_APPS = [
     'menus',
     'vault',
     'finanzas',
+    'schools',
 ]
 
 MIDDLEWARE = [

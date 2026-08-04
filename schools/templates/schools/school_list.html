@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}MCPS Schools{% endblock %}
+{% block content %}
+<div class="mb-6 flex items-center justify-between">
+    <h1 class="text-2xl font-semibold text-gray-900">MCPS Schools</h1>
+    <a href="{% url 'schools:school_create' %}" class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700">
+        {% include "icons/plus.html" with class="w-4 h-4" %} New school
+    </a>
+</div>
+
+<form method="get" class="mb-4 flex flex-wrap items-end gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+    <div class="flex-1 min-w-[200px]">
+        <label for="q" class="mb-1 block text-sm font-medium text-gray-700">Search</label>
+        <input type="text" id="q" name="q" value="{{ query }}" placeholder="Name, address or city"
+               class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
+    </div>
+    <div class="min-w-[180px]">
+        <label for="type" class="mb-1 block text-sm font-medium text-gray-700">Type</label>
+        <select id="type" name="type" class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            <option value="">All types</option>
+            {% for value, label in school_types %}
+            <option value="{{ value }}" {% if selected_type == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <button type="submit" class="rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">Search</button>
+    {% if query or selected_type %}
+    <a href="{% url 'schools:school_list' %}" class="text-sm font-medium text-gray-600 hover:text-gray-900">Clear</a>
+    {% endif %}
+</form>
+
+<div class="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+<table class="min-w-full divide-y divide-gray-100">
+    <thead class="bg-cafe-dark">
+        <tr>
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">School</th>
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Type</th>
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Address</th>
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">City</th>
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Zip</th>
+            <th class="px-4 py-3"></th>
+        </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100">
+        {% for school in schools %}
+        <tr class="group odd:bg-white even:bg-cream-soft hover:bg-beige">
+            <td class="whitespace-nowrap px-4 py-3 text-sm">
+                <span class="inline-flex items-center gap-1.5 text-gray-900">
+                    {% include "icons/academic-cap.html" with class="w-4 h-4 text-blue-600" %} {{ school.name }}
+                </span>
+            </td>
+            <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-700">{{ school.get_school_type_display }}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-700">{{ school.address }}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-700">{{ school.city|default:"—" }}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-700">{{ school.zip_code|default:"—" }}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-right text-sm">
+                <div class="flex justify-end gap-3">
+                    <a href="{% url 'schools:school_update' school.pk %}" class="text-cafe hover:text-cafe-darker" title="Edit">
+                        {% include "icons/pencil.html" with class="w-5 h-5" %}
+                    </a>
+                    <a href="{% url 'schools:school_delete' school.pk %}" class="text-crimson hover:text-red-800" title="Delete">
+                        {% include "icons/trash.html" with class="w-5 h-5" %}
+                    </a>
+                </div>
+            </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="px-4 py-6 text-center text-sm text-gray-500">No schools found.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+
+{% if is_paginated %}
+<div class="mt-4 flex items-center justify-center gap-4 text-sm text-gray-600">
+    {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}" class="hover:text-blue-600">Previous</a>{% endif %}
+    <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}{% if selected_type %}&type={{ selected_type }}{% endif %}" class="hover:text-blue-600">Next</a>{% endif %}
+</div>
+{% endif %}
+{% endblock %}

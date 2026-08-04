@@ -32,6 +32,7 @@ urlpatterns = [
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),
     path("vault/", include("vault.urls")),
     path("finanzas/", include("finanzas.urls")),
+    path("schools/", include("schools.urls")),
 ]
 
 if not settings.USE_SPACES:
