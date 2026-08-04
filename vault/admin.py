@@ -3,7 +3,7 @@ from django.contrib import admin
 
 from .models import (
     Category, Contact, LocationCheckIn, MaintenanceRecord, VaultPassword, MediaFile, PhotoSlideshowLink,
-    Reminder, RouteStop, Url, Vehicle,
+    Reminder, RouteSheetStopDraft, RouteSheetUpload, RouteStop, Url, Vehicle,
 )
 
 
@@ -92,6 +92,18 @@ class LocationCheckInAdmin(admin.ModelAdmin):
 class RouteStopAdmin(admin.ModelAdmin):
     list_display = ("owner", "route_type", "seq", "remarks", "address", "phone_number")
     list_filter = ("owner", "route_type")
+
+
+class RouteSheetStopDraftInline(admin.TabularInline):
+    model = RouteSheetStopDraft
+    extra = 0
+
+
+@admin.register(RouteSheetUpload)
+class RouteSheetUploadAdmin(admin.ModelAdmin):
+    list_display = ("route_number", "route_type", "uploaded_by", "uploaded_at", "imported_at")
+    list_filter = ("imported_at",)
+    inlines = [RouteSheetStopDraftInline]
 
 
 class VehicleAdminForm(forms.ModelForm):

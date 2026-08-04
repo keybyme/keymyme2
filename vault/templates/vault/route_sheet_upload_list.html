@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Route sheet uploads{% endblock %}
+{% block content %}
+<div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+    <h1 class="text-2xl font-semibold text-gray-900">Route sheet uploads</h1>
+    <div class="flex items-center gap-3">
+        <a href="{% url 'vault:route_sheet_upload_create' %}" class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700">
+            {% include "icons/arrow-up-tray.html" with class="w-4 h-4" %} Upload photo
+        </a>
+        <a href="{% url 'vault:im_here_admin_routes' %}" class="text-sm font-medium text-gray-600 hover:text-gray-900">← Back to Rutas</a>
+    </div>
+</div>
+
+<div class="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+<table class="min-w-full divide-y divide-gray-100">
+    <thead class="bg-cafe-dark">
+        <tr>
+            <th class="px-4 py-3"></th>
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Route</th>
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Uploaded</th>
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Stops read</th>
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Status</th>
+            <th class="px-4 py-3"></th>
+        </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100">
+        {% for upload in uploads %}
+        <tr class="group odd:bg-white even:bg-cream-soft hover:bg-beige">
+            <td class="px-4 py-2">
+                <a href="{% url 'vault:route_sheet_upload_detail' upload.pk %}">
+                    <img src="{{ upload.image.url }}" alt="" class="h-12 w-12 rounded-md border border-gray-200 object-cover">
+                </a>
+            </td>
+            <td class="whitespace-nowrap px-4 py-2 text-sm text-gray-900">
+                <a href="{% url 'vault:route_sheet_upload_detail' upload.pk %}" class="hover:text-blue-600">
+                    {{ upload.route_number|default:"—" }} {{ upload.route_type }}
+                </a>
+            </td>
+            <td class="whitespace-nowrap px-4 py-2 text-sm text-gray-600">{{ upload.uploaded_at|date:"m/d/Y g:i A" }}</td>
+            <td class="whitespace-nowrap px-4 py-2 text-sm text-gray-600">{{ upload.draft_stops.count }}</td>
+            <td class="whitespace-nowrap px-4 py-2 text-sm">
+                {% if upload.imported_at %}
+                <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-700">Imported</span>
+                {% else %}
+                <span class="inline-flex items-center rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-700">Needs review</span>
+                {% endif %}
+            </td>
+            <td class="whitespace-nowrap px-4 py-2 text-right text-sm">
+                <a href="{% url 'vault:route_sheet_upload_delete' upload.pk %}" class="text-crimson hover:text-red-800" title="Delete">
+                    {% include "icons/trash.html" with class="w-5 h-5" %}
+                </a>
+            </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="px-4 py-6 text-center text-sm text-gray-500">No route sheets uploaded yet.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+
+{% if is_paginated %}
+<div class="mt-4 flex items-center justify-center gap-4 text-sm text-gray-600">
+    {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}" class="hover:text-blue-600">Previous</a>{% endif %}
+    <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}" class="hover:text-blue-600">Next</a>{% endif %}
+</div>
+{% endif %}
+{% endblock %}

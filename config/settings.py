@@ -59,6 +59,13 @@ DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="KeyByMe <no-reply@keybym
 # Generar con: python -c "import secrets; print(secrets.token_urlsafe(32))"
 CRON_SECRET = env("CRON_SECRET", default="")
 
+# Path to the tesseract binary, for RouteSheetUpload OCR (see vault/ocr.py).
+# Empty by default: on the EC2 box `apt install tesseract-ocr` puts it on
+# PATH, so pytesseract finds it with no config. On Windows it's usually NOT
+# on PATH after installing (e.g. via winget) — set this to the full path,
+# typically `C:\Program Files\Tesseract-OCR\tesseract.exe`.
+TESSERACT_CMD = env("TESSERACT_CMD", default="")
+
 
 # Application definition
 

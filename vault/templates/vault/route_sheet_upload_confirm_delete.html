@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Delete route sheet upload{% endblock %}
+{% block content %}
+<div class="mx-auto max-w-md rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+    <div class="mb-4 flex items-center gap-3 text-amber-600">
+        {% include "icons/exclamation-triangle.html" with class="w-8 h-8" %}
+        <h1 class="text-lg font-semibold text-gray-900">Delete this route sheet upload?</h1>
+    </div>
+    <img src="{{ object.image.url }}" alt="" class="mb-4 max-h-48 w-auto rounded-lg border border-gray-200">
+    <p class="mb-6 text-sm text-gray-600">Deletes the photo and its draft stops. {% if object.imported_at %}Stops already imported into Rutas are not affected.{% endif %} This action cannot be undone.</p>
+    <form method="post" class="flex gap-3">
+        {% csrf_token %}
+        <button type="submit" class="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-700">Yes, delete</button>
+        <a href="{% url 'vault:route_sheet_upload_list' %}" class="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100">Cancel</a>
+    </form>
+</div>
+{% endblock %}

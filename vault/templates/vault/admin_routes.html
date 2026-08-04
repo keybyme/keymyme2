@@ -22,6 +22,9 @@
             <button type="submit" class="whitespace-nowrap rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">New route</button>
         </form>
         <a href="{% url 'vault:route_stop_create' %}" class="rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">Add stop</a>
+        <a href="{% url 'vault:route_sheet_upload_list' %}" class="inline-flex items-center gap-1.5 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
+            {% include "icons/arrow-up-tray.html" with class="w-4 h-4" %} Route sheets
+        </a>
         <a href="{% url 'vault:im_here_dispatch' %}" class="rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">Dispatch</a>
         <a href="{% url 'vault:im_here_history' %}" class="rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">History</a>
         <a href="{% url 'vault:im_here' %}" class="rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">I am here</a>

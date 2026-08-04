@@ -364,6 +364,63 @@ class RouteStop(models.Model):
         super().save(*args, **kwargs)
 
 
+class RouteSheetUpload(models.Model):
+    """A photographed MCPS "Bus Detail Report" route sheet, OCR'd (see
+    vault/route_sheet_ocr.py) into draft stops (RouteSheetStopDraft) for an
+    admin to review/correct before Import creates real RouteStop rows.
+    Admin-only (Rutas), not owned by a single driver — the sheet doesn't say
+    which driver account it belongs to until route_number is set here."""
+    image = models.ImageField(upload_to="route_sheets/%Y/%m/")
+    uploaded_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="route_sheet_uploads"
+    )
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    raw_text = models.TextField(blank=True, help_text="Raw OCR output, kept for troubleshooting a bad parse.")
+    route_number = models.CharField(
+        max_length=100, blank=True, verbose_name="Route number",
+        help_text='Must match an existing driver\'s "Route" field to Import.',
+    )
+    route_type = models.CharField(max_length=30, blank=True, verbose_name="Route type")
+    imported_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-uploaded_at"]
+        verbose_name = "Route sheet upload"
+        verbose_name_plural = "Route sheet uploads"
+
+    def __str__(self):
+        return f"{self.route_number or 'Unassigned'} {self.route_type} ({self.uploaded_at:%m/%d/%Y})"
+
+    def delete(self, *args, **kwargs):
+        if self.image:
+            self.image.delete(save=False)
+        super().delete(*args, **kwargs)
+
+
+class RouteSheetStopDraft(models.Model):
+    """One parsed stop from a RouteSheetUpload, editable before Import turns
+    it into a real RouteStop. Mirrors RouteStop's stop fields 1:1 — owner
+    and route_type live on the parent upload until Import assigns them."""
+    upload = models.ForeignKey(RouteSheetUpload, on_delete=models.CASCADE, related_name="draft_stops")
+    seq = models.PositiveIntegerField(default=10, verbose_name="Seq")
+    planned_time = models.TimeField(null=True, blank=True, verbose_name="Time")
+    remarks = models.CharField(max_length=255, blank=True)
+    address = models.CharField(max_length=255, blank=True)
+    phone_number = models.CharField(max_length=30, blank=True, verbose_name="Phone")
+    include = models.BooleanField(
+        default=True, verbose_name="Include",
+        help_text="Uncheck to skip this row on Import (e.g. a garbled OCR read).",
+    )
+
+    class Meta:
+        ordering = ["seq"]
+        verbose_name = "Route sheet draft stop"
+        verbose_name_plural = "Route sheet draft stops"
+
+    def __str__(self):
+        return f"Draft stop #{self.seq} for upload #{self.upload_id}"
+
+
 class Vehicle(models.Model):
     """Un vehículo del usuario. Tiene una URL pública (por public_token, no
     por pk, para que no sea adivinable) que muestra su historial de

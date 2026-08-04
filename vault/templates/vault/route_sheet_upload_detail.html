@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Route sheet review{% endblock %}
+{% block content %}
+<div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+    <h1 class="text-2xl font-semibold text-gray-900">
+        Route sheet review
+        {% if upload.imported_at %}
+        <span class="ml-2 inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-700 align-middle">Imported {{ upload.imported_at|date:"m/d/Y g:i A" }}</span>
+        {% endif %}
+    </h1>
+    <a href="{% url 'vault:route_sheet_upload_list' %}" class="text-sm font-medium text-gray-600 hover:text-gray-900">← Back to uploads</a>
+</div>
+
+<p class="mb-6 text-xs text-gray-500">OCR is a best-effort draft, not a reliable transcription — always cross-check every field against the photo before importing. Importing replaces this route's existing stops in Rutas.</p>
+
+<div class="grid grid-cols-1 gap-6 lg:grid-cols-[320px_1fr]">
+    <div class="lg:sticky lg:top-4 lg:self-start">
+        <img src="{{ upload.image.url }}" alt="Route sheet photo" class="w-full rounded-xl border border-gray-200 shadow-sm">
+        <details class="mt-3 rounded-lg border border-gray-200 bg-white p-3 text-xs text-gray-600">
+            <summary class="cursor-pointer font-medium text-gray-700">Raw OCR text</summary>
+            <pre class="mt-2 max-h-64 overflow-auto whitespace-pre-wrap">{{ upload.raw_text|default:"(OCR produced no text)" }}</pre>
+        </details>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+        <div class="mb-4 flex flex-wrap items-end gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+            <div>
+                <label for="route_number" class="mb-1 block text-sm font-medium text-gray-700">Route number</label>
+                <input type="text" id="route_number" name="route_number" value="{{ upload.route_number }}" placeholder="S2112"
+                       class="w-32 rounded-lg border border-gray-300 py-2 px-3 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                <p class="mt-1 text-xs text-gray-400">Must match a driver's Route field.</p>
+            </div>
+            <div>
+                <label for="route_type" class="mb-1 block text-sm font-medium text-gray-700">Route type</label>
+                <input type="text" id="route_type" name="route_type" value="{{ upload.route_type }}" list="route-type-options" placeholder="AM"
+                       class="w-28 rounded-lg border border-gray-300 py-2 px-3 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                <datalist id="route-type-options">
+                    <option value="AM"></option>
+                    <option value="PM"></option>
+                    <option value="MID DAY"></option>
+                </datalist>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+        <table class="min-w-full divide-y divide-gray-100">
+            <thead class="bg-cafe-dark">
+                <tr>
+                    <th class="px-3 py-2 text-left text-xs font-bold uppercase tracking-wide text-white">Seq</th>
+                    <th class="px-3 py-2 text-left text-xs font-bold uppercase tracking-wide text-white">Time</th>
+                    <th class="px-3 py-2 text-left text-xs font-bold uppercase tracking-wide text-white">Name/Act</th>
+                    <th class="px-3 py-2 text-left text-xs font-bold uppercase tracking-wide text-white">Address</th>
+                    <th class="px-3 py-2 text-left text-xs font-bold uppercase tracking-wide text-white">Phone</th>
+                    <th class="px-3 py-2 text-center text-xs font-bold uppercase tracking-wide text-white">Include</th>
+                    <th class="px-3 py-2 text-center text-xs font-bold uppercase tracking-wide text-white">Delete</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                {% for draft in draft_stops %}
+                <tr class="odd:bg-white even:bg-cream-soft">
+                    <td class="px-2 py-1.5">
+                        <input type="number" name="stop-{{ draft.pk }}-seq" value="{{ draft.seq }}"
+                               class="w-16 rounded-lg border border-gray-300 py-1.5 px-2 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                    </td>
+                    <td class="px-2 py-1.5">
+                        <input type="time" name="stop-{{ draft.pk }}-planned_time" value="{{ draft.planned_time|time:"H:i" }}"
+                               class="rounded-lg border border-gray-300 py-1.5 px-2 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                    </td>
+                    <td class="px-2 py-1.5">
+                        <input type="text" name="stop-{{ draft.pk }}-remarks" value="{{ draft.remarks }}"
+                               class="w-36 rounded-lg border border-gray-300 py-1.5 px-2 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                    </td>
+                    <td class="px-2 py-1.5">
+                        <input type="text" name="stop-{{ draft.pk }}-address" value="{{ draft.address }}"
+                               class="min-w-[220px] rounded-lg border border-gray-300 py-1.5 px-2 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                    </td>
+                    <td class="px-2 py-1.5">
+                        <input type="text" name="stop-{{ draft.pk }}-phone_number" value="{{ draft.phone_number }}"
+                               class="w-36 rounded-lg border border-gray-300 py-1.5 px-2 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+                    </td>
+                    <td class="px-2 py-1.5 text-center">
+                        <input type="checkbox" name="stop-{{ draft.pk }}-include" {% if draft.include %}checked{% endif %}
+                               class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                    </td>
+                    <td class="px-2 py-1.5 text-center">
+                        <input type="checkbox" name="stop-{{ draft.pk }}-delete"
+                               class="h-4 w-4 rounded border-gray-300 text-crimson focus:ring-red-500">
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="px-4 py-6 text-center text-sm text-gray-500">No stops read from this photo yet — use "Add row" below.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+
+        <div class="mt-4 flex flex-wrap items-center gap-3">
+            <button type="submit" name="add_row" value="1" class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">
+                + Add row
+            </button>
+            <button type="submit" name="action" value="save" class="rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
+                Save changes
+            </button>
+            <button type="submit" name="action" value="import" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-emerald-700">
+                Import into Rutas
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

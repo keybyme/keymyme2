@@ -39,6 +39,7 @@ from .forms import (
     PublicMaintenanceRecordForm,
     QRCodeForm,
     ReminderForm,
+    RouteSheetUploadForm,
     RouteStopForm,
     UrlForm,
     VaultPasswordForm,
@@ -51,8 +52,10 @@ from .mixins import (
 )
 from .models import (
     ALLOWED_MEDIA_EXTENSIONS, Category, Contact, LocationCheckIn, MaintenanceRecord, MediaFile,
-    PhotoSlideshowLink, Reminder, RouteStop, Url, VaultPassword, Vehicle,
+    PhotoSlideshowLink, Reminder, RouteSheetStopDraft, RouteSheetUpload, RouteStop, Url,
+    VaultPassword, Vehicle,
 )
+from .route_sheet_ocr import extract_text, parse_route_sheet_text
 from .routing import geocode_address, get_route_legs
 
 
@@ -1112,6 +1115,164 @@ class RouteDirectionsView(AdminRoleRequiredMixin, TemplateView):
         context["error"] = error
         context["legs"] = legs
         return context
+
+
+def _post_int(post, key, default):
+    try:
+        return int(post.get(key, ""))
+    except (TypeError, ValueError):
+        return default
+
+
+def _post_time(post, key):
+    value = post.get(key, "")
+    if not value:
+        return None
+    try:
+        return dt.datetime.strptime(value, "%H:%M").time()
+    except ValueError:
+        return None
+
+
+class RouteSheetUploadListView(AdminRoleRequiredMixin, ListView):
+    """History of uploaded route sheet photos (see RouteSheetUploadCreateView)
+    — every past OCR attempt, imported or not."""
+    model = RouteSheetUpload
+    template_name = "vault/route_sheet_upload_list.html"
+    context_object_name = "uploads"
+    paginate_by = 20
+
+
+class RouteSheetUploadCreateView(AdminRoleRequiredMixin, CreateView):
+    """Uploads a route sheet photo, OCRs it (vault/route_sheet_ocr.py), and
+    saves a best-effort parse as RouteSheetStopDraft rows for review —
+    nothing touches real RouteStop data until Import on the detail page."""
+    model = RouteSheetUpload
+    form_class = RouteSheetUploadForm
+    template_name = "vault/route_sheet_upload_form.html"
+
+    def form_valid(self, form):
+        form.instance.uploaded_by = self.request.user
+        uploaded_file = form.cleaned_data["image"]
+
+        try:
+            uploaded_file.seek(0)
+            raw_text = extract_text(uploaded_file)
+            uploaded_file.seek(0)  # rewind so ModelForm.save() can still write it to storage
+        except Exception as exc:
+            raw_text = ""
+            messages.warning(self.request, f"OCR couldn't run ({exc}) — add stops manually below.")
+
+        response = super().form_valid(form)  # saves self.object with the image
+
+        upload = self.object
+        parsed = parse_route_sheet_text(raw_text) if raw_text else {"route_number": None, "route_type": None, "stops": []}
+        upload.raw_text = raw_text
+        upload.route_number = parsed["route_number"] or ""
+        upload.route_type = parsed["route_type"] or ""
+        upload.save(update_fields=["raw_text", "route_number", "route_type"])
+
+        RouteSheetStopDraft.objects.bulk_create([
+            RouteSheetStopDraft(
+                upload=upload, seq=stop["seq"], planned_time=stop["planned_time"],
+                remarks=stop["remarks"], address=stop["address"], phone_number=stop["phone_number"],
+            )
+            for stop in parsed["stops"]
+        ])
+        if not parsed["stops"] and raw_text:
+            messages.warning(
+                self.request,
+                "Couldn't automatically read any stops from this photo — add them manually below.",
+            )
+        return response
+
+    def get_success_url(self):
+        return reverse("vault:route_sheet_upload_detail", args=[self.object.pk])
+
+
+class RouteSheetUploadDetailView(AdminRoleRequiredMixin, DetailView):
+    """Review screen: the original photo next to its OCR'd draft stops, all
+    editable, plus route_number/route_type to assign — nothing is trusted
+    blindly (see vault/route_sheet_ocr.py's accuracy caveats). "Save
+    changes" just persists edits; "Import" additionally replaces that
+    driver's RouteStop rows for this route_type, same override semantics as
+    Rutas' "Save Route" (see AdminRoutesView)."""
+    model = RouteSheetUpload
+    template_name = "vault/route_sheet_upload_detail.html"
+    context_object_name = "upload"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["draft_stops"] = self.object.draft_stops.all()
+        return context
+
+    def post(self, request, *args, **kwargs):
+        self.object = upload = self.get_object()
+
+        upload.route_number = request.POST.get("route_number", "").strip()
+        upload.route_type = request.POST.get("route_type", "").strip().upper()
+        upload.save(update_fields=["route_number", "route_type"])
+
+        for draft in list(upload.draft_stops.all()):
+            prefix = f"stop-{draft.pk}-"
+            if request.POST.get(f"{prefix}delete"):
+                draft.delete()
+                continue
+            draft.seq = _post_int(request.POST, f"{prefix}seq", draft.seq)
+            draft.planned_time = _post_time(request.POST, f"{prefix}planned_time")
+            draft.remarks = request.POST.get(f"{prefix}remarks", "").strip()
+            draft.address = request.POST.get(f"{prefix}address", "").strip()
+            draft.phone_number = request.POST.get(f"{prefix}phone_number", "").strip()
+            draft.include = bool(request.POST.get(f"{prefix}include"))
+            draft.save()
+
+        if request.POST.get("add_row"):
+            next_seq = (upload.draft_stops.aggregate(Max("seq"))["seq__max"] or 0) + 10
+            RouteSheetStopDraft.objects.create(upload=upload, seq=next_seq)
+            return redirect("vault:route_sheet_upload_detail", pk=upload.pk)
+
+        if request.POST.get("action") == "import":
+            return self._do_import(request, upload)
+
+        messages.success(request, "Changes saved.")
+        return redirect("vault:route_sheet_upload_detail", pk=upload.pk)
+
+    def _do_import(self, request, upload):
+        if not upload.route_number or not upload.route_type:
+            messages.error(request, "Set both Route number and Route type before importing.")
+            return redirect("vault:route_sheet_upload_detail", pk=upload.pk)
+
+        owner = _find_driver_by_route(upload.route_number)
+        if owner is None:
+            messages.error(request, f'No driver account found with route number "{upload.route_number}".')
+            return redirect("vault:route_sheet_upload_detail", pk=upload.pk)
+
+        included = [draft for draft in upload.draft_stops.filter(include=True) if draft.address]
+        if not included:
+            messages.error(request, "No included stops with an address to import.")
+            return redirect("vault:route_sheet_upload_detail", pk=upload.pk)
+
+        # Replaces this route's existing stops — same "always overrides" semantics as Save Route.
+        RouteStop.objects.filter(owner=owner, route_type=upload.route_type).delete()
+        RouteStop.objects.bulk_create([
+            RouteStop(
+                owner=owner, route_type=upload.route_type, seq=draft.seq, planned_time=draft.planned_time,
+                remarks=draft.remarks, address=draft.address, phone_number=draft.phone_number,
+            )
+            for draft in included
+        ])
+        upload.imported_at = timezone.now()
+        upload.save(update_fields=["imported_at"])
+        messages.success(
+            request, f'Imported {len(included)} stop(s) into "{upload.route_number} {upload.route_type}".'
+        )
+        return redirect("vault:im_here_admin_routes")
+
+
+class RouteSheetUploadDeleteView(AdminRoleRequiredMixin, DeleteView):
+    model = RouteSheetUpload
+    template_name = "vault/route_sheet_upload_confirm_delete.html"
+    success_url = reverse_lazy("vault:route_sheet_upload_list")
 
 
 class LocationCheckInHistoryView(AdminRoleRequiredMixin, TemplateView):

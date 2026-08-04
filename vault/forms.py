@@ -4,8 +4,8 @@ from django.core.files.uploadedfile import UploadedFile
 
 from .image_compression import compress_image
 from .models import (
-    Category, Contact, LocationCheckIn, MaintenanceRecord, MediaFile, Reminder, RouteStop, Url,
-    VaultPassword, Vehicle,
+    Category, Contact, LocationCheckIn, MaintenanceRecord, MediaFile, Reminder, RouteSheetUpload,
+    RouteStop, Url, VaultPassword, Vehicle,
 )
 
 INPUT_CLASSES = (
@@ -255,6 +255,13 @@ class RouteStopForm(NormalizeRouteTypeMixin, TailwindFormMixin, forms.ModelForm)
             "route_type": forms.TextInput(attrs={"placeholder": "AM"}),
             "planned_time": forms.TimeInput(attrs={"type": "time"}),
         }
+
+
+class RouteSheetUploadForm(TailwindFormMixin, forms.ModelForm):
+    class Meta:
+        model = RouteSheetUpload
+        fields = ["image"]
+        labels = {"image": "Route sheet photo"}
 
 
 class VehicleForm(TailwindFormMixin, forms.ModelForm):

@@ -56,23 +56,38 @@ def geocode_address(address):
     couldn't be resolved. Callers looping over several addresses must space
     calls out themselves (Nominatim: max 1 req/sec) — see RouteDirectionsView.
 
-    Tries the address as typed first, then falls back to just "street + zip"
-    (dropping any city/state) — Nominatim frequently fails on "street, city,
-    state zip" when the mailing/USPS city doesn't exactly match OSM's
-    canonical locality name for that zip (common in MD, e.g. "Rockville" on
-    an envelope vs. "Aspen Hill" in OSM), even though the zip is correct."""
+    Tries the address as typed, then two fallbacks (in order) once a zip code
+    can be found in it:
+    1. Everything up through the zip, dropping anything after it — OCR'd
+       addresses (see route_sheet_ocr.py) sometimes carry trailing noise
+       past the zip (misread table columns) that breaks the query outright.
+    2. Just "street + zip", dropping any city/state too — Nominatim
+       frequently fails on "street, city, state zip" when the mailing/USPS
+       city doesn't exactly match OSM's canonical locality name for that zip
+       (common in MD, e.g. "Rockville" on an envelope vs. "Aspen Hill" in
+       OSM), even though the zip itself is correct."""
     coords = _geocode_query(address)
     if coords is not None:
         return coords
 
     zip_match = ZIP_RE.search(address)
-    street = address.split(",")[0].strip()
-    fallback_query = f"{street} {zip_match.group()}" if zip_match else None
-    if not fallback_query or fallback_query == address:
+    if not zip_match:
         return None
 
-    time.sleep(1)  # second request for the same address — respect the 1 req/sec policy
-    return _geocode_query(fallback_query)
+    candidates = []
+    trimmed = address[:zip_match.end()].strip()
+    if trimmed and trimmed != address:
+        candidates.append(trimmed)
+    street_zip = f"{address.split(',')[0].strip()} {zip_match.group()}"
+    if street_zip not in candidates and street_zip != address:
+        candidates.append(street_zip)
+
+    for candidate in candidates:
+        time.sleep(1)  # each retry is a new request for the same address — respect 1 req/sec
+        coords = _geocode_query(candidate)
+        if coords is not None:
+            return coords
+    return None
 
 
 def get_route_legs(coords):
