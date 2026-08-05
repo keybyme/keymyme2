@@ -40,3 +40,31 @@ class School(models.Model):
         if self.zip_code:
             parts.append(f"MD {self.zip_code}")
         return ", ".join(parts)
+
+
+class Employee(models.Model):
+    """Roster of MCPS transportation staff (drivers, attendants, etc.).
+
+    Same shared-reference pattern as `School` — not owned by any user, just
+    gated behind the `artifacts_mcps` Module like the rest of this app.
+    """
+
+    class Position(models.IntegerChoices):
+        DRIVER = 1, "Driver"
+        ATTENDANT = 2, "Attendant"
+        BRS = 3, "BRS"
+        OTHERS = 4, "Others"
+
+    name = models.CharField(max_length=200, verbose_name="Name")
+    phone = models.CharField(max_length=20, verbose_name="Phone")
+    position = models.PositiveSmallIntegerField(
+        choices=Position.choices, verbose_name="Position"
+    )
+
+    class Meta:
+        ordering = ["name"]
+        verbose_name = "Employee"
+        verbose_name_plural = "Employees"
+
+    def __str__(self):
+        return self.name

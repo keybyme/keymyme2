@@ -6,13 +6,15 @@ from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
 from vault.mixins import AjaxPartialTemplateMixin, ModuleAccessRequiredMixin
 
-from .forms import SchoolForm
-from .models import School
+from .forms import EmployeeForm, SchoolForm
+from .models import Employee, School
 
-# Not owner-scoped on purpose: School is a shared reference catalog (MCPS
-# public schools), not per-user vault data — see schools/models.py.
+# Not owner-scoped on purpose: School/Employee are shared reference catalogs
+# (MCPS public schools, MCPS transportation staff), not per-user vault data —
+# see schools/models.py.
 
 SORTABLE_FIELDS = ("school_type", "address", "city", "zip_code")
+EMPLOYEE_SORTABLE_FIELDS = ("phone", "position")
 
 
 class SchoolListView(AjaxPartialTemplateMixin, ModuleAccessRequiredMixin, ListView):
@@ -95,4 +97,81 @@ class SchoolDeleteView(ModuleAccessRequiredMixin, DeleteView):
     model = School
     template_name = "schools/school_confirm_delete.html"
     success_url = reverse_lazy("schools:school_list")
+    module_codename = "artifacts_mcps"
+
+
+class EmployeeListView(AjaxPartialTemplateMixin, ModuleAccessRequiredMixin, ListView):
+    model = Employee
+    template_name = "schools/employee_list.html"
+    ajax_template_name = "schools/_employee_results.html"
+    context_object_name = "employees"
+    paginate_by = 25
+    module_codename = "artifacts_mcps"
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+
+        position = self.request.GET.get("position")
+        if position:
+            queryset = queryset.filter(position=position)
+
+        query = self.request.GET.get("q")
+        if query:
+            queryset = queryset.filter(Q(name__icontains=query) | Q(phone__icontains=query))
+
+        sort = self.request.GET.get("sort", "")
+        if sort.lstrip("-") in EMPLOYEE_SORTABLE_FIELDS:
+            queryset = queryset.order_by(sort, "name")
+
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        query = self.request.GET.get("q", "")
+        selected_position = self.request.GET.get("position", "")
+        sort = self.request.GET.get("sort", "")
+
+        context["positions"] = Employee.Position.choices
+        context["selected_position"] = selected_position
+        context["query"] = query
+        context["sort_key"] = sort.lstrip("-")
+        context["sort_reverse"] = sort.startswith("-")
+
+        base_params = {}
+        if query:
+            base_params["q"] = query
+        if selected_position:
+            base_params["position"] = selected_position
+
+        for field in EMPLOYEE_SORTABLE_FIELDS:
+            next_sort = f"-{field}" if sort == field else field
+            context[f"{field}_sort_url"] = "?" + urlencode({**base_params, "sort": next_sort})
+
+        if sort:
+            base_params["sort"] = sort
+        context["extra_qs"] = urlencode(base_params)
+
+        return context
+
+
+class EmployeeCreateView(ModuleAccessRequiredMixin, CreateView):
+    model = Employee
+    form_class = EmployeeForm
+    template_name = "schools/employee_form.html"
+    success_url = reverse_lazy("schools:employee_list")
+    module_codename = "artifacts_mcps"
+
+
+class EmployeeUpdateView(ModuleAccessRequiredMixin, UpdateView):
+    model = Employee
+    form_class = EmployeeForm
+    template_name = "schools/employee_form.html"
+    success_url = reverse_lazy("schools:employee_list")
+    module_codename = "artifacts_mcps"
+
+
+class EmployeeDeleteView(ModuleAccessRequiredMixin, DeleteView):
+    model = Employee
+    template_name = "schools/employee_confirm_delete.html"
+    success_url = reverse_lazy("schools:employee_list")
     module_codename = "artifacts_mcps"
