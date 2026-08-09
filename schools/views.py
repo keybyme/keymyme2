@@ -15,7 +15,7 @@ from .models import Employee, Route, School
 
 SORTABLE_FIELDS = ("school_type", "address", "city", "zip_code")
 EMPLOYEE_SORTABLE_FIELDS = ("phone", "position")
-ROUTE_SORTABLE_FIELDS = ("route_type", "stop_number", "seq", "address")
+ROUTE_SORTABLE_FIELDS = ("bus_number",)
 
 
 class SchoolListView(AjaxPartialTemplateMixin, ModuleAccessRequiredMixin, ListView):
@@ -189,34 +189,26 @@ class RouteListView(AjaxPartialTemplateMixin, ModuleAccessRequiredMixin, ListVie
     def get_queryset(self):
         queryset = super().get_queryset().select_related("driver", "attendant")
 
-        route_type = self.request.GET.get("type")
-        if route_type:
-            queryset = queryset.filter(route_type=route_type)
-
         query = self.request.GET.get("q")
         if query:
             queryset = queryset.filter(
                 Q(route_number__icontains=query)
                 | Q(bus_number__icontains=query)
-                | Q(address__icontains=query)
                 | Q(driver__name__icontains=query)
                 | Q(attendant__name__icontains=query)
             )
 
         sort = self.request.GET.get("sort", "")
         if sort.lstrip("-") in ROUTE_SORTABLE_FIELDS:
-            queryset = queryset.order_by(sort, "route_number", "seq")
+            queryset = queryset.order_by(sort, "route_number")
 
         return queryset
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         query = self.request.GET.get("q", "")
-        selected_type = self.request.GET.get("type", "")
         sort = self.request.GET.get("sort", "")
 
-        context["route_types"] = Route.RouteType.choices
-        context["selected_type"] = selected_type
         context["query"] = query
         context["sort_key"] = sort.lstrip("-")
         context["sort_reverse"] = sort.startswith("-")
@@ -224,8 +216,6 @@ class RouteListView(AjaxPartialTemplateMixin, ModuleAccessRequiredMixin, ListVie
         base_params = {}
         if query:
             base_params["q"] = query
-        if selected_type:
-            base_params["type"] = selected_type
 
         for field in ROUTE_SORTABLE_FIELDS:
             next_sort = f"-{field}" if sort == field else field

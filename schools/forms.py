@@ -20,4 +20,4 @@ class EmployeeForm(TailwindFormMixin, forms.ModelForm):
 class RouteForm(TailwindFormMixin, forms.ModelForm):
     class Meta:
         model = Route
-        fields = ["route_number", "bus_number", "route_type", "driver", "attendant", "stop_number", "seq", "address"]
+        fields = ["route_number", "bus_number", "driver", "attendant"]

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
-{% block title %}Route stop{% endblock %}
+{% block title %}Route{% endblock %}
 {% block content %}
-<h1 class="mb-6 text-2xl font-semibold text-gray-900">{% if object %}Edit{% else %}New{% endif %} route stop</h1>
+<h1 class="mb-6 text-2xl font-semibold text-gray-900">{% if object %}Edit{% else %}New{% endif %} route</h1>
 <form method="post" class="max-w-lg rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
     {% csrf_token %}
     {% include "_form_fields.html" %}

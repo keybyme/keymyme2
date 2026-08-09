@@ -3,41 +3,16 @@
     <thead class="bg-cafe-dark">
         <tr>
             <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Route #</th>
-            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Bus #</th>
             <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">
-                <a href="{{ route_type_sort_url }}" class="inline-flex items-center gap-1 hover:text-gold">
-                    Type
-                    {% if sort_key == "route_type" %}
+                <a href="{{ bus_number_sort_url }}" class="inline-flex items-center gap-1 hover:text-gold">
+                    Bus #
+                    {% if sort_key == "bus_number" %}
                         {% if sort_reverse %}{% include "icons/chevron-down.html" with class="w-3.5 h-3.5" %}{% else %}{% include "icons/chevron-up.html" with class="w-3.5 h-3.5" %}{% endif %}
                     {% endif %}
                 </a>
             </th>
             <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Driver</th>
             <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Attendant</th>
-            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">
-                <a href="{{ stop_number_sort_url }}" class="inline-flex items-center gap-1 hover:text-gold">
-                    Stop #
-                    {% if sort_key == "stop_number" %}
-                        {% if sort_reverse %}{% include "icons/chevron-down.html" with class="w-3.5 h-3.5" %}{% else %}{% include "icons/chevron-up.html" with class="w-3.5 h-3.5" %}{% endif %}
-                    {% endif %}
-                </a>
-            </th>
-            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">
-                <a href="{{ seq_sort_url }}" class="inline-flex items-center gap-1 hover:text-gold">
-                    Seq
-                    {% if sort_key == "seq" %}
-                        {% if sort_reverse %}{% include "icons/chevron-down.html" with class="w-3.5 h-3.5" %}{% else %}{% include "icons/chevron-up.html" with class="w-3.5 h-3.5" %}{% endif %}
-                    {% endif %}
-                </a>
-            </th>
-            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">
-                <a href="{{ address_sort_url }}" class="inline-flex items-center gap-1 hover:text-gold">
-                    Address
-                    {% if sort_key == "address" %}
-                        {% if sort_reverse %}{% include "icons/chevron-down.html" with class="w-3.5 h-3.5" %}{% else %}{% include "icons/chevron-up.html" with class="w-3.5 h-3.5" %}{% endif %}
-                    {% endif %}
-                </a>
-            </th>
             <th class="px-4 py-3"></th>
         </tr>
     </thead>
@@ -50,16 +25,8 @@
                 </span>
             </td>
             <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-700">{{ route.bus_number|default:"—" }}</td>
-            <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-700">{{ route.get_route_type_display }}</td>
             <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-700">{{ route.driver.name|default:"—" }}</td>
             <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-700">{{ route.attendant.name|default:"—" }}</td>
-            <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-700">{{ route.stop_number|default:"—" }}</td>
-            <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-700">{{ route.seq }}</td>
-            <td class="whitespace-nowrap px-4 py-3 text-sm">
-                <a href="https://www.google.com/maps/dir/?api=1&destination={{ route.address|urlencode }}&travelmode=driving" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-800">
-                    {% include "icons/map-pin.html" with class="w-4 h-4" %} {{ route.address }}
-                </a>
-            </td>
             <td class="whitespace-nowrap px-4 py-3 text-right text-sm">
                 <div class="flex justify-end gap-3">
                     <a href="{% url 'schools:route_update' route.pk %}" class="text-cafe hover:text-cafe-darker" title="Edit">
@@ -72,7 +39,7 @@
             </td>
         </tr>
         {% empty %}
-        <tr><td colspan="9" class="px-4 py-6 text-center text-sm text-gray-500">No route stops found.</td></tr>
+        <tr><td colspan="5" class="px-4 py-6 text-center text-sm text-gray-500">No routes found.</td></tr>
         {% endfor %}
     </tbody>
 </table>

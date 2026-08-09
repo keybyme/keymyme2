@@ -19,6 +19,5 @@ class EmployeeAdmin(admin.ModelAdmin):
 
 @admin.register(Route)
 class RouteAdmin(admin.ModelAdmin):
-    list_display = ("route_number", "bus_number", "route_type", "driver", "attendant", "stop_number", "seq", "address")
-    list_filter = ("route_type",)
-    search_fields = ("route_number", "bus_number", "address")
+    list_display = ("route_number", "bus_number", "driver", "attendant")
+    search_fields = ("route_number", "bus_number")

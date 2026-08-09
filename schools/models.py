@@ -74,25 +74,17 @@ class Employee(models.Model):
 
 
 class Route(models.Model):
-    """Reference catalog of MCPS bus route stops: route number/type plus the
-    driver, attendant, and each stop along it. Same shared-reference pattern
-    as School/Employee — not owned by any user, just gated behind the
-    artifacts_mcps Module. One row per stop (route_number+route_type group
-    the stops that make up a single route), mirroring vault.RouteStop's
-    field naming, but this catalog is admin-editable reference data rather
-    than a per-driver runtime template."""
+    """Reference catalog of MCPS bus routes: route number/bus number plus the
+    driver and attendant assigned to it. Same shared-reference pattern as
+    School/Employee — not owned by any user, just gated behind the
+    artifacts_mcps Module.
 
-    class RouteType(models.TextChoices):
-        AM = "AM", "AM"
-        MID = "MID", "Mid Day"
-        PM = "PM", "PM"
+    Originally also carried route type, stop #, seq, and address, but those
+    turned out to belong to a different table entirely (mixed up when this
+    model was designed) and were removed."""
 
     route_number = models.CharField(max_length=30, verbose_name="Route number")
     bus_number = models.CharField(max_length=20, blank=True, verbose_name="Bus #")
-    route_type = models.CharField(
-        max_length=10, choices=RouteType.choices, blank=True, verbose_name="Route type",
-        help_text="Optional — some sources (e.g. a bus assignment roster) give the route/bus/driver without saying AM/MID/PM yet.",
-    )
     driver = models.ForeignKey(
         Employee, on_delete=models.SET_NULL, null=True, blank=True,
         related_name="driver_routes", limit_choices_to={"position": Employee.Position.DRIVER},
@@ -103,17 +95,11 @@ class Route(models.Model):
         related_name="attendant_routes", limit_choices_to={"position": Employee.Position.ATTENDANT},
         verbose_name="Attendant",
     )
-    stop_number = models.PositiveIntegerField(null=True, blank=True, verbose_name="Stop #")
-    seq = models.PositiveIntegerField(default=10, verbose_name="Seq")
-    address = models.CharField(
-        max_length=255, blank=True, verbose_name="Address",
-        help_text="Optional — filled in once stop-level detail is available.",
-    )
 
     class Meta:
-        ordering = ["route_number", "route_type", "seq"]
-        verbose_name = "Route stop"
+        ordering = ["route_number"]
+        verbose_name = "Route"
         verbose_name_plural = "Routes"
 
     def __str__(self):
-        return f"{self.route_number} {self.route_type} stop #{self.seq}"
+        return self.route_number
