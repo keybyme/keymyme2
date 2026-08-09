@@ -6,7 +6,7 @@ from django.urls import reverse_lazy
 from django.views.generic import CreateView, DeleteView, ListView, TemplateView, UpdateView
 
 from vault.mixins import AjaxPartialTemplateMixin, ModuleAccessRequiredMixin
-from vault.routing import geocode_address, geocode_intersection, get_route_legs
+from vault.routing import GeocodingRateLimited, geocode_address, geocode_intersection, get_route_legs
 
 # MCPS AM-MID-PM addresses are often given as a bare street corner ("Skylark
 # Rd & Walnut Haven Dr") with no city/state — used as the fallback location
@@ -386,34 +386,43 @@ class LeftsRightsView(ModuleAccessRequiredMixin, TemplateView):
         if len(entries) < 2:
             error = "This route needs at least 2 AM-MID-PM entries with addresses to compute directions."
         else:
-            for entry in entries:
-                if entry.latitude is not None and entry.longitude is not None:
-                    continue
-                if not entry.address:
-                    error = f'{entry.get_type_display()} #{entry.seq} has no address to geocode.'
-                    break
-                coords = geocode_address(entry.address)
-                if coords is None:
-                    # Plain free-text search fails outright on "Street A &
-                    # Street B" intersections (Nominatim doesn't parse "&")
-                    # — approximate via geocode_intersection() instead.
-                    coords = geocode_intersection(entry.address, MCPS_COUNTY)
-                if coords is None:
-                    error = f'Could not find coordinates for {entry.get_type_display()} #{entry.seq}: "{entry.address}".'
-                    break
-                entry.latitude, entry.longitude = coords
-                entry.save(update_fields=["latitude", "longitude"])
-                time.sleep(1)  # Nominatim usage policy: max 1 request/second
+            try:
+                for entry in entries:
+                    if entry.latitude is not None and entry.longitude is not None:
+                        continue
+                    if not entry.address:
+                        error = f'{entry.get_type_display()} #{entry.seq} has no address to geocode.'
+                        break
+                    coords = geocode_address(entry.address)
+                    if coords is None:
+                        # Plain free-text search fails outright on "Street A
+                        # & Street B" intersections (Nominatim doesn't parse
+                        # "&") — approximate via geocode_intersection().
+                        coords = geocode_intersection(entry.address, MCPS_COUNTY)
+                    if coords is None:
+                        error = f'Could not find coordinates for {entry.get_type_display()} #{entry.seq}: "{entry.address}".'
+                        break
+                    entry.latitude, entry.longitude = coords
+                    entry.save(update_fields=["latitude", "longitude"])
+                    time.sleep(1)  # Nominatim usage policy: max 1 request/second
 
-        if not error:
-            route_legs = get_route_legs([(float(e.latitude), float(e.longitude)) for e in entries])
-            if route_legs is None:
-                error = "Could not compute driving directions between these stops right now — try again shortly."
-            else:
-                legs = [
-                    {"from_entry": entries[i], "to_entry": entries[i + 1], "turns": turns}
-                    for i, turns in enumerate(route_legs)
-                ]
+                if not error:
+                    route_legs = get_route_legs([(float(e.latitude), float(e.longitude)) for e in entries])
+                    if route_legs is None:
+                        error = "Could not compute driving directions between these stops right now — try again shortly."
+                    else:
+                        legs = [
+                            {"from_entry": entries[i], "to_entry": entries[i + 1], "turns": turns}
+                            for i, turns in enumerate(route_legs)
+                        ]
+            except GeocodingRateLimited:
+                # Distinct from "address not found" — the free OpenStreetMap
+                # geocoder is throttling/blocking this server's IP right
+                # now, not rejecting the address itself. See vault/routing.py.
+                error = (
+                    "OpenStreetMap's free geocoding service is rate-limiting this server right now "
+                    "(HTTP 429) — this isn't about a specific address, try again in a few minutes."
+                )
 
         context["error"] = error
         context["legs"] = legs

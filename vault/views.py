@@ -56,7 +56,7 @@ from .models import (
     VaultPassword, Vehicle,
 )
 from .route_sheet_ocr import extract_text, parse_route_sheet_text
-from .routing import geocode_address, get_route_legs
+from .routing import GeocodingRateLimited, geocode_address, get_route_legs
 
 
 # ---------- Categories ----------
@@ -1088,29 +1088,38 @@ class RouteDirectionsView(AdminRoleRequiredMixin, TemplateView):
         if len(stops) < 2:
             error = "This route needs at least 2 stops with addresses to compute directions."
         else:
-            for stop in stops:
-                if stop.latitude is not None and stop.longitude is not None:
-                    continue
-                if not stop.address:
-                    error = f'Stop #{stop.seq} ("{stop.remarks or "no name"}") has no address to geocode.'
-                    break
-                coords = geocode_address(stop.address)
-                if coords is None:
-                    error = f'Could not find coordinates for stop #{stop.seq}: "{stop.address}".'
-                    break
-                stop.latitude, stop.longitude = coords
-                stop.save(update_fields=["latitude", "longitude"])
-                time.sleep(1)  # Nominatim usage policy: max 1 request/second
+            try:
+                for stop in stops:
+                    if stop.latitude is not None and stop.longitude is not None:
+                        continue
+                    if not stop.address:
+                        error = f'Stop #{stop.seq} ("{stop.remarks or "no name"}") has no address to geocode.'
+                        break
+                    coords = geocode_address(stop.address)
+                    if coords is None:
+                        error = f'Could not find coordinates for stop #{stop.seq}: "{stop.address}".'
+                        break
+                    stop.latitude, stop.longitude = coords
+                    stop.save(update_fields=["latitude", "longitude"])
+                    time.sleep(1)  # Nominatim usage policy: max 1 request/second
 
-        if not error:
-            route_legs = get_route_legs([(float(s.latitude), float(s.longitude)) for s in stops])
-            if route_legs is None:
-                error = "Could not compute driving directions between these stops right now — try again shortly."
-            else:
-                legs = [
-                    {"from_stop": stops[i], "to_stop": stops[i + 1], "turns": turns}
-                    for i, turns in enumerate(route_legs)
-                ]
+                if not error:
+                    route_legs = get_route_legs([(float(s.latitude), float(s.longitude)) for s in stops])
+                    if route_legs is None:
+                        error = "Could not compute driving directions between these stops right now — try again shortly."
+                    else:
+                        legs = [
+                            {"from_stop": stops[i], "to_stop": stops[i + 1], "turns": turns}
+                            for i, turns in enumerate(route_legs)
+                        ]
+            except GeocodingRateLimited:
+                # Distinct from "address not found" — the free OpenStreetMap
+                # geocoder is throttling/blocking this server's IP right
+                # now, not rejecting the address itself. See vault/routing.py.
+                error = (
+                    "OpenStreetMap's free geocoding service is rate-limiting this server right now "
+                    "(HTTP 429) — this isn't about a specific stop, try again in a few minutes."
+                )
 
         context["error"] = error
         context["legs"] = legs

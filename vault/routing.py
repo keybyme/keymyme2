@@ -33,11 +33,26 @@ MODIFIER_LABELS = {
 }
 
 
+class GeocodingRateLimited(Exception):
+    """Raised when Nominatim/OSRM answer with HTTP 429. Distinct from a plain
+    None result (address genuinely not found) so callers can tell the user
+    the truth: the server is being throttled right now, not that the
+    address doesn't exist — this EC2 box's IP has been observed getting a
+    blanket 429 from Nominatim even for a single simple query, while the
+    same query succeeds from a residential/office IP, so it looks like an
+    IP/ASN-level block on their end rather than us exceeding the documented
+    1 req/sec policy."""
+
+
 def _fetch_json(url):
     request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     try:
         with urllib.request.urlopen(request, timeout=15) as response:
             return json.loads(response.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        if exc.code == 429:
+            raise GeocodingRateLimited from exc
+        return None
     except (urllib.error.URLError, json.JSONDecodeError, TimeoutError, ValueError):
         return None
 
