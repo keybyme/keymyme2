@@ -13,4 +13,8 @@ urlpatterns = [
     path("employees/new/", views.EmployeeCreateView.as_view(), name="employee_create"),
     path("employees/<int:pk>/edit/", views.EmployeeUpdateView.as_view(), name="employee_update"),
     path("employees/<int:pk>/delete/", views.EmployeeDeleteView.as_view(), name="employee_delete"),
+    path("routes/", views.RouteListView.as_view(), name="route_list"),
+    path("routes/new/", views.RouteCreateView.as_view(), name="route_create"),
+    path("routes/<int:pk>/edit/", views.RouteUpdateView.as_view(), name="route_update"),
+    path("routes/<int:pk>/delete/", views.RouteDeleteView.as_view(), name="route_delete"),
 ]

@@ -1,54 +1,54 @@
 {% extends "base.html" %}
-{% block title %}MCPS Schools{% endblock %}
+{% block title %}MCPS Routes{% endblock %}
 {% block content %}
 <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
     <div>
-        <h1 class="text-2xl font-semibold text-gray-900">MCPS Schools</h1>
-        <p id="mcps-clock" class="mt-1 text-sm text-gray-500"></p>
+        <h1 class="text-2xl font-semibold text-gray-900">MCPS Routes</h1>
+        <p id="mcps-routes-clock" class="mt-1 text-sm text-gray-500"></p>
     </div>
     <div class="flex flex-wrap items-center gap-2">
+        <a href="{% url 'schools:school_list' %}" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
+            {% include "icons/academic-cap.html" with class="w-4 h-4" %} MCPS Schools
+        </a>
         <a href="{% url 'schools:employee_list' %}" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
             {% include "icons/users.html" with class="w-4 h-4" %} MCPS Employees
         </a>
-        <a href="{% url 'schools:route_list' %}" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
-            {% include "icons/car.html" with class="w-4 h-4" %} MCPS Routes
-        </a>
-        <a href="{% url 'schools:school_create' %}" class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700">
-            {% include "icons/plus.html" with class="w-4 h-4" %} New school
+        <a href="{% url 'schools:route_create' %}" class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700">
+            {% include "icons/plus.html" with class="w-4 h-4" %} New route stop
         </a>
     </div>
 </div>
 
 <form method="get" class="mb-4 flex flex-wrap items-end gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
     <div class="flex-1 min-w-[200px]">
-        <label for="school-q" class="mb-1 block text-sm font-medium text-gray-700">Search</label>
-        <input type="text" id="school-q" name="q" value="{{ query }}" placeholder="Name, address or city" autocomplete="off"
+        <label for="route-q" class="mb-1 block text-sm font-medium text-gray-700">Search</label>
+        <input type="text" id="route-q" name="q" value="{{ query }}" placeholder="Route #, bus #, address, driver or attendant" autocomplete="off"
                class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
     </div>
     <div class="min-w-[180px]">
-        <label for="school-type" class="mb-1 block text-sm font-medium text-gray-700">Type</label>
-        <select id="school-type" name="type" class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
+        <label for="route-type" class="mb-1 block text-sm font-medium text-gray-700">Type</label>
+        <select id="route-type" name="type" class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
             <option value="">All types</option>
-            {% for value, label in school_types %}
+            {% for value, label in route_types %}
             <option value="{{ value }}" {% if selected_type == value %}selected{% endif %}>{{ label }}</option>
             {% endfor %}
         </select>
     </div>
     <button type="submit" class="rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">Search</button>
     {% if query or selected_type %}
-    <a href="{% url 'schools:school_list' %}" class="text-sm font-medium text-gray-600 hover:text-gray-900">Clear</a>
+    <a href="{% url 'schools:route_list' %}" class="text-sm font-medium text-gray-600 hover:text-gray-900">Clear</a>
     {% endif %}
 </form>
 
-<div id="school-results">
-    {% include "schools/_school_results.html" %}
+<div id="route-results">
+    {% include "schools/_route_results.html" %}
 </div>
 
-{% include "schools/_live_search.html" %}
+{% include "schools/_route_live_search.html" %}
 
 <script>
 (function () {
-    const clock = document.getElementById('mcps-clock');
+    const clock = document.getElementById('mcps-routes-clock');
 
     function updateClock() {
         clock.textContent = new Date().toLocaleString('en-US', {

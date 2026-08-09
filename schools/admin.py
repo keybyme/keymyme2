@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Employee, School
+from .models import Employee, Route, School
 
 
 @admin.register(School)
@@ -15,3 +15,10 @@ class EmployeeAdmin(admin.ModelAdmin):
     list_display = ("name", "phone", "position")
     list_filter = ("position",)
     search_fields = ("name", "phone")
+
+
+@admin.register(Route)
+class RouteAdmin(admin.ModelAdmin):
+    list_display = ("route_number", "bus_number", "route_type", "driver", "attendant", "stop_number", "seq", "address")
+    list_filter = ("route_type",)
+    search_fields = ("route_number", "bus_number", "address")

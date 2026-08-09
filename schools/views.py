@@ -6,15 +6,16 @@ from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
 from vault.mixins import AjaxPartialTemplateMixin, ModuleAccessRequiredMixin
 
-from .forms import EmployeeForm, SchoolForm
-from .models import Employee, School
+from .forms import EmployeeForm, RouteForm, SchoolForm
+from .models import Employee, Route, School
 
-# Not owner-scoped on purpose: School/Employee are shared reference catalogs
-# (MCPS public schools, MCPS transportation staff), not per-user vault data —
-# see schools/models.py.
+# Not owner-scoped on purpose: School/Employee/Route are shared reference
+# catalogs (MCPS public schools, MCPS transportation staff, MCPS bus route
+# stops), not per-user vault data — see schools/models.py.
 
 SORTABLE_FIELDS = ("school_type", "address", "city", "zip_code")
 EMPLOYEE_SORTABLE_FIELDS = ("phone", "position")
+ROUTE_SORTABLE_FIELDS = ("route_type", "stop_number", "seq", "address")
 
 
 class SchoolListView(AjaxPartialTemplateMixin, ModuleAccessRequiredMixin, ListView):
@@ -174,4 +175,87 @@ class EmployeeDeleteView(ModuleAccessRequiredMixin, DeleteView):
     model = Employee
     template_name = "schools/employee_confirm_delete.html"
     success_url = reverse_lazy("schools:employee_list")
+    module_codename = "artifacts_mcps"
+
+
+class RouteListView(AjaxPartialTemplateMixin, ModuleAccessRequiredMixin, ListView):
+    model = Route
+    template_name = "schools/route_list.html"
+    ajax_template_name = "schools/_route_results.html"
+    context_object_name = "routes"
+    paginate_by = 25
+    module_codename = "artifacts_mcps"
+
+    def get_queryset(self):
+        queryset = super().get_queryset().select_related("driver", "attendant")
+
+        route_type = self.request.GET.get("type")
+        if route_type:
+            queryset = queryset.filter(route_type=route_type)
+
+        query = self.request.GET.get("q")
+        if query:
+            queryset = queryset.filter(
+                Q(route_number__icontains=query)
+                | Q(bus_number__icontains=query)
+                | Q(address__icontains=query)
+                | Q(driver__name__icontains=query)
+                | Q(attendant__name__icontains=query)
+            )
+
+        sort = self.request.GET.get("sort", "")
+        if sort.lstrip("-") in ROUTE_SORTABLE_FIELDS:
+            queryset = queryset.order_by(sort, "route_number", "seq")
+
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        query = self.request.GET.get("q", "")
+        selected_type = self.request.GET.get("type", "")
+        sort = self.request.GET.get("sort", "")
+
+        context["route_types"] = Route.RouteType.choices
+        context["selected_type"] = selected_type
+        context["query"] = query
+        context["sort_key"] = sort.lstrip("-")
+        context["sort_reverse"] = sort.startswith("-")
+
+        base_params = {}
+        if query:
+            base_params["q"] = query
+        if selected_type:
+            base_params["type"] = selected_type
+
+        for field in ROUTE_SORTABLE_FIELDS:
+            next_sort = f"-{field}" if sort == field else field
+            context[f"{field}_sort_url"] = "?" + urlencode({**base_params, "sort": next_sort})
+
+        if sort:
+            base_params["sort"] = sort
+        context["extra_qs"] = urlencode(base_params)
+
+        return context
+
+
+class RouteCreateView(ModuleAccessRequiredMixin, CreateView):
+    model = Route
+    form_class = RouteForm
+    template_name = "schools/route_form.html"
+    success_url = reverse_lazy("schools:route_list")
+    module_codename = "artifacts_mcps"
+
+
+class RouteUpdateView(ModuleAccessRequiredMixin, UpdateView):
+    model = Route
+    form_class = RouteForm
+    template_name = "schools/route_form.html"
+    success_url = reverse_lazy("schools:route_list")
+    module_codename = "artifacts_mcps"
+
+
+class RouteDeleteView(ModuleAccessRequiredMixin, DeleteView):
+    model = Route
+    template_name = "schools/route_confirm_delete.html"
+    success_url = reverse_lazy("schools:route_list")
     module_codename = "artifacts_mcps"
