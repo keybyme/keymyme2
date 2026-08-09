@@ -6,16 +6,18 @@ from django.views.generic import CreateView, DeleteView, ListView, UpdateView
 
 from vault.mixins import AjaxPartialTemplateMixin, ModuleAccessRequiredMixin
 
-from .forms import EmployeeForm, RouteForm, SchoolForm
-from .models import Employee, Route, School
+from .forms import AmMidPmEntryForm, EmployeeForm, RouteForm, SchoolForm
+from .models import AmMidPmEntry, Employee, Route, School
 
-# Not owner-scoped on purpose: School/Employee/Route are shared reference
-# catalogs (MCPS public schools, MCPS transportation staff, MCPS bus route
-# stops), not per-user vault data — see schools/models.py.
+# Not owner-scoped on purpose: School/Employee/Route/AmMidPmEntry are shared
+# reference catalogs (MCPS public schools, MCPS transportation staff, MCPS
+# bus route stops, MCPS AM/MID/PM stop times), not per-user vault data — see
+# schools/models.py.
 
 SORTABLE_FIELDS = ("school_type", "address", "city", "zip_code")
 EMPLOYEE_SORTABLE_FIELDS = ("phone", "position")
 ROUTE_SORTABLE_FIELDS = ("bus_number",)
+AMMIDPM_SORTABLE_FIELDS = ("type", "seq", "time", "address", "next")
 
 
 class SchoolListView(AjaxPartialTemplateMixin, ModuleAccessRequiredMixin, ListView):
@@ -248,4 +250,95 @@ class RouteDeleteView(ModuleAccessRequiredMixin, DeleteView):
     model = Route
     template_name = "schools/route_confirm_delete.html"
     success_url = reverse_lazy("schools:route_list")
+    module_codename = "artifacts_mcps"
+
+
+class AmMidPmEntryListView(AjaxPartialTemplateMixin, ModuleAccessRequiredMixin, ListView):
+    model = AmMidPmEntry
+    template_name = "schools/ammidpm_list.html"
+    ajax_template_name = "schools/_ammidpm_results.html"
+    context_object_name = "entries"
+    paginate_by = 25
+    module_codename = "artifacts_mcps"
+
+    def get_queryset(self):
+        queryset = super().get_queryset().select_related("route")
+
+        run_type = self.request.GET.get("type")
+        if run_type:
+            queryset = queryset.filter(type=run_type)
+
+        query = self.request.GET.get("q")
+        if query:
+            queryset = queryset.filter(
+                Q(route__route_number__icontains=query) | Q(address__icontains=query)
+            )
+
+        sort = self.request.GET.get("sort", "")
+        if sort.lstrip("-") in AMMIDPM_SORTABLE_FIELDS:
+            queryset = queryset.order_by(sort, "route__route_number", "seq")
+
+        return queryset
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        query = self.request.GET.get("q", "")
+        selected_type = self.request.GET.get("type", "")
+        sort = self.request.GET.get("sort", "")
+
+        context["run_types"] = AmMidPmEntry.RunType.choices
+        context["selected_type"] = selected_type
+        context["query"] = query
+        context["sort_key"] = sort.lstrip("-")
+        context["sort_reverse"] = sort.startswith("-")
+
+        base_params = {}
+        if query:
+            base_params["q"] = query
+        if selected_type:
+            base_params["type"] = selected_type
+
+        for field in AMMIDPM_SORTABLE_FIELDS:
+            next_sort = f"-{field}" if sort == field else field
+            context[f"{field}_sort_url"] = "?" + urlencode({**base_params, "sort": next_sort})
+
+        if sort:
+            base_params["sort"] = sort
+        context["extra_qs"] = urlencode(base_params)
+
+        return context
+
+
+class AmMidPmRoutesDatalistMixin:
+    """Feeds the `<datalist>` of existing MCPS Route numbers that the `route`
+    text field in AmMidPmEntryForm autocompletes against."""
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["route_numbers"] = Route.objects.order_by("route_number").values_list(
+            "route_number", flat=True
+        )
+        return context
+
+
+class AmMidPmEntryCreateView(AmMidPmRoutesDatalistMixin, ModuleAccessRequiredMixin, CreateView):
+    model = AmMidPmEntry
+    form_class = AmMidPmEntryForm
+    template_name = "schools/ammidpm_form.html"
+    success_url = reverse_lazy("schools:ammidpm_list")
+    module_codename = "artifacts_mcps"
+
+
+class AmMidPmEntryUpdateView(AmMidPmRoutesDatalistMixin, ModuleAccessRequiredMixin, UpdateView):
+    model = AmMidPmEntry
+    form_class = AmMidPmEntryForm
+    template_name = "schools/ammidpm_form.html"
+    success_url = reverse_lazy("schools:ammidpm_list")
+    module_codename = "artifacts_mcps"
+
+
+class AmMidPmEntryDeleteView(ModuleAccessRequiredMixin, DeleteView):
+    model = AmMidPmEntry
+    template_name = "schools/ammidpm_confirm_delete.html"
+    success_url = reverse_lazy("schools:ammidpm_list")
     module_codename = "artifacts_mcps"

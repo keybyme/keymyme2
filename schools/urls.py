@@ -17,4 +17,8 @@ urlpatterns = [
     path("routes/new/", views.RouteCreateView.as_view(), name="route_create"),
     path("routes/<int:pk>/edit/", views.RouteUpdateView.as_view(), name="route_update"),
     path("routes/<int:pk>/delete/", views.RouteDeleteView.as_view(), name="route_delete"),
+    path("am-mid-pm/", views.AmMidPmEntryListView.as_view(), name="ammidpm_list"),
+    path("am-mid-pm/new/", views.AmMidPmEntryCreateView.as_view(), name="ammidpm_create"),
+    path("am-mid-pm/<int:pk>/edit/", views.AmMidPmEntryUpdateView.as_view(), name="ammidpm_update"),
+    path("am-mid-pm/<int:pk>/delete/", views.AmMidPmEntryDeleteView.as_view(), name="ammidpm_delete"),
 ]

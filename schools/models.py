@@ -103,3 +103,38 @@ class Route(models.Model):
 
     def __str__(self):
         return self.route_number
+
+
+class AmMidPmEntry(models.Model):
+    """Reference catalog of MCPS AM/MID/PM stop times per route: for a given
+    Route, the sequence of stops (Seq #) run at a given time of day (Type),
+    each with a Time, an Address, and the Time the bus needs to leave for the
+    Next stop. Same shared-reference pattern as School/Employee/Route — not
+    owned by any user, just gated behind the artifacts_mcps Module.
+    """
+
+    class RunType(models.TextChoices):
+        AM = "AM", "AM"
+        MID = "MID", "MID"
+        PM = "PM", "PM"
+
+    route = models.ForeignKey(
+        Route, on_delete=models.PROTECT, related_name="am_mid_pm_entries",
+        verbose_name="Route",
+    )
+    type = models.CharField(max_length=3, choices=RunType.choices, verbose_name="Type")
+    seq = models.PositiveIntegerField(verbose_name="Seq #")
+    time = models.TimeField(verbose_name="Time")
+    address = models.CharField(max_length=255, verbose_name="Address")
+    next = models.TimeField(
+        null=True, blank=True, verbose_name="Next",
+        help_text="Time the bus needs to leave for the next stop, if applicable.",
+    )
+
+    class Meta:
+        ordering = ["route__route_number", "type", "seq"]
+        verbose_name = "AM-MID-PM entry"
+        verbose_name_plural = "AM-MID-PM entries"
+
+    def __str__(self):
+        return f"{self.route.route_number} {self.type} #{self.seq}"

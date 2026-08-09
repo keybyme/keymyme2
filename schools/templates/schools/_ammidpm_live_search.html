@@ -1,0 +1,29 @@
+<script>
+(function () {
+    const input = document.getElementById('ammidpm-q');
+    const typeSelect = document.getElementById('ammidpm-type');
+    const results = document.getElementById('ammidpm-results');
+    const listUrl = "{{ request.path }}";
+    let debounceTimer;
+
+    function fetchResults() {
+        const params = new URLSearchParams();
+        if (input.value) params.set('q', input.value);
+        if (typeSelect.value) params.set('type', typeSelect.value);
+        const url = params.toString() ? `${listUrl}?${params.toString()}` : listUrl;
+
+        fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function (response) { return response.text(); })
+            .then(function (html) {
+                results.innerHTML = html;
+                history.replaceState(null, '', url);
+            });
+    }
+
+    input.addEventListener('input', function () {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(fetchResults, 300);
+    });
+    typeSelect.addEventListener('change', fetchResults);
+})();
+</script>
