@@ -1,10 +1,12 @@
+import time
 from urllib.parse import urlencode
 
 from django.db.models import Q
 from django.urls import reverse_lazy
-from django.views.generic import CreateView, DeleteView, ListView, UpdateView
+from django.views.generic import CreateView, DeleteView, ListView, TemplateView, UpdateView
 
 from vault.mixins import AjaxPartialTemplateMixin, ModuleAccessRequiredMixin
+from vault.routing import geocode_address, get_route_legs
 
 from .forms import AmMidPmEntryForm, EmployeeForm, RouteForm, SchoolForm
 from .models import AmMidPmEntry, Employee, Route, School
@@ -342,3 +344,66 @@ class AmMidPmEntryDeleteView(ModuleAccessRequiredMixin, DeleteView):
     template_name = "schools/ammidpm_confirm_delete.html"
     success_url = reverse_lazy("schools:ammidpm_list")
     module_codename = "artifacts_mcps"
+
+
+class LeftsRightsView(ModuleAccessRequiredMixin, TemplateView):
+    """Turn-by-turn left/right driving guide for one MCPS Route, built from
+    every AM-MID-PM entry that route has (in the same Route→Type→Seq# order
+    as the AM-MID-PM list) — a driver cheat-sheet, not full narration. Same
+    free geocoding/routing (Nominatim + OSRM) and lat/lon caching pattern as
+    vault.RouteDirectionsView, just reading from AmMidPmEntry instead of
+    RouteStop — see vault/routing.py."""
+    template_name = "schools/lefts_rights.html"
+    module_codename = "artifacts_mcps"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["routes"] = (
+            Route.objects.filter(am_mid_pm_entries__isnull=False)
+            .distinct().order_by("route_number")
+        )
+
+        route_id = self.request.GET.get("route")
+        if not route_id:
+            return context
+
+        route = Route.objects.filter(pk=route_id).first()
+        if route is None:
+            context["error"] = "Route not found."
+            return context
+        context["selected_route"] = route
+
+        entries = list(AmMidPmEntry.objects.filter(route=route).order_by("type", "seq"))
+        error = None
+        legs = []
+
+        if len(entries) < 2:
+            error = "This route needs at least 2 AM-MID-PM entries with addresses to compute directions."
+        else:
+            for entry in entries:
+                if entry.latitude is not None and entry.longitude is not None:
+                    continue
+                if not entry.address:
+                    error = f'{entry.get_type_display()} #{entry.seq} has no address to geocode.'
+                    break
+                coords = geocode_address(entry.address)
+                if coords is None:
+                    error = f'Could not find coordinates for {entry.get_type_display()} #{entry.seq}: "{entry.address}".'
+                    break
+                entry.latitude, entry.longitude = coords
+                entry.save(update_fields=["latitude", "longitude"])
+                time.sleep(1)  # Nominatim usage policy: max 1 request/second
+
+        if not error:
+            route_legs = get_route_legs([(float(e.latitude), float(e.longitude)) for e in entries])
+            if route_legs is None:
+                error = "Could not compute driving directions between these stops right now — try again shortly."
+            else:
+                legs = [
+                    {"from_entry": entries[i], "to_entry": entries[i + 1], "turns": turns}
+                    for i, turns in enumerate(route_legs)
+                ]
+
+        context["error"] = error
+        context["legs"] = legs
+        return context

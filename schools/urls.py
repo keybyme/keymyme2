@@ -21,4 +21,5 @@ urlpatterns = [
     path("am-mid-pm/new/", views.AmMidPmEntryCreateView.as_view(), name="ammidpm_create"),
     path("am-mid-pm/<int:pk>/edit/", views.AmMidPmEntryUpdateView.as_view(), name="ammidpm_update"),
     path("am-mid-pm/<int:pk>/delete/", views.AmMidPmEntryDeleteView.as_view(), name="ammidpm_delete"),
+    path("lefts-rights/", views.LeftsRightsView.as_view(), name="lefts_rights"),
 ]

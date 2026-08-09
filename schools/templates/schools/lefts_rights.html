@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}MCPS Lefts & Rights{% endblock %}
+{% block content %}
+<div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+    <div>
+        <h1 class="text-2xl font-semibold text-gray-900">MCPS Lefts & Rights</h1>
+        <p id="mcps-lr-clock" class="mt-1 text-sm text-gray-500"></p>
+    </div>
+    <div class="flex flex-wrap items-center gap-2">
+        <a href="{% url 'schools:school_list' %}" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
+            {% include "icons/academic-cap.html" with class="w-4 h-4" %} MCPS Schools
+        </a>
+        <a href="{% url 'schools:employee_list' %}" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
+            {% include "icons/users.html" with class="w-4 h-4" %} MCPS Employees
+        </a>
+        <a href="{% url 'schools:route_list' %}" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
+            {% include "icons/car.html" with class="w-4 h-4" %} MCPS Routes
+        </a>
+        <a href="{% url 'schools:ammidpm_list' %}" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
+            {% include "icons/clock.html" with class="w-4 h-4" %} MCPS AM-MID-PM
+        </a>
+    </div>
+</div>
+
+<form method="get" class="mb-6 flex flex-wrap items-end gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+    <div class="flex-1 min-w-[220px]">
+        <label for="lr-route" class="mb-1 block text-sm font-medium text-gray-700">Route</label>
+        <select id="lr-route" name="route" class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            <option value="">Select a route…</option>
+            {% for route in routes %}
+            <option value="{{ route.pk }}" {% if selected_route.pk == route.pk %}selected{% endif %}>{{ route.route_number }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <button type="submit" class="rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">Show directions</button>
+</form>
+{% if not routes %}
+<p class="text-sm text-gray-500">No routes have AM-MID-PM entries yet — add some on <a href="{% url 'schools:ammidpm_list' %}" class="text-blue-600 hover:text-blue-800">MCPS AM-MID-PM</a> first.</p>
+{% endif %}
+
+{% if selected_route %}
+    {% if error %}
+    <div class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        {{ error }}
+    </div>
+    {% else %}
+    <p class="mb-6 text-xs text-gray-500">Left/right turns only — computed by OpenStreetMap (OSRM), not Google. Addresses are geocoded once and cached; edit an entry's address on MCPS AM-MID-PM to force a re-check.</p>
+    <div class="space-y-6">
+        {% for leg in legs %}
+        <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+            <div class="bg-cafe-dark px-4 py-2 text-sm font-bold uppercase tracking-wide text-white">
+                {{ leg.from_entry.get_type_display }} #{{ leg.from_entry.seq }} → {{ leg.to_entry.get_type_display }} #{{ leg.to_entry.seq }}: {{ leg.to_entry.address }}
+            </div>
+            {% if leg.turns %}
+            <ol class="divide-y divide-gray-100">
+                {% for turn in leg.turns %}
+                <li class="flex items-center gap-3 px-4 py-2.5 text-sm">
+                    <span class="inline-flex h-6 w-6 flex-none items-center justify-center rounded-full bg-cream-soft text-xs font-bold text-cafe-dark">{{ forloop.counter }}</span>
+                    {% if "left" in turn.label|lower %}
+                        {% include "icons/chevron-left.html" with class="w-4 h-4 flex-none text-blue-600" %}
+                    {% else %}
+                        {% include "icons/chevron-right.html" with class="w-4 h-4 flex-none text-blue-600" %}
+                    {% endif %}
+                    <span class="text-gray-900">{{ turn.label }} onto <strong>{{ turn.street }}</strong></span>
+                    <span class="ml-auto whitespace-nowrap text-xs text-gray-400">{{ turn.distance_mi }} mi</span>
+                </li>
+                {% endfor %}
+            </ol>
+            {% else %}
+            <p class="px-4 py-3 text-sm text-gray-500">No turns — straight shot.</p>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+{% endif %}
+
+<script>
+(function () {
+    const clock = document.getElementById('mcps-lr-clock');
+
+    function updateClock() {
+        clock.textContent = new Date().toLocaleString('en-US', {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+            second: '2-digit',
+        });
+    }
+    updateClock();
+    setInterval(updateClock, 1000);
+})();
+</script>
+{% endblock %}

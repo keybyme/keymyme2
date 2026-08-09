@@ -130,6 +130,11 @@ class AmMidPmEntry(models.Model):
         null=True, blank=True, verbose_name="Next",
         help_text="Minutes and seconds until the next stop (MM:SS), if applicable.",
     )
+    latitude = models.DecimalField(
+        max_digits=9, decimal_places=6, null=True, blank=True,
+        help_text="Geocoded from address by the MCPS Lefts & Rights view the first time it's opened; cached here to avoid re-geocoding on every visit.",
+    )
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
 
     class Meta:
         ordering = ["route__route_number", "type", "seq"]
@@ -138,3 +143,18 @@ class AmMidPmEntry(models.Model):
 
     def __str__(self):
         return f"{self.route.route_number} {self.type} #{self.seq}"
+
+    def save(self, *args, **kwargs):
+        # Invalidate the cached geocode when the address changes, so the
+        # Lefts & Rights view re-geocodes instead of routing to the old
+        # location. Skipped when the caller is *only* writing
+        # latitude/longitude (that view itself caching a fresh geocode —
+        # nothing to invalidate there). Same pattern as vault.RouteStop.save().
+        update_fields = kwargs.get("update_fields")
+        geocode_only = update_fields is not None and set(update_fields) <= {"latitude", "longitude"}
+        if not geocode_only and self.pk:
+            old_address = AmMidPmEntry.objects.filter(pk=self.pk).values_list("address", flat=True).first()
+            if old_address is not None and old_address != self.address:
+                self.latitude = None
+                self.longitude = None
+        super().save(*args, **kwargs)
