@@ -69,5 +69,41 @@
     updateClock();
     setInterval(updateClock, 1000);
 })();
+
+// Clicking an address should start driving directions from wherever the
+// driver actually is right now, not force them to type/confirm an origin —
+// defined globally (not inside an IIFE) because it's called via inline
+// onclick= from rows re-rendered by the live-search fetch (see
+// _ammidpm_live_search.html), which only replaces #ammidpm-results'
+// innerHTML rather than re-running this script block.
+function mcpsOpenDirectionsFromHere(event, address) {
+    event.preventDefault();
+    // Open the tab synchronously, inside the click handler, so it isn't
+    // blocked as a popup — geolocation's callback fires later, async, and a
+    // window.open() there wouldn't count as "in direct response to a user
+    // gesture" anymore.
+    const newTab = window.open('', '_blank', 'noopener');
+    const destination = encodeURIComponent(address);
+
+    function go(originParam) {
+        const url = `https://www.google.com/maps/dir/?api=1${originParam}&destination=${destination}&travelmode=driving`;
+        if (newTab) {
+            newTab.location.href = url;
+        } else {
+            window.location.href = url;
+        }
+    }
+
+    if (!navigator.geolocation) {
+        go('');
+        return false;
+    }
+    navigator.geolocation.getCurrentPosition(
+        (position) => go(`&origin=${position.coords.latitude},${position.coords.longitude}`),
+        () => go(''),  // permission denied/unavailable — let Maps fall back to its own default
+        { timeout: 8000 }
+    );
+    return false;
+}
 </script>
 {% endblock %}
