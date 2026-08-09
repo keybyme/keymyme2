@@ -394,6 +394,13 @@ class LeftsRightsView(ModuleAccessRequiredMixin, TemplateView):
         error = None
         legs = []
 
+        # Feeds the "Open full route in Google Maps" button — a single
+        # Maps link with every stop as a waypoint, built from the raw
+        # address text and geocoded by Google itself, not by our own
+        # LocationIQ/OSRM pipeline below. Set unconditionally (even if that
+        # pipeline errors out) so the Maps button still works on its own.
+        context["entry_addresses"] = [entry.address for entry in entries if entry.address]
+
         if len(entries) < 2:
             error = "This route needs at least 2 AM-MID-PM entries with addresses to compute directions."
         else:

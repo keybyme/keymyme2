@@ -39,6 +39,15 @@
 {% endif %}
 
 {% if selected_route %}
+    {% if entry_addresses %}
+    {{ entry_addresses|json_script:"mcps-route-addresses" }}
+    <div class="mb-6">
+        <button type="button" onclick="return mcpsOpenRouteInGoogleMaps(event);" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
+            {% include "icons/map-pin.html" with class="w-4 h-4" %} Open full route in Google Maps
+        </button>
+        <p class="mt-1 text-xs text-gray-500">Groups every AM-MID-PM address for {{ selected_route.route_number }} into one Google Maps trip, starting from your current location — Google does its own geocoding here, independent of the left/right guide below.</p>
+    </div>
+    {% endif %}
     {% if error %}
     <div class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
         {{ error }}
@@ -92,5 +101,48 @@
     updateClock();
     setInterval(updateClock, 1000);
 })();
+
+// Groups every AM-MID-PM address for the selected route into one Google
+// Maps trip (origin + waypoints + destination), starting from the driver's
+// current GPS location — same current-location pattern as MCPS AM-MID-PM's
+// per-address links, just with the whole route as waypoints instead of one
+// stop. Google does its own geocoding on the raw address text here, so this
+// works even when our own LocationIQ/OSRM pipeline above couldn't (e.g. it
+// errored out, or hasn't finished geocoding yet).
+function mcpsOpenRouteInGoogleMaps(event) {
+    event.preventDefault();
+    const dataEl = document.getElementById('mcps-route-addresses');
+    if (!dataEl) return false;
+    const addresses = JSON.parse(dataEl.textContent);
+    if (!addresses.length) return false;
+
+    const destination = encodeURIComponent(addresses[addresses.length - 1]);
+    const waypoints = addresses.slice(0, -1).map(encodeURIComponent).join('|');
+
+    // Open synchronously, inside the click handler, so it isn't blocked as
+    // a popup — geolocation's callback fires later, async.
+    const newTab = window.open('', '_blank', 'noopener');
+
+    function go(originParam) {
+        let url = `https://www.google.com/maps/dir/?api=1${originParam}&destination=${destination}&travelmode=driving`;
+        if (waypoints) url += `&waypoints=${waypoints}`;
+        if (newTab) {
+            newTab.location.href = url;
+        } else {
+            window.location.href = url;
+        }
+    }
+
+    if (!navigator.geolocation) {
+        go('');
+        return false;
+    }
+    navigator.geolocation.getCurrentPosition(
+        (position) => go(`&origin=${position.coords.latitude},${position.coords.longitude}`),
+        () => go(''),  // permission denied/unavailable — let Maps fall back to its own default
+        { timeout: 8000 }
+    );
+    return false;
+}
 </script>
 {% endblock %}
