@@ -27,6 +27,17 @@ AMMIDPM_SORTABLE_FIELDS = ("type", "seq", "time", "address", "next")
 # county.
 MCPS_COUNTY = "Montgomery County, MD"
 
+# Roughly Montgomery County, MD ("lon1,lat1,lon2,lat2" — LocationIQ's
+# viewbox format), padded generously past the county line so a stop just
+# outside it still matches. Passed to every geocode call below so an
+# ambiguous/malformed street name can't silently resolve to a same-named
+# street somewhere else in the country — happened for real: "20049
+# Dunstable Cir 20878" (a real Montgomery County stop) geocoded to Orlando,
+# FL without this, and "18855 Bent Willow Cir20874" (typo: no space before
+# the zip) to New Jersey — both then produced dozens of nonsense turns on
+# roads that don't lead anywhere near the actual route.
+MCPS_VIEWBOX = "-77.60,38.90,-76.85,39.40"
+
 
 class SchoolListView(AjaxPartialTemplateMixin, ModuleAccessRequiredMixin, ListView):
     model = School
@@ -393,12 +404,12 @@ class LeftsRightsView(ModuleAccessRequiredMixin, TemplateView):
                     if not entry.address:
                         error = f'{entry.get_type_display()} #{entry.seq} has no address to geocode.'
                         break
-                    coords = geocode_address(entry.address)
+                    coords = geocode_address(entry.address, viewbox=MCPS_VIEWBOX)
                     if coords is None:
                         # Plain free-text search fails outright on "Street A
-                        # & Street B" intersections (plain free-text search doesn't parse
-                        # "&") — approximate via geocode_intersection().
-                        coords = geocode_intersection(entry.address, MCPS_COUNTY)
+                        # & Street B" intersections (it doesn't parse "&") —
+                        # approximate via geocode_intersection() instead.
+                        coords = geocode_intersection(entry.address, MCPS_COUNTY, viewbox=MCPS_VIEWBOX)
                     if coords is None:
                         error = f'Could not find coordinates for {entry.get_type_display()} #{entry.seq}: "{entry.address}".'
                         break

@@ -22,7 +22,12 @@ from django.conf import settings
 
 USER_AGENT = "KeyByMe/1.0 (personal app; contact: me@20874.com)"
 
-ZIP_RE = re.compile(r"\b\d{5}\b")
+# No \b before the digits: a typo/OCR glitch can run the zip straight into
+# the street type with no space ("...Cir20874"), and \b wouldn't fire there
+# since letters and digits are both "word" characters — only look-arounds on
+# the digits themselves (not preceded/followed by another digit, so we don't
+# grab a partial zip+4) catch that case too.
+ZIP_RE = re.compile(r"(?<!\d)\d{5}(?!\d)")
 INTERSECTION_RE = re.compile(r"^(.+?)\s*&\s*(.+)$")
 
 LOCATIONIQ_URL = "https://us1.locationiq.com/v1/search"
@@ -63,22 +68,40 @@ def _fetch_json(url):
         return None
 
 
-def _geocode_query(query):
-    params = urllib.parse.urlencode({
+def _geocode_query(query, viewbox=None):
+    params = {
         "key": settings.LOCATIONIQ_API_KEY,
         "q": query, "format": "json", "limit": 1, "countrycodes": "us",
-    })
-    results = _fetch_json(f"{LOCATIONIQ_URL}?{params}")
+    }
+    if viewbox:
+        # Restricts results to this "lon1,lat1,lon2,lat2" box server-side
+        # (bounded=1), rather than trusting the geocoder to guess the right
+        # region for an ambiguous/malformed street name and filtering after
+        # the fact — the latter can't recover a correct in-region match that
+        # bounded search would have found instead. See callers for why:
+        # a street name shared with somewhere far away (e.g. "Dunstable
+        # Cir" also exists near Orlando, FL) can otherwise win outright.
+        params["viewbox"] = viewbox
+        params["bounded"] = 1
+    results = _fetch_json(f"{LOCATIONIQ_URL}?{urllib.parse.urlencode(params)}")
     if not results:
         return None
     return float(results[0]["lat"]), float(results[0]["lon"])
 
 
-def geocode_address(address):
+def geocode_address(address, viewbox=None):
     """Returns (latitude, longitude) as floats, or None if the address
     couldn't be resolved. Callers looping over several addresses must space
     calls out themselves (LocationIQ free tier: max 2 req/sec) — see
     RouteDirectionsView.
+
+    `viewbox` (optional "lon1,lat1,lon2,lat2") constrains every attempt to
+    that region — worth passing when the caller knows results outside it are
+    never correct (e.g. MCPS routes are always in Montgomery County, MD; see
+    schools.views.MCPS_VIEWBOX). Real example that motivated this: without
+    it, "20049 Dunstable Cir 20878" (an MCPS stop in Montgomery County)
+    geocoded to a "Dunstable Cir" near Orlando, FL instead — same street
+    name, wrong state, silently accepted because nothing said it couldn't be.
 
     Tries the address as typed, then two fallbacks (in order) once a zip code
     can be found in it:
@@ -90,7 +113,7 @@ def geocode_address(address):
        mailing/USPS city doesn't exactly match OSM's canonical locality name
        for that zip (common in MD, e.g. "Rockville" on an envelope vs.
        "Aspen Hill" in OSM), even though the zip itself is correct."""
-    coords = _geocode_query(address)
+    coords = _geocode_query(address, viewbox)
     if coords is not None:
         return coords
 
@@ -108,13 +131,13 @@ def geocode_address(address):
 
     for candidate in candidates:
         time.sleep(1)  # each retry is a new request for the same address — stay well under the rate limit
-        coords = _geocode_query(candidate)
+        coords = _geocode_query(candidate, viewbox)
         if coords is not None:
             return coords
     return None
 
 
-def geocode_intersection(address, default_location):
+def geocode_intersection(address, default_location, viewbox=None):
     """Approximates the coordinates of a "Street A & Street B[, City, State]"
     corner by geocoding each street separately and averaging the two points.
 
@@ -124,6 +147,7 @@ def geocode_intersection(address, default_location):
     mailing address, often with no city/state at all (e.g. "Skylark Rd &
     Walnut Haven Dr"). `default_location` (e.g. "Montgomery County, MD") is
     used when the address itself has no city/state after the streets.
+    `viewbox` — see geocode_address() — constrains both sub-queries.
 
     Not exact — each street's geocode is the provider's best match for that
     street name within the area, not the literal point where the two cross —
@@ -141,9 +165,9 @@ def geocode_intersection(address, default_location):
     if not street_a or not street_b or not location:
         return None
 
-    coords_a = _geocode_query(f"{street_a}, {location}")
+    coords_a = _geocode_query(f"{street_a}, {location}", viewbox)
     time.sleep(1)  # stay well under the rate limit between the two sub-queries
-    coords_b = _geocode_query(f"{street_b}, {location}")
+    coords_b = _geocode_query(f"{street_b}, {location}", viewbox)
     if coords_a is None or coords_b is None:
         return None
     return (coords_a[0] + coords_b[0]) / 2, (coords_a[1] + coords_b[1]) / 2
