@@ -1101,7 +1101,7 @@ class RouteDirectionsView(AdminRoleRequiredMixin, TemplateView):
                         break
                     stop.latitude, stop.longitude = coords
                     stop.save(update_fields=["latitude", "longitude"])
-                    time.sleep(1)  # Nominatim usage policy: max 1 request/second
+                    time.sleep(1)  # stay well under LocationIQ's free-tier rate limit
 
                 if not error:
                     route_legs = get_route_legs([(float(s.latitude), float(s.longitude)) for s in stops])

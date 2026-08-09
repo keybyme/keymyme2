@@ -8,12 +8,6 @@ from django.views.generic import CreateView, DeleteView, ListView, TemplateView,
 from vault.mixins import AjaxPartialTemplateMixin, ModuleAccessRequiredMixin
 from vault.routing import GeocodingRateLimited, geocode_address, geocode_intersection, get_route_legs
 
-# MCPS AM-MID-PM addresses are often given as a bare street corner ("Skylark
-# Rd & Walnut Haven Dr") with no city/state — used as the fallback location
-# for geocode_intersection() below since every MCPS route is within this
-# county.
-MCPS_COUNTY = "Montgomery County, MD"
-
 from .forms import AmMidPmEntryForm, EmployeeForm, RouteForm, SchoolForm
 from .models import AmMidPmEntry, Employee, Route, School
 
@@ -26,6 +20,12 @@ SORTABLE_FIELDS = ("school_type", "address", "city", "zip_code")
 EMPLOYEE_SORTABLE_FIELDS = ("phone", "position")
 ROUTE_SORTABLE_FIELDS = ("bus_number",)
 AMMIDPM_SORTABLE_FIELDS = ("type", "seq", "time", "address", "next")
+
+# MCPS AM-MID-PM addresses are often given as a bare street corner ("Skylark
+# Rd & Walnut Haven Dr") with no city/state — used as the fallback location
+# for geocode_intersection() below since every MCPS route is within this
+# county.
+MCPS_COUNTY = "Montgomery County, MD"
 
 
 class SchoolListView(AjaxPartialTemplateMixin, ModuleAccessRequiredMixin, ListView):
@@ -356,7 +356,7 @@ class LeftsRightsView(ModuleAccessRequiredMixin, TemplateView):
     """Turn-by-turn left/right driving guide for one MCPS Route, built from
     every AM-MID-PM entry that route has (in the same Route→Type→Seq# order
     as the AM-MID-PM list) — a driver cheat-sheet, not full narration. Same
-    free geocoding/routing (Nominatim + OSRM) and lat/lon caching pattern as
+    geocoding/routing (LocationIQ + OSRM) and lat/lon caching pattern as
     vault.RouteDirectionsView, just reading from AmMidPmEntry instead of
     RouteStop — see vault/routing.py."""
     template_name = "schools/lefts_rights.html"
@@ -396,7 +396,7 @@ class LeftsRightsView(ModuleAccessRequiredMixin, TemplateView):
                     coords = geocode_address(entry.address)
                     if coords is None:
                         # Plain free-text search fails outright on "Street A
-                        # & Street B" intersections (Nominatim doesn't parse
+                        # & Street B" intersections (plain free-text search doesn't parse
                         # "&") — approximate via geocode_intersection().
                         coords = geocode_intersection(entry.address, MCPS_COUNTY)
                     if coords is None:
@@ -404,7 +404,7 @@ class LeftsRightsView(ModuleAccessRequiredMixin, TemplateView):
                         break
                     entry.latitude, entry.longitude = coords
                     entry.save(update_fields=["latitude", "longitude"])
-                    time.sleep(1)  # Nominatim usage policy: max 1 request/second
+                    time.sleep(1)  # stay well under LocationIQ's free-tier rate limit
 
                 if not error:
                     route_legs = get_route_legs([(float(e.latitude), float(e.longitude)) for e in entries])

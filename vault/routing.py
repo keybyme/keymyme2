@@ -1,8 +1,15 @@
-"""Free, no-API-key geocoding + turn-by-turn routing for Rutas' "Directions"
-view (RouteDirectionsView). Uses OpenStreetMap's public Nominatim (geocoding)
-and OSRM (routing) demo servers — no billing/API key setup, but both have
-usage policies (Nominatim: max 1 request/second) and can occasionally be
-slow/unavailable, unlike a paid provider such as Google Directions."""
+"""Geocoding + turn-by-turn routing for Rutas' "Directions" view
+(RouteDirectionsView) and schools' "Lefts & Rights" view (LeftsRightsView).
+Geocoding is via LocationIQ (free tier, API key required — see
+settings.LOCATIONIQ_API_KEY); routing is via OSRM's public demo server (free,
+no key). Both started out on OpenStreetMap's own public Nominatim (also
+free, no key), but that was dropped for geocoding on 2026-08-09 after it
+turned out to blanket-429 every request from prod's EC2 IP (confirmed: the
+identical query succeeds from a residential/office IP, fails from the EC2
+box) — an IP/ASN-level throttle on Nominatim's end, not something fixable by
+respecting their documented 1 req/sec policy more carefully. LocationIQ is
+Nominatim-compatible (same OSM data, same response shape) and unaffected.
+OSRM's public demo server was never affected, so routing stayed as-is."""
 
 import json
 import re
@@ -11,12 +18,14 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+from django.conf import settings
+
 USER_AGENT = "KeyByMe/1.0 (personal app; contact: me@20874.com)"
 
 ZIP_RE = re.compile(r"\b\d{5}\b")
 INTERSECTION_RE = re.compile(r"^(.+?)\s*&\s*(.+)$")
 
-NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
+LOCATIONIQ_URL = "https://us1.locationiq.com/v1/search"
 OSRM_ROUTE_URL = "https://router.project-osrm.org/route/v1/driving/"
 
 # OSRM maneuver "modifier" -> human label. Only left/right/uturn maneuvers
@@ -34,14 +43,11 @@ MODIFIER_LABELS = {
 
 
 class GeocodingRateLimited(Exception):
-    """Raised when Nominatim/OSRM answer with HTTP 429. Distinct from a plain
-    None result (address genuinely not found) so callers can tell the user
-    the truth: the server is being throttled right now, not that the
-    address doesn't exist — this EC2 box's IP has been observed getting a
-    blanket 429 from Nominatim even for a single simple query, while the
-    same query succeeds from a residential/office IP, so it looks like an
-    IP/ASN-level block on their end rather than us exceeding the documented
-    1 req/sec policy."""
+    """Raised when LocationIQ/OSRM answer with HTTP 429 — LocationIQ's free
+    tier caps at 2 req/sec and 5,000/day; OSRM's demo server has its own
+    unpublished limits. Distinct from a plain None result (address genuinely
+    not found) so callers can tell the user the truth: the provider is
+    throttling right now, not that the address doesn't exist."""
 
 
 def _fetch_json(url):
@@ -59,9 +65,10 @@ def _fetch_json(url):
 
 def _geocode_query(query):
     params = urllib.parse.urlencode({
+        "key": settings.LOCATIONIQ_API_KEY,
         "q": query, "format": "json", "limit": 1, "countrycodes": "us",
     })
-    results = _fetch_json(f"{NOMINATIM_URL}?{params}")
+    results = _fetch_json(f"{LOCATIONIQ_URL}?{params}")
     if not results:
         return None
     return float(results[0]["lat"]), float(results[0]["lon"])
@@ -70,18 +77,19 @@ def _geocode_query(query):
 def geocode_address(address):
     """Returns (latitude, longitude) as floats, or None if the address
     couldn't be resolved. Callers looping over several addresses must space
-    calls out themselves (Nominatim: max 1 req/sec) — see RouteDirectionsView.
+    calls out themselves (LocationIQ free tier: max 2 req/sec) — see
+    RouteDirectionsView.
 
     Tries the address as typed, then two fallbacks (in order) once a zip code
     can be found in it:
     1. Everything up through the zip, dropping anything after it — OCR'd
        addresses (see route_sheet_ocr.py) sometimes carry trailing noise
        past the zip (misread table columns) that breaks the query outright.
-    2. Just "street + zip", dropping any city/state too — Nominatim
-       frequently fails on "street, city, state zip" when the mailing/USPS
-       city doesn't exactly match OSM's canonical locality name for that zip
-       (common in MD, e.g. "Rockville" on an envelope vs. "Aspen Hill" in
-       OSM), even though the zip itself is correct."""
+    2. Just "street + zip", dropping any city/state too — the underlying OSM
+       data frequently fails on "street, city, state zip" when the
+       mailing/USPS city doesn't exactly match OSM's canonical locality name
+       for that zip (common in MD, e.g. "Rockville" on an envelope vs.
+       "Aspen Hill" in OSM), even though the zip itself is correct."""
     coords = _geocode_query(address)
     if coords is not None:
         return coords
@@ -99,7 +107,7 @@ def geocode_address(address):
         candidates.append(street_zip)
 
     for candidate in candidates:
-        time.sleep(1)  # each retry is a new request for the same address — respect 1 req/sec
+        time.sleep(1)  # each retry is a new request for the same address — stay well under the rate limit
         coords = _geocode_query(candidate)
         if coords is not None:
             return coords
@@ -110,14 +118,14 @@ def geocode_intersection(address, default_location):
     """Approximates the coordinates of a "Street A & Street B[, City, State]"
     corner by geocoding each street separately and averaging the two points.
 
-    Nominatim's free-text search (geocode_address() above) doesn't parse "&"
-    as an intersection — it just fails outright — but MCPS bus-stop
-    addresses (schools.AmMidPmEntry) are routinely given as a corner rather
-    than a mailing address, often with no city/state at all (e.g. "Skylark
-    Rd & Walnut Haven Dr"). `default_location` (e.g. "Montgomery County, MD")
-    is used when the address itself has no city/state after the streets.
+    Plain free-text search (geocode_address() above) doesn't parse "&" as an
+    intersection — it just fails outright — but MCPS bus-stop addresses
+    (schools.AmMidPmEntry) are routinely given as a corner rather than a
+    mailing address, often with no city/state at all (e.g. "Skylark Rd &
+    Walnut Haven Dr"). `default_location` (e.g. "Montgomery County, MD") is
+    used when the address itself has no city/state after the streets.
 
-    Not exact — each street's geocode is Nominatim's best match for that
+    Not exact — each street's geocode is the provider's best match for that
     street name within the area, not the literal point where the two cross —
     but close enough for a turn-by-turn driving cheat-sheet between stops.
     Returns (latitude, longitude) or None if either street couldn't be
@@ -134,7 +142,7 @@ def geocode_intersection(address, default_location):
         return None
 
     coords_a = _geocode_query(f"{street_a}, {location}")
-    time.sleep(1)  # Nominatim usage policy: max 1 request/second
+    time.sleep(1)  # stay well under the rate limit between the two sub-queries
     coords_b = _geocode_query(f"{street_b}, {location}")
     if coords_a is None or coords_b is None:
         return None

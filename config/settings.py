@@ -66,6 +66,13 @@ CRON_SECRET = env("CRON_SECRET", default="")
 # typically `C:\Program Files\Tesseract-OCR\tesseract.exe`.
 TESSERACT_CMD = env("TESSERACT_CMD", default="")
 
+# Free-tier API key for LocationIQ (geocoding — see vault/routing.py), used
+# by Rutas' "Directions" and MCPS "Lefts & Rights". Get one at
+# https://locationiq.com/ (no credit card). Replaced OpenStreetMap's own
+# public Nominatim on 2026-08-09 after Nominatim started blanket-429ing
+# every request from prod's EC2 IP.
+LOCATIONIQ_API_KEY = env("LOCATIONIQ_API_KEY", default="")
+
 
 # Application definition
 
