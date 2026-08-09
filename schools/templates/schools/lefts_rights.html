@@ -117,32 +117,20 @@ function mcpsRouteAddresses() {
     return addresses.length ? addresses : null;
 }
 
-// Shared by both "Open full route in ___ Maps" buttons: opens a tab
-// synchronously (inside the click handler, so it isn't blocked as a
-// popup — geolocation's callback below fires later, async), then once the
-// driver's current GPS location is known (or geolocation is unavailable/
-// denied, in which case the app is left to fall back to its own default),
-// points that tab at buildUrl(originOrNull). `origin`, when present, is
-// `{lat, lng}`.
-function mcpsOpenExternalMapsRoute(buildUrl) {
-    const newTab = window.open('', '_blank', 'noopener');
-
-    function go(origin) {
-        const url = buildUrl(origin);
-        if (newTab) {
-            newTab.location.href = url;
-        } else {
-            window.location.href = url;
-        }
-    }
-
-    if (!navigator.geolocation) {
-        go(null);
-        return;
-    }
+// Geolocation is requested once up front, on page load, rather than inside
+// each button's click handler: getCurrentPosition() is async, and by the
+// time its callback fires the browser no longer considers a window.open()
+// call "in direct response to a user gesture" — Safari in particular then
+// blocks it outright (a tab opens but stays blank, never shows the map)
+// rather than just losing the precise origin like Chrome/Firefox mostly do.
+// Asking up front means the position (or the fact that it was denied) is
+// already known by click time, so both buttons below can open their tab
+// with a real, final URL synchronously.
+let mcpsCurrentPosition = null;  // {lat, lng} once resolved, else still null
+if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(
-        (position) => go({ lat: position.coords.latitude, lng: position.coords.longitude }),
-        () => go(null),
+        (position) => { mcpsCurrentPosition = { lat: position.coords.latitude, lng: position.coords.longitude }; },
+        () => {},  // denied/unavailable — both buttons below just omit origin
         { timeout: 8000 }
     );
 }
@@ -162,12 +150,10 @@ function mcpsOpenRouteInGoogleMaps(event) {
     const destination = encodeURIComponent(addresses[addresses.length - 1]);
     const waypoints = addresses.slice(0, -1).map(encodeURIComponent).join('|');
 
-    mcpsOpenExternalMapsRoute((origin) => {
-        let url = `https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=driving`;
-        if (origin) url += `&origin=${origin.lat},${origin.lng}`;
-        if (waypoints) url += `&waypoints=${waypoints}`;
-        return url;
-    });
+    let url = `https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=driving`;
+    if (mcpsCurrentPosition) url += `&origin=${mcpsCurrentPosition.lat},${mcpsCurrentPosition.lng}`;
+    if (waypoints) url += `&waypoints=${waypoints}`;
+    window.open(url, '_blank', 'noopener');
     return false;
 }
 
@@ -183,12 +169,9 @@ function mcpsOpenRouteInAppleMaps(event) {
     if (!addresses) return false;
 
     const daddr = addresses.map(encodeURIComponent).join('+to:');
-
-    mcpsOpenExternalMapsRoute((origin) => {
-        let url = `https://maps.apple.com/?daddr=${daddr}&dirflg=d`;
-        if (origin) url = `https://maps.apple.com/?saddr=${origin.lat},${origin.lng}&daddr=${daddr}&dirflg=d`;
-        return url;
-    });
+    let url = `https://maps.apple.com/?daddr=${daddr}&dirflg=d`;
+    if (mcpsCurrentPosition) url = `https://maps.apple.com/?saddr=${mcpsCurrentPosition.lat},${mcpsCurrentPosition.lng}&daddr=${daddr}&dirflg=d`;
+    window.open(url, '_blank', 'noopener');
     return false;
 }
 </script>

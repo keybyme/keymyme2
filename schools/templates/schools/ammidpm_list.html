@@ -71,38 +71,34 @@
 })();
 
 // Clicking an address should start driving directions from wherever the
-// driver actually is right now, not force them to type/confirm an origin —
-// defined globally (not inside an IIFE) because it's called via inline
+// driver actually is right now, not force them to type/confirm an origin.
+// Geolocation is requested once up front (below), on page load, rather than
+// inside the click handler: getCurrentPosition() is async, and by the time
+// its callback fires the browser no longer considers a window.open() call
+// "in direct response to a user gesture" — Safari in particular then blocks
+// it outright (shows nothing, not even a blank tab) rather than just losing
+// the precise origin like Chrome/Firefox mostly do. Asking up front means
+// the position (or the fact that it was denied) is already known by click
+// time, so the handler below can open the tab with a real URL synchronously.
+let mcpsCurrentPosition = null;  // {lat, lng} once resolved, else still null
+if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+        (position) => { mcpsCurrentPosition = { lat: position.coords.latitude, lng: position.coords.longitude }; },
+        () => {},  // denied/unavailable — mcpsOpenDirectionsFromHere below just omits origin
+        { timeout: 8000 }
+    );
+}
+
+// Defined globally (not inside an IIFE) because it's called via inline
 // onclick= from rows re-rendered by the live-search fetch (see
 // _ammidpm_live_search.html), which only replaces #ammidpm-results'
 // innerHTML rather than re-running this script block.
 function mcpsOpenDirectionsFromHere(event, address) {
     event.preventDefault();
-    // Open the tab synchronously, inside the click handler, so it isn't
-    // blocked as a popup — geolocation's callback fires later, async, and a
-    // window.open() there wouldn't count as "in direct response to a user
-    // gesture" anymore.
-    const newTab = window.open('', '_blank', 'noopener');
     const destination = encodeURIComponent(address);
-
-    function go(originParam) {
-        const url = `https://www.google.com/maps/dir/?api=1${originParam}&destination=${destination}&travelmode=driving`;
-        if (newTab) {
-            newTab.location.href = url;
-        } else {
-            window.location.href = url;
-        }
-    }
-
-    if (!navigator.geolocation) {
-        go('');
-        return false;
-    }
-    navigator.geolocation.getCurrentPosition(
-        (position) => go(`&origin=${position.coords.latitude},${position.coords.longitude}`),
-        () => go(''),  // permission denied/unavailable — let Maps fall back to its own default
-        { timeout: 8000 }
-    );
+    let url = `https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=driving`;
+    if (mcpsCurrentPosition) url += `&origin=${mcpsCurrentPosition.lat},${mcpsCurrentPosition.lng}`;
+    window.open(url, '_blank', 'noopener');
     return false;
 }
 </script>
