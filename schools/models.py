@@ -128,7 +128,7 @@ class AmMidPmEntry(models.Model):
     address = models.CharField(max_length=255, verbose_name="Address")
     next = models.TimeField(
         null=True, blank=True, verbose_name="Next",
-        help_text="Time the bus needs to leave for the next stop, if applicable.",
+        help_text="Minutes and seconds until the next stop (MM:SS), if applicable.",
     )
 
     class Meta:

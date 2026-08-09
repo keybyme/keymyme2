@@ -62,7 +62,7 @@
                     {% include "icons/map-pin.html" with class="w-4 h-4" %} {{ entry.address }}
                 </a>
             </td>
-            <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-700">{{ entry.next|time:"g:i A"|default:"—" }}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-700">{{ entry.next|time:"i:s"|default:"—" }}</td>
             <td class="whitespace-nowrap px-4 py-3 text-right text-sm">
                 <div class="flex justify-end gap-3">
                     <a href="{% url 'schools:ammidpm_update' entry.pk %}" class="text-cafe hover:text-cafe-darker" title="Edit">
