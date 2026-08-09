@@ -6,7 +6,13 @@ from django.urls import reverse_lazy
 from django.views.generic import CreateView, DeleteView, ListView, TemplateView, UpdateView
 
 from vault.mixins import AjaxPartialTemplateMixin, ModuleAccessRequiredMixin
-from vault.routing import geocode_address, get_route_legs
+from vault.routing import geocode_address, geocode_intersection, get_route_legs
+
+# MCPS AM-MID-PM addresses are often given as a bare street corner ("Skylark
+# Rd & Walnut Haven Dr") with no city/state — used as the fallback location
+# for geocode_intersection() below since every MCPS route is within this
+# county.
+MCPS_COUNTY = "Montgomery County, MD"
 
 from .forms import AmMidPmEntryForm, EmployeeForm, RouteForm, SchoolForm
 from .models import AmMidPmEntry, Employee, Route, School
@@ -387,6 +393,11 @@ class LeftsRightsView(ModuleAccessRequiredMixin, TemplateView):
                     error = f'{entry.get_type_display()} #{entry.seq} has no address to geocode.'
                     break
                 coords = geocode_address(entry.address)
+                if coords is None:
+                    # Plain free-text search fails outright on "Street A &
+                    # Street B" intersections (Nominatim doesn't parse "&")
+                    # — approximate via geocode_intersection() instead.
+                    coords = geocode_intersection(entry.address, MCPS_COUNTY)
                 if coords is None:
                     error = f'Could not find coordinates for {entry.get_type_display()} #{entry.seq}: "{entry.address}".'
                     break

@@ -14,6 +14,7 @@ import urllib.request
 USER_AGENT = "KeyByMe/1.0 (personal app; contact: me@20874.com)"
 
 ZIP_RE = re.compile(r"\b\d{5}\b")
+INTERSECTION_RE = re.compile(r"^(.+?)\s*&\s*(.+)$")
 
 NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
 OSRM_ROUTE_URL = "https://router.project-osrm.org/route/v1/driving/"
@@ -88,6 +89,41 @@ def geocode_address(address):
         if coords is not None:
             return coords
     return None
+
+
+def geocode_intersection(address, default_location):
+    """Approximates the coordinates of a "Street A & Street B[, City, State]"
+    corner by geocoding each street separately and averaging the two points.
+
+    Nominatim's free-text search (geocode_address() above) doesn't parse "&"
+    as an intersection — it just fails outright — but MCPS bus-stop
+    addresses (schools.AmMidPmEntry) are routinely given as a corner rather
+    than a mailing address, often with no city/state at all (e.g. "Skylark
+    Rd & Walnut Haven Dr"). `default_location` (e.g. "Montgomery County, MD")
+    is used when the address itself has no city/state after the streets.
+
+    Not exact — each street's geocode is Nominatim's best match for that
+    street name within the area, not the literal point where the two cross —
+    but close enough for a turn-by-turn driving cheat-sheet between stops.
+    Returns (latitude, longitude) or None if either street couldn't be
+    resolved, or the address isn't in "A & B" form at all."""
+    match = INTERSECTION_RE.match(address)
+    if not match:
+        return None
+    street_a, rest = match.group(1).strip(), match.group(2).strip()
+    if "," in rest:
+        street_b, location = (part.strip() for part in rest.split(",", 1))
+    else:
+        street_b, location = rest, default_location
+    if not street_a or not street_b or not location:
+        return None
+
+    coords_a = _geocode_query(f"{street_a}, {location}")
+    time.sleep(1)  # Nominatim usage policy: max 1 request/second
+    coords_b = _geocode_query(f"{street_b}, {location}")
+    if coords_a is None or coords_b is None:
+        return None
+    return (coords_a[0] + coords_b[0]) / 2, (coords_a[1] + coords_b[1]) / 2
 
 
 def get_route_legs(coords):
