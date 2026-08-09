@@ -56,7 +56,10 @@ class Employee(models.Model):
         OTHERS = 4, "Others"
 
     name = models.CharField(max_length=200, verbose_name="Name")
-    phone = models.CharField(max_length=20, verbose_name="Phone")
+    phone = models.CharField(
+        max_length=20, blank=True, verbose_name="Phone",
+        help_text="Optional — some rosters (e.g. bus assignment sheets) list drivers without a phone number.",
+    )
     position = models.PositiveSmallIntegerField(
         choices=Position.choices, verbose_name="Position"
     )
@@ -87,7 +90,8 @@ class Route(models.Model):
     route_number = models.CharField(max_length=30, verbose_name="Route number")
     bus_number = models.CharField(max_length=20, blank=True, verbose_name="Bus #")
     route_type = models.CharField(
-        max_length=10, choices=RouteType.choices, verbose_name="Route type"
+        max_length=10, choices=RouteType.choices, blank=True, verbose_name="Route type",
+        help_text="Optional — some sources (e.g. a bus assignment roster) give the route/bus/driver without saying AM/MID/PM yet.",
     )
     driver = models.ForeignKey(
         Employee, on_delete=models.SET_NULL, null=True, blank=True,
@@ -101,7 +105,10 @@ class Route(models.Model):
     )
     stop_number = models.PositiveIntegerField(null=True, blank=True, verbose_name="Stop #")
     seq = models.PositiveIntegerField(default=10, verbose_name="Seq")
-    address = models.CharField(max_length=255, verbose_name="Address")
+    address = models.CharField(
+        max_length=255, blank=True, verbose_name="Address",
+        help_text="Optional — filled in once stop-level detail is available.",
+    )
 
     class Meta:
         ordering = ["route_number", "route_type", "seq"]
