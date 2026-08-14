@@ -333,6 +333,11 @@ class MedicalRecordForm(TailwindFormMixin, forms.ModelForm):
         widget=forms.PasswordInput(render_value=False),
         help_text="4-6 digits. Leave blank to keep the current PIN unchanged.",
     )
+    organ_donor = forms.TypedChoiceField(
+        label="Organ donor",
+        choices=((True, "Yes"), (False, "No")),
+        coerce=lambda value: value == "True",
+    )
 
     class Meta:
         model = MedicalRecord
