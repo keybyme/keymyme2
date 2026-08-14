@@ -484,11 +484,13 @@ class MaintenanceRecord(models.Model):
 class MedicalRecord(models.Model):
     """Ficha médica de una persona (el usuario mismo o un dependiente).
     Igual que Vehicle: tiene una URL pública (por public_token, no por pk)
-    pensada para imprimirse como QR y llevarse encima — pero a diferencia
-    de Vehicle, acá el dato en sí es sensible, así que la página pública no
-    muestra nada hasta que se ingresa el PIN (ver verify_pin). El
-    desbloqueo se recuerda en la sesión del navegador — ver
-    MedicalRecordPublicDetailView."""
+    pensada para imprimirse como QR y llevarse encima. La página pública
+    (MedicalRecordPublicDetailView) es de solo lectura y abierta — sin
+    login ni PIN — porque en una emergencia real nadie tiene tiempo de
+    pedirle el PIN al dueño. El PIN (set_pin/verify_pin) no gatea esa
+    página; solo lo usa el dueño, logueado, al crear o cambiar el PIN
+    desde MedicalRecordForm — no protege ninguna acción hoy, se mantiene
+    por si en el futuro se agrega una edición pública tipo Vehicle."""
 
     class BloodType(models.TextChoices):
         A_POS = "A+", "A+"

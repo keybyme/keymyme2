@@ -37,7 +37,6 @@ from .forms import (
     MediaFileBulkUploadForm,
     MediaFileForm,
     MedicalRecordForm,
-    MedicalRecordPinForm,
     PublicMaintenanceRecordForm,
     QRCodeForm,
     ReminderForm,
@@ -1623,31 +1622,17 @@ class MedicalRecordQRView(OwnerQuerysetMixin, DetailView):
         return context
 
 
-class MedicalRecordPublicDetailView(View):
+class MedicalRecordPublicDetailView(DetailView):
     """Página pública (sin login) identificada por public_token, no por pk,
-    para que la URL impresa en el QR no sea adivinable. A diferencia de
-    VehiclePublicDetailView, acá el dato en sí es sensible (PHI), así que
-    no se muestra nada hasta que se ingresa el PIN correcto — ver
-    MedicalRecord.verify_pin(). El desbloqueo se recuerda en la sesión del
-    navegador para no pedir el PIN en cada refresh de esa misma visita."""
+    para que la URL impresa en el QR no sea adivinable — mismo patrón que
+    VehiclePublicDetailView. Muestra toda la info directamente: en una
+    emergencia real nadie tiene tiempo de pedirle el PIN al dueño, así que
+    esta página es de solo lectura y abierta. El PIN del registro (ver
+    MedicalRecord.set_pin/verify_pin) no se usa acá — solo lo usa el dueño,
+    logueado, al crear o cambiar el PIN desde MedicalRecordForm."""
+    model = MedicalRecord
     template_name = "vault/medicalrecord_public.html"
+    context_object_name = "record"
 
-    @staticmethod
-    def _session_key(token):
-        return f"unlocked_medical_record_{token}"
-
-    def get(self, request, token):
-        record = get_object_or_404(MedicalRecord, public_token=token)
-        unlocked = request.session.get(self._session_key(token), False)
-        context = {"record": record, "unlocked": unlocked, "pin_form": MedicalRecordPinForm()}
-        return render(request, self.template_name, context)
-
-    def post(self, request, token):
-        record = get_object_or_404(MedicalRecord, public_token=token)
-        form = MedicalRecordPinForm(request.POST)
-        if record.verify_pin(request.POST.get("pin", "")):
-            request.session[self._session_key(token)] = True
-            return redirect("vault:medicalrecord_public_detail", token=token)
-        form.add_error("pin", "Incorrect PIN.")
-        context = {"record": record, "unlocked": False, "pin_form": form}
-        return render(request, self.template_name, context)
+    def get_object(self, queryset=None):
+        return get_object_or_404(MedicalRecord, public_token=self.kwargs["token"])

@@ -331,8 +331,7 @@ class MedicalRecordForm(TailwindFormMixin, forms.ModelForm):
         label="PIN",
         required=False,
         widget=forms.PasswordInput(render_value=False),
-        help_text="4-6 digits. Required to unlock this record from the public QR page. "
-        "Leave blank to keep the current PIN unchanged.",
+        help_text="4-6 digits. Leave blank to keep the current PIN unchanged.",
     )
 
     class Meta:
@@ -383,14 +382,3 @@ class MedicalRecordForm(TailwindFormMixin, forms.ModelForm):
         if commit:
             instance.save()
         return instance
-
-
-class MedicalRecordPinForm(forms.Form):
-    """Único campo de la página pública de un MedicalRecord: el PIN que
-    desbloquea la vista de los datos sensibles (ver
-    MedicalRecordPublicDetailView)."""
-    pin = forms.CharField(
-        label="PIN",
-        widget=forms.PasswordInput(render_value=False, attrs={"class": INPUT_CLASSES, "autofocus": True}),
-        help_text="Ask the owner for the PIN.",
-    )

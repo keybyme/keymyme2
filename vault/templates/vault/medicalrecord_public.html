@@ -7,19 +7,6 @@
         <h1 class="text-2xl font-semibold text-gray-900">{{ record.full_name }} — Medical ID</h1>
     </div>
 
-    {% if not unlocked %}
-    <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-        <p class="mb-4 flex items-start gap-2 text-sm text-gray-600">
-            {% include "icons/key.html" with class="w-5 h-5 shrink-0 text-cafe" %}
-            This medical record is locked. Enter the PIN to view it — ask the owner, or check the card it was printed on.
-        </p>
-        <form method="post" class="max-w-xs">
-            {% csrf_token %}
-            {% include "_form_field.html" with field=pin_form.pin %}
-            <button type="submit" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700">Unlock</button>
-        </form>
-    </div>
-    {% else %}
     <div class="mb-6 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
         <h2 class="mb-4 text-lg font-semibold text-gray-900">Identification</h2>
         <dl class="grid grid-cols-2 gap-4 text-sm">
@@ -131,7 +118,6 @@
         <h2 class="mb-4 text-lg font-semibold text-gray-900">Additional notes</h2>
         <p class="whitespace-pre-line text-sm text-gray-900">{{ record.additional_notes }}</p>
     </div>
-    {% endif %}
     {% endif %}
 </div>
 {% endblock %}
