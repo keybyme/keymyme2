@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Medical record{% endblock %}
+{% block content %}
+<h1 class="mb-6 text-2xl font-semibold text-gray-900">{% if object %}Edit{% else %}New{% endif %} medical record</h1>
+<form method="post" class="max-w-2xl rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+    {% csrf_token %}
+    {% include "_form_field.html" with field=form.pin %}
+    {% if form.non_field_errors %}
+    <div class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        {{ form.non_field_errors }}
+    </div>
+    {% endif %}
+
+    <h2 class="mb-3 mt-2 text-sm font-bold uppercase tracking-wide text-gray-500">Identification</h2>
+    {% include "_form_field.html" with field=form.full_name %}
+    {% include "_form_field.html" with field=form.date_of_birth %}
+    {% include "_form_field.html" with field=form.address %}
+    {% include "_form_field.html" with field=form.phone_number %}
+
+    <h2 class="mb-3 mt-6 text-sm font-bold uppercase tracking-wide text-gray-500">Medical information</h2>
+    {% include "_form_field.html" with field=form.blood_type %}
+    {% include "_form_field.html" with field=form.medical_conditions %}
+    {% include "_form_field.html" with field=form.allergies %}
+    {% include "_form_field.html" with field=form.medications %}
+    {% include "_form_field.html" with field=form.organ_donor %}
+
+    <h2 class="mb-3 mt-6 text-sm font-bold uppercase tracking-wide text-gray-500">Primary doctor</h2>
+    {% include "_form_field.html" with field=form.primary_doctor_name %}
+    {% include "_form_field.html" with field=form.primary_doctor_phone %}
+
+    <h2 class="mb-3 mt-6 text-sm font-bold uppercase tracking-wide text-gray-500">Insurance</h2>
+    {% include "_form_field.html" with field=form.insurance_provider %}
+    {% include "_form_field.html" with field=form.insurance_policy_number %}
+
+    <h2 class="mb-3 mt-6 text-sm font-bold uppercase tracking-wide text-gray-500">Emergency contact 1</h2>
+    {% include "_form_field.html" with field=form.emergency_contact_1_name %}
+    {% include "_form_field.html" with field=form.emergency_contact_1_phone %}
+    {% include "_form_field.html" with field=form.emergency_contact_1_relationship %}
+
+    <h2 class="mb-3 mt-6 text-sm font-bold uppercase tracking-wide text-gray-500">Emergency contact 2 (optional)</h2>
+    {% include "_form_field.html" with field=form.emergency_contact_2_name %}
+    {% include "_form_field.html" with field=form.emergency_contact_2_phone %}
+    {% include "_form_field.html" with field=form.emergency_contact_2_relationship %}
+
+    <h2 class="mb-3 mt-6 text-sm font-bold uppercase tracking-wide text-gray-500">Emergency contact 3 (optional)</h2>
+    {% include "_form_field.html" with field=form.emergency_contact_3_name %}
+    {% include "_form_field.html" with field=form.emergency_contact_3_phone %}
+    {% include "_form_field.html" with field=form.emergency_contact_3_relationship %}
+
+    <h2 class="mb-3 mt-6 text-sm font-bold uppercase tracking-wide text-gray-500">Notes</h2>
+    {% include "_form_field.html" with field=form.additional_notes %}
+
+    <div class="mt-6 flex items-center gap-3">
+        <button type="submit" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700">Save</button>
+        <a href="{% url 'vault:medicalrecord_list' %}" class="text-sm font-medium text-gray-600 hover:text-gray-900">Cancel</a>
+    </div>
+</form>
+{% endblock %}

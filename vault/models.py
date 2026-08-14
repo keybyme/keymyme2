@@ -479,3 +479,94 @@ class MaintenanceRecord(models.Model):
 
     def __str__(self):
         return f"{self.vehicle} — {self.service_date}"
+
+
+class MedicalRecord(models.Model):
+    """Ficha médica de una persona (el usuario mismo o un dependiente).
+    Igual que Vehicle: tiene una URL pública (por public_token, no por pk)
+    pensada para imprimirse como QR y llevarse encima — pero a diferencia
+    de Vehicle, acá el dato en sí es sensible, así que la página pública no
+    muestra nada hasta que se ingresa el PIN (ver verify_pin). El
+    desbloqueo se recuerda en la sesión del navegador — ver
+    MedicalRecordPublicDetailView."""
+
+    class BloodType(models.TextChoices):
+        A_POS = "A+", "A+"
+        A_NEG = "A-", "A-"
+        B_POS = "B+", "B+"
+        B_NEG = "B-", "B-"
+        AB_POS = "AB+", "AB+"
+        AB_NEG = "AB-", "AB-"
+        O_POS = "O+", "O+"
+        O_NEG = "O-", "O-"
+        UNKNOWN = "", "Unknown"
+
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="medical_records")
+
+    # Identification
+    full_name = models.CharField(max_length=150, verbose_name="Full name")
+    date_of_birth = models.DateField(null=True, blank=True, verbose_name="Date of birth")
+    address = models.CharField(max_length=255, blank=True, verbose_name="Address")
+    phone_number = models.CharField(max_length=30, blank=True, verbose_name="Phone number")
+
+    # Medical essentials
+    blood_type = models.CharField(max_length=3, choices=BloodType.choices, blank=True, verbose_name="Blood type")
+    medical_conditions = models.TextField(
+        blank=True, verbose_name="Medical conditions",
+        help_text="Diagnosed conditions a first responder should know about (e.g. diabetes, epilepsy, heart condition).",
+    )
+    allergies = models.TextField(
+        blank=True, verbose_name="Allergies",
+        help_text="Medication, food, or other allergies — and the reaction, if severe.",
+    )
+    medications = models.TextField(
+        blank=True, verbose_name="Current medications",
+        help_text="One per line, including dosage if known.",
+    )
+    organ_donor = models.BooleanField(default=False, verbose_name="Organ donor")
+
+    # Primary doctor
+    primary_doctor_name = models.CharField(max_length=150, blank=True, verbose_name="Primary doctor name")
+    primary_doctor_phone = models.CharField(max_length=30, blank=True, verbose_name="Primary doctor phone")
+
+    # Insurance
+    insurance_provider = models.CharField(max_length=150, blank=True, verbose_name="Insurance provider")
+    insurance_policy_number = models.CharField(max_length=100, blank=True, verbose_name="Insurance policy number")
+
+    # Emergency contacts — contact 1 is required, 2 and 3 are optional.
+    emergency_contact_1_name = models.CharField(max_length=150, verbose_name="Emergency contact 1 — name")
+    emergency_contact_1_phone = models.CharField(max_length=30, verbose_name="Emergency contact 1 — phone")
+    emergency_contact_1_relationship = models.CharField(
+        max_length=100, blank=True, verbose_name="Emergency contact 1 — relationship",
+    )
+    emergency_contact_2_name = models.CharField(max_length=150, blank=True, verbose_name="Emergency contact 2 — name")
+    emergency_contact_2_phone = models.CharField(max_length=30, blank=True, verbose_name="Emergency contact 2 — phone")
+    emergency_contact_2_relationship = models.CharField(
+        max_length=100, blank=True, verbose_name="Emergency contact 2 — relationship",
+    )
+    emergency_contact_3_name = models.CharField(max_length=150, blank=True, verbose_name="Emergency contact 3 — name")
+    emergency_contact_3_phone = models.CharField(max_length=30, blank=True, verbose_name="Emergency contact 3 — phone")
+    emergency_contact_3_relationship = models.CharField(
+        max_length=100, blank=True, verbose_name="Emergency contact 3 — relationship",
+    )
+
+    additional_notes = models.TextField(blank=True, verbose_name="Additional notes")
+
+    _pin_hash = models.CharField(max_length=128, db_column="pin_hash", editable=False)
+    public_token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["full_name"]
+        verbose_name = "Medical record"
+        verbose_name_plural = "Medical records"
+
+    def __str__(self):
+        return self.full_name
+
+    def set_pin(self, raw_pin: str) -> None:
+        self._pin_hash = make_password(raw_pin)
+
+    def verify_pin(self, raw_pin: str) -> bool:
+        return bool(raw_pin) and check_password(raw_pin, self._pin_hash)

@@ -36,6 +36,8 @@ from .forms import (
     LocationCheckInForm,
     MediaFileBulkUploadForm,
     MediaFileForm,
+    MedicalRecordForm,
+    MedicalRecordPinForm,
     PublicMaintenanceRecordForm,
     QRCodeForm,
     ReminderForm,
@@ -51,8 +53,8 @@ from .mixins import (
     SearchableListMixin, UserFormKwargsMixin,
 )
 from .models import (
-    ALLOWED_MEDIA_EXTENSIONS, Category, Contact, LocationCheckIn, MaintenanceRecord, MediaFile,
-    PhotoSlideshowLink, Reminder, RouteSheetStopDraft, RouteSheetUpload, RouteStop, Url,
+    ALLOWED_MEDIA_EXTENSIONS, Category, Contact, LocationCheckIn, MaintenanceRecord, MedicalRecord,
+    MediaFile, PhotoSlideshowLink, Reminder, RouteSheetStopDraft, RouteSheetUpload, RouteStop, Url,
     VaultPassword, Vehicle,
 )
 from .route_sheet_ocr import extract_text, parse_route_sheet_text
@@ -1567,3 +1569,85 @@ class VehiclePublicAddMaintenanceView(View):
             "maintenance_form": form,
         }
         return render(request, "vault/vehicle_public_detail.html", context)
+
+
+# ---------- Medical Records ----------
+
+class MedicalRecordListView(OwnerQuerysetMixin, ListView):
+    model = MedicalRecord
+    template_name = "vault/medicalrecord_list.html"
+    context_object_name = "medical_records"
+    module_codename = "artifacts_medical"
+
+
+class MedicalRecordCreateView(OwnerCreateMixin, CreateView):
+    model = MedicalRecord
+    form_class = MedicalRecordForm
+    template_name = "vault/medicalrecord_form.html"
+    success_url = reverse_lazy("vault:medicalrecord_list")
+    module_codename = "artifacts_medical"
+
+
+class MedicalRecordUpdateView(OwnerQuerysetMixin, UpdateView):
+    model = MedicalRecord
+    form_class = MedicalRecordForm
+    template_name = "vault/medicalrecord_form.html"
+    success_url = reverse_lazy("vault:medicalrecord_list")
+    module_codename = "artifacts_medical"
+
+
+class MedicalRecordDeleteView(OwnerQuerysetMixin, DeleteView):
+    model = MedicalRecord
+    template_name = "vault/medicalrecord_confirm_delete.html"
+    success_url = reverse_lazy("vault:medicalrecord_list")
+    module_codename = "artifacts_medical"
+
+
+class MedicalRecordQRView(OwnerQuerysetMixin, DetailView):
+    """Genera al vuelo (sin persistir nada) el QR que apunta a la página
+    pública del registro médico, con el mismo patrón que VehicleQRView."""
+    model = MedicalRecord
+    template_name = "vault/medicalrecord_qr.html"
+    module_codename = "artifacts_medical"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        public_url = self.request.build_absolute_uri(
+            reverse("vault:medicalrecord_public_detail", args=[self.object.public_token])
+        )
+        image = qrcode.make(public_url)
+        buffer = io.BytesIO()
+        image.save(buffer, format="PNG")
+        context["qr_image_base64"] = base64.b64encode(buffer.getvalue()).decode("ascii")
+        context["public_url"] = public_url
+        return context
+
+
+class MedicalRecordPublicDetailView(View):
+    """Página pública (sin login) identificada por public_token, no por pk,
+    para que la URL impresa en el QR no sea adivinable. A diferencia de
+    VehiclePublicDetailView, acá el dato en sí es sensible (PHI), así que
+    no se muestra nada hasta que se ingresa el PIN correcto — ver
+    MedicalRecord.verify_pin(). El desbloqueo se recuerda en la sesión del
+    navegador para no pedir el PIN en cada refresh de esa misma visita."""
+    template_name = "vault/medicalrecord_public.html"
+
+    @staticmethod
+    def _session_key(token):
+        return f"unlocked_medical_record_{token}"
+
+    def get(self, request, token):
+        record = get_object_or_404(MedicalRecord, public_token=token)
+        unlocked = request.session.get(self._session_key(token), False)
+        context = {"record": record, "unlocked": unlocked, "pin_form": MedicalRecordPinForm()}
+        return render(request, self.template_name, context)
+
+    def post(self, request, token):
+        record = get_object_or_404(MedicalRecord, public_token=token)
+        form = MedicalRecordPinForm(request.POST)
+        if record.verify_pin(request.POST.get("pin", "")):
+            request.session[self._session_key(token)] = True
+            return redirect("vault:medicalrecord_public_detail", token=token)
+        form.add_error("pin", "Incorrect PIN.")
+        context = {"record": record, "unlocked": False, "pin_form": form}
+        return render(request, self.template_name, context)

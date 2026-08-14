@@ -4,8 +4,8 @@ from django.core.files.uploadedfile import UploadedFile
 
 from .image_compression import compress_image
 from .models import (
-    Category, Contact, LocationCheckIn, MaintenanceRecord, MediaFile, Reminder, RouteSheetUpload,
-    RouteStop, Url, VaultPassword, Vehicle,
+    Category, Contact, LocationCheckIn, MaintenanceRecord, MedicalRecord, MediaFile, Reminder,
+    RouteSheetUpload, RouteStop, Url, VaultPassword, Vehicle,
 )
 
 INPUT_CLASSES = (
@@ -324,3 +324,73 @@ class PublicMaintenanceRecordForm(TailwindFormMixin, forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.order_fields(["pin", "service_date", "performed_by", "mileage", "comment"])
+
+
+class MedicalRecordForm(TailwindFormMixin, forms.ModelForm):
+    pin = forms.CharField(
+        label="PIN",
+        required=False,
+        widget=forms.PasswordInput(render_value=False),
+        help_text="4-6 digits. Required to unlock this record from the public QR page. "
+        "Leave blank to keep the current PIN unchanged.",
+    )
+
+    class Meta:
+        model = MedicalRecord
+        fields = [
+            "full_name", "date_of_birth", "address", "phone_number",
+            "blood_type", "medical_conditions", "allergies", "medications", "organ_donor",
+            "primary_doctor_name", "primary_doctor_phone",
+            "insurance_provider", "insurance_policy_number",
+            "emergency_contact_1_name", "emergency_contact_1_phone", "emergency_contact_1_relationship",
+            "emergency_contact_2_name", "emergency_contact_2_phone", "emergency_contact_2_relationship",
+            "emergency_contact_3_name", "emergency_contact_3_phone", "emergency_contact_3_relationship",
+            "additional_notes",
+        ]
+        widgets = {
+            "date_of_birth": forms.DateInput(attrs={"type": "date"}),
+            "medical_conditions": forms.Textarea(attrs={"rows": 3}),
+            "allergies": forms.Textarea(attrs={"rows": 3}),
+            "medications": forms.Textarea(attrs={"rows": 3}),
+            "additional_notes": forms.Textarea(attrs={"rows": 3}),
+        }
+
+    def __init__(self, *args, user=None, **kwargs):
+        # user viene de UserFormKwargsMixin (OwnerCreateMixin lo inyecta
+        # siempre); MedicalRecordForm no lo necesita, solo lo acepta y descarta.
+        super().__init__(*args, **kwargs)
+        self.order_fields(["pin", "full_name"])
+
+    def clean_pin(self):
+        pin = self.cleaned_data["pin"]
+        if pin and not pin.isdigit():
+            raise forms.ValidationError("PIN must contain only digits.")
+        if pin and not (4 <= len(pin) <= 6):
+            raise forms.ValidationError("PIN must be 4 to 6 digits long.")
+        return pin
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if not self.instance.pk and not cleaned_data.get("pin"):
+            self.add_error("pin", "This field is required when creating a new medical record.")
+        return cleaned_data
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        raw_pin = self.cleaned_data.get("pin")
+        if raw_pin:
+            instance.set_pin(raw_pin)
+        if commit:
+            instance.save()
+        return instance
+
+
+class MedicalRecordPinForm(forms.Form):
+    """Único campo de la página pública de un MedicalRecord: el PIN que
+    desbloquea la vista de los datos sensibles (ver
+    MedicalRecordPublicDetailView)."""
+    pin = forms.CharField(
+        label="PIN",
+        widget=forms.PasswordInput(render_value=False, attrs={"class": INPUT_CLASSES, "autofocus": True}),
+        help_text="Ask the owner for the PIN.",
+    )

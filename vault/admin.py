@@ -2,8 +2,8 @@ from django import forms
 from django.contrib import admin
 
 from .models import (
-    Category, Contact, LocationCheckIn, MaintenanceRecord, VaultPassword, MediaFile, PhotoSlideshowLink,
-    Reminder, RouteSheetStopDraft, RouteSheetUpload, RouteStop, Url, Vehicle,
+    Category, Contact, LocationCheckIn, MaintenanceRecord, MedicalRecord, VaultPassword, MediaFile,
+    PhotoSlideshowLink, Reminder, RouteSheetStopDraft, RouteSheetUpload, RouteStop, Url, Vehicle,
 )
 
 
@@ -141,3 +141,33 @@ class MaintenanceRecordAdmin(admin.ModelAdmin):
     list_display = ("vehicle", "service_date", "performed_by", "mileage", "created_via_public_link")
     list_filter = ("created_via_public_link",)
     search_fields = ("performed_by",)
+
+
+class MedicalRecordAdminForm(forms.ModelForm):
+    pin = forms.CharField(
+        label="PIN",
+        required=False,
+        widget=forms.PasswordInput(render_value=False),
+        help_text="Leave blank to keep the current PIN unchanged.",
+    )
+
+    class Meta:
+        model = MedicalRecord
+        exclude = ("_pin_hash",)
+
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        raw_pin = self.cleaned_data.get("pin")
+        if raw_pin:
+            instance.set_pin(raw_pin)
+        if commit:
+            instance.save()
+        return instance
+
+
+@admin.register(MedicalRecord)
+class MedicalRecordAdmin(admin.ModelAdmin):
+    form = MedicalRecordAdminForm
+    list_display = ("full_name", "owner", "blood_type", "primary_doctor_name", "updated_at")
+    list_filter = ("owner", "blood_type", "organ_donor")
+    search_fields = ("full_name", "emergency_contact_1_name", "emergency_contact_2_name", "emergency_contact_3_name")

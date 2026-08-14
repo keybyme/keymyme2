@@ -22,6 +22,7 @@ class CustomUser(AbstractUser):
         ("finanzas_cuentas", "finanzas:cuenta_list"),
         ("finanzas_deudas", "finanzas:deuda_list"),
         ("artifacts_qr", "vault:qrcode_generate"),
+        ("artifacts_medical", "vault:medicalrecord_list"),
         ("artifacts_imhere", "vault:im_here"),
         ("cars", "vault:vehicle_list"),
     ]

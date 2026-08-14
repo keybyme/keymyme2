@@ -104,6 +104,18 @@ urlpatterns = [
         name="vehicle_public_add_maintenance",
     ),
 
+    # Medical Records
+    path("medical/", views.MedicalRecordListView.as_view(), name="medicalrecord_list"),
+    path("medical/new/", views.MedicalRecordCreateView.as_view(), name="medicalrecord_create"),
+    path("medical/<int:pk>/edit/", views.MedicalRecordUpdateView.as_view(), name="medicalrecord_update"),
+    path("medical/<int:pk>/delete/", views.MedicalRecordDeleteView.as_view(), name="medicalrecord_delete"),
+    path("medical/<int:pk>/qr/", views.MedicalRecordQRView.as_view(), name="medicalrecord_qr"),
+    path(
+        "medical/public/<uuid:token>/",
+        views.MedicalRecordPublicDetailView.as_view(),
+        name="medicalrecord_public_detail",
+    ),
+
     # Emergency
     path("emergency/send/", views.EmergencyLocationView.as_view(), name="emergency_send"),
 

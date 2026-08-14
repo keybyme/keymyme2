@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Medical Records{% endblock %}
+{% block content %}
+<div class="mb-6 flex items-center justify-between">
+    <h1 class="text-2xl font-semibold text-gray-900">Medical Records</h1>
+    <a href="{% url 'vault:medicalrecord_create' %}" class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700">
+        {% include "icons/plus.html" with class="w-4 h-4" %} New medical record
+    </a>
+</div>
+
+<div class="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+<table class="min-w-full divide-y divide-gray-100">
+    <thead class="bg-cafe-dark">
+        <tr>
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Name</th>
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Blood type</th>
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Primary doctor</th>
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Emergency contact</th>
+            <th class="px-4 py-3"></th>
+        </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100">
+        {% for record in medical_records %}
+        <tr class="group odd:bg-white even:bg-cream-soft hover:bg-beige">
+            <td class="whitespace-nowrap px-4 py-3 text-sm">
+                <span class="inline-flex items-center gap-1.5 text-gray-900">
+                    {% include "icons/heart.html" with class="w-4 h-4 text-crimson" %} {{ record.full_name }}
+                </span>
+            </td>
+            <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-700">{{ record.blood_type|default:"—" }}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-700">{{ record.primary_doctor_name|default:"—" }}</td>
+            <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-700">
+                {{ record.emergency_contact_1_name }}{% if record.emergency_contact_1_phone %} ({{ record.emergency_contact_1_phone }}){% endif %}
+            </td>
+            <td class="whitespace-nowrap px-4 py-3 text-right text-sm">
+                <div class="flex justify-end gap-3">
+                    <a href="{% url 'vault:medicalrecord_qr' record.pk %}" class="text-cafe hover:text-cafe-darker" title="QR / Public link">
+                        {% include "icons/qr-code.html" with class="w-5 h-5" %}
+                    </a>
+                    <a href="{% url 'vault:medicalrecord_update' record.pk %}" class="text-cafe hover:text-cafe-darker" title="Edit">
+                        {% include "icons/pencil.html" with class="w-5 h-5" %}
+                    </a>
+                    <a href="{% url 'vault:medicalrecord_delete' record.pk %}" class="text-crimson hover:text-red-800" title="Delete">
+                        {% include "icons/trash.html" with class="w-5 h-5" %}
+                    </a>
+                </div>
+            </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="px-4 py-6 text-center text-sm text-gray-500">You don't have any medical records yet.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+</div>
+{% endblock %}

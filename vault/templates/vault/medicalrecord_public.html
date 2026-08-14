@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block title %}{{ record.full_name }} — Medical ID{% endblock %}
+{% block content %}
+<div class="mx-auto max-w-2xl">
+    <div class="mb-6 flex items-center gap-3">
+        {% include "icons/heart.html" with class="w-8 h-8 text-crimson" %}
+        <h1 class="text-2xl font-semibold text-gray-900">{{ record.full_name }} — Medical ID</h1>
+    </div>
+
+    {% if not unlocked %}
+    <div class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        <p class="mb-4 flex items-start gap-2 text-sm text-gray-600">
+            {% include "icons/key.html" with class="w-5 h-5 shrink-0 text-cafe" %}
+            This medical record is locked. Enter the PIN to view it — ask the owner, or check the card it was printed on.
+        </p>
+        <form method="post" class="max-w-xs">
+            {% csrf_token %}
+            {% include "_form_field.html" with field=pin_form.pin %}
+            <button type="submit" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700">Unlock</button>
+        </form>
+    </div>
+    {% else %}
+    <div class="mb-6 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        <h2 class="mb-4 text-lg font-semibold text-gray-900">Identification</h2>
+        <dl class="grid grid-cols-2 gap-4 text-sm">
+            <div>
+                <dt class="font-medium text-gray-500">Date of birth</dt>
+                <dd class="text-gray-900">{{ record.date_of_birth|default:"—" }}</dd>
+            </div>
+            <div>
+                <dt class="font-medium text-gray-500">Blood type</dt>
+                <dd class="text-gray-900">{{ record.blood_type|default:"—" }}</dd>
+            </div>
+            <div class="col-span-2">
+                <dt class="font-medium text-gray-500">Address</dt>
+                <dd class="text-gray-900">{{ record.address|default:"—" }}</dd>
+            </div>
+            <div>
+                <dt class="font-medium text-gray-500">Phone</dt>
+                <dd class="text-gray-900">
+                    {% if record.phone_number %}<a href="tel:{{ record.phone_number }}" class="inline-flex items-center gap-1 text-blue-700 hover:underline">{% include "icons/phone.html" with class="w-4 h-4" %} {{ record.phone_number }}</a>{% else %}—{% endif %}
+                </dd>
+            </div>
+            <div>
+                <dt class="font-medium text-gray-500">Organ donor</dt>
+                <dd class="text-gray-900">{% if record.organ_donor %}Yes{% else %}No{% endif %}</dd>
+            </div>
+        </dl>
+    </div>
+
+    <div class="mb-6 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        <h2 class="mb-4 text-lg font-semibold text-gray-900">Medical information</h2>
+        <dl class="grid grid-cols-1 gap-4 text-sm">
+            <div>
+                <dt class="font-medium text-gray-500">Medical conditions</dt>
+                <dd class="whitespace-pre-line text-gray-900">{{ record.medical_conditions|default:"—" }}</dd>
+            </div>
+            <div>
+                <dt class="font-medium text-gray-500">Allergies</dt>
+                <dd class="whitespace-pre-line text-gray-900">{{ record.allergies|default:"—" }}</dd>
+            </div>
+            <div>
+                <dt class="font-medium text-gray-500">Current medications</dt>
+                <dd class="whitespace-pre-line text-gray-900">{{ record.medications|default:"—" }}</dd>
+            </div>
+        </dl>
+    </div>
+
+    <div class="mb-6 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        <h2 class="mb-4 text-lg font-semibold text-gray-900">Primary doctor</h2>
+        <dl class="grid grid-cols-2 gap-4 text-sm">
+            <div>
+                <dt class="font-medium text-gray-500">Name</dt>
+                <dd class="text-gray-900">{{ record.primary_doctor_name|default:"—" }}</dd>
+            </div>
+            <div>
+                <dt class="font-medium text-gray-500">Phone</dt>
+                <dd class="text-gray-900">
+                    {% if record.primary_doctor_phone %}<a href="tel:{{ record.primary_doctor_phone }}" class="inline-flex items-center gap-1 text-blue-700 hover:underline">{% include "icons/phone.html" with class="w-4 h-4" %} {{ record.primary_doctor_phone }}</a>{% else %}—{% endif %}
+                </dd>
+            </div>
+        </dl>
+    </div>
+
+    <div class="mb-6 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        <h2 class="mb-4 text-lg font-semibold text-gray-900">Insurance</h2>
+        <dl class="grid grid-cols-2 gap-4 text-sm">
+            <div>
+                <dt class="font-medium text-gray-500">Provider</dt>
+                <dd class="text-gray-900">{{ record.insurance_provider|default:"—" }}</dd>
+            </div>
+            <div>
+                <dt class="font-medium text-gray-500">Policy number</dt>
+                <dd class="text-gray-900">{{ record.insurance_policy_number|default:"—" }}</dd>
+            </div>
+        </dl>
+    </div>
+
+    <div class="mb-6 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        <h2 class="mb-4 text-lg font-semibold text-gray-900">Emergency contacts</h2>
+        <div class="space-y-4">
+            {% if record.emergency_contact_1_name %}
+            <div>
+                <dt class="font-medium text-gray-500">{{ record.emergency_contact_1_name }}{% if record.emergency_contact_1_relationship %} ({{ record.emergency_contact_1_relationship }}){% endif %}</dt>
+                <dd class="text-gray-900">
+                    {% if record.emergency_contact_1_phone %}<a href="tel:{{ record.emergency_contact_1_phone }}" class="inline-flex items-center gap-1 text-blue-700 hover:underline">{% include "icons/phone.html" with class="w-4 h-4" %} {{ record.emergency_contact_1_phone }}</a>{% else %}—{% endif %}
+                </dd>
+            </div>
+            {% endif %}
+            {% if record.emergency_contact_2_name %}
+            <div>
+                <dt class="font-medium text-gray-500">{{ record.emergency_contact_2_name }}{% if record.emergency_contact_2_relationship %} ({{ record.emergency_contact_2_relationship }}){% endif %}</dt>
+                <dd class="text-gray-900">
+                    {% if record.emergency_contact_2_phone %}<a href="tel:{{ record.emergency_contact_2_phone }}" class="inline-flex items-center gap-1 text-blue-700 hover:underline">{% include "icons/phone.html" with class="w-4 h-4" %} {{ record.emergency_contact_2_phone }}</a>{% else %}—{% endif %}
+                </dd>
+            </div>
+            {% endif %}
+            {% if record.emergency_contact_3_name %}
+            <div>
+                <dt class="font-medium text-gray-500">{{ record.emergency_contact_3_name }}{% if record.emergency_contact_3_relationship %} ({{ record.emergency_contact_3_relationship }}){% endif %}</dt>
+                <dd class="text-gray-900">
+                    {% if record.emergency_contact_3_phone %}<a href="tel:{{ record.emergency_contact_3_phone }}" class="inline-flex items-center gap-1 text-blue-700 hover:underline">{% include "icons/phone.html" with class="w-4 h-4" %} {{ record.emergency_contact_3_phone }}</a>{% else %}—{% endif %}
+                </dd>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if record.additional_notes %}
+    <div class="mb-6 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        <h2 class="mb-4 text-lg font-semibold text-gray-900">Additional notes</h2>
+        <p class="whitespace-pre-line text-sm text-gray-900">{{ record.additional_notes }}</p>
+    </div>
+    {% endif %}
+    {% endif %}
+</div>
+{% endblock %}
