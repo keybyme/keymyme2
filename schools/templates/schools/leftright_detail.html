@@ -9,12 +9,14 @@
         <button type="button" onclick="window.print()" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
             {% include "icons/printer.html" with class="w-4 h-4" %} Print
         </button>
+        {% if user.is_authenticated %}
         <a href="{% url 'schools:depot' %}" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
             {% include "icons/link.html" with class="w-4 h-4" %} Depot
         </a>
         <a href="{% url 'schools:lefts_rights' %}?route={{ leftright.route_name|urlencode }}" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
             {% include "icons/chevron-left.html" with class="w-4 h-4" %} Back to {{ leftright.route_name }}
         </a>
+        {% endif %}
     </div>
 </div>
 
@@ -59,7 +61,7 @@
         <div class="h-4"></div>
         {% endif %}
     {% empty %}
-    <p class="text-sm text-gray-500">No content yet — click "Edit" above to add some.</p>
+    <p class="text-sm text-gray-500">No content yet.</p>
     {% endfor %}
 </div>
 

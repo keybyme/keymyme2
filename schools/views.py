@@ -452,14 +452,22 @@ class LeftRightDeleteView(ModuleAccessRequiredMixin, DeleteView):
         return reverse_lazy("schools:lefts_rights") + "?" + urlencode({"route": self.object.route_name})
 
 
-class LeftRightDetailView(ModuleAccessRequiredMixin, DetailView):
+class LeftRightDetailView(DetailView):
     """Renders one LeftRight guide's content rows (LeftRightRow), in order,
     styled per row_type — the driver-facing cheat sheet built on the Edit
-    page (LeftRightUpdateView)."""
+    page (LeftRightUpdateView).
+
+    Deliberately public — no LoginRequiredMixin/ModuleAccessRequiredMixin.
+    Depot links (DepotLink.url) commonly point straight at one of these
+    pages, and the Depot list itself (DepotListView) is public too, so a
+    driver who isn't a KeyByMe user can open a shared link and see/print
+    the guide. leftright_detail.html hides the Depot/Back buttons for
+    anonymous visitors (`{% if user.is_authenticated %}`) — Print is the
+    only one they get — and base.html already hides the KeyByMe nav for
+    them the same way it does on vault's public QR pages."""
     model = LeftRight
     template_name = "schools/leftright_detail.html"
     context_object_name = "leftright"
-    module_codename = "artifacts_mcps"
 
     def get_queryset(self):
         return super().get_queryset().prefetch_related("rows")
