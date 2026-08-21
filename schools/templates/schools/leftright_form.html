@@ -31,7 +31,8 @@
             <div class="flex-1 {% if row_form.instance.row_type == 'link' %}flex gap-2{% else %}space-y-2{% endif %}">
                 {{ row_form.text }}
                 {% if row_form.instance.row_type == "link" %}
-                {{ row_form.url }}
+                {{ row_form.address }}
+                {{ row_form.text_after }}
                 {% endif %}
             </div>
             <button type="button" onclick="lrRemoveRow(this)" class="mt-2 flex-none text-crimson hover:text-red-800" title="Remove">
@@ -53,13 +54,15 @@ const LR_TRASH_SVG = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBo
 
 // Adds a new, unsaved LeftRightRow to the formset -- "Insertar fila" (kind
 // 'normal': one text field) appends one row with a single text field;
-// "Insertar vinculo" (kind 'link') appends ONE row with two fields side by
-// side -- text + URL, both part of the same formset entry (same index),
-// not two separate rows. Always appended at the end (order = current row
-// count), matching LeftRightRow.Meta.ordering. Indices only ever increase
-// (never reused or renumbered after a removal -- see lrRemoveRow), so
-// newly added rows can never collide with each other or with existing
-// ones.
+// "Insertar vinculo" (kind 'link') appends ONE row with three fields side
+// by side -- text, address, text_after, all part of the same formset
+// entry (same index), not separate rows. The middle field is always a
+// plain address (LeftRightDetailView turns it into a clickable Google
+// Maps GPS link at render time -- see LeftRightRow). Always appended at
+// the end (order = current row count), matching LeftRightRow.Meta.ordering.
+// Indices only ever increase (never reused or renumbered after a removal
+// -- see lrRemoveRow), so newly added rows can never collide with each
+// other or with existing ones.
 function lrAddRow(kind) {
     const totalInput = document.getElementById('id_rows-TOTAL_FORMS');
     const index = parseInt(totalInput.value, 10);
@@ -71,8 +74,11 @@ function lrAddRow(kind) {
         <input type="hidden" name="${prefix}-row_type" value="${kind}">
         <input type="hidden" name="${prefix}-order" value="${index}">
         <div class="flex-1 ${kind === 'link' ? 'flex gap-2' : 'space-y-2'}">
-            <input type="text" name="${prefix}-text" placeholder="${kind === 'link' ? 'Link text…' : 'Text…'}" class="${LR_INPUT_CLASSES}">
-            ${kind === 'link' ? `<input type="url" name="${prefix}-url" placeholder="https://…" class="${LR_INPUT_CLASSES}">` : ''}
+            <input type="text" name="${prefix}-text" placeholder="Text…" class="${LR_INPUT_CLASSES}">
+            ${kind === 'link' ? `
+            <input type="text" name="${prefix}-address" placeholder="Address…" class="${LR_INPUT_CLASSES}">
+            <input type="text" name="${prefix}-text_after" placeholder="Text…" class="${LR_INPUT_CLASSES}">
+            ` : ''}
         </div>
         <button type="button" onclick="lrRemoveRow(this)" class="mt-2 flex-none text-crimson hover:text-red-800" title="Remove">${LR_TRASH_SVG}</button>
     `;

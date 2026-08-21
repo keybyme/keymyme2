@@ -180,8 +180,14 @@ class LeftRightRow(models.Model):
     page's "Insertar fila" / "Insertar vinculo" buttons add more (NORMAL /
     LINK respectively) on top of that.
 
-    `text` holds the row's text for TITLE/BOLD/NORMAL rows and doubles as
-    the link label for LINK rows; `url` is only set on LINK rows.
+    `text` holds the row's text for TITLE/BOLD/NORMAL rows, and doubles as
+    the leading text on a LINK row (three fields: `text` before, `address`
+    in the middle, `text_after` trailing). `address` is a plain address —
+    not a URL the user pastes in — LeftRightDetailView turns it into a
+    driving-directions link at render time (same
+    google.com/maps/dir/?api=1&destination=... + geolocated-origin pattern
+    as AmMidPmEntry's per-address links), so clicking it opens Google Maps
+    GPS navigation to that address.
     """
 
     class RowType(models.TextChoices):
@@ -194,7 +200,8 @@ class LeftRightRow(models.Model):
     order = models.PositiveIntegerField(default=0)
     row_type = models.CharField(max_length=10, choices=RowType.choices, default=RowType.NORMAL, verbose_name="Type")
     text = models.CharField(max_length=255, blank=True, verbose_name="Text")
-    url = models.URLField(max_length=500, blank=True, verbose_name="Link URL")
+    address = models.CharField(max_length=255, blank=True, verbose_name="Address")
+    text_after = models.CharField(max_length=255, blank=True, verbose_name="Text after")
 
     class Meta:
         ordering = ["order", "pk"]

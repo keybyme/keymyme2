@@ -103,11 +103,12 @@ class LeftRightForm(TailwindFormMixin, forms.ModelForm):
 
 #  Extra text-input classes layered on top of TailwindFormMixin's base
 # INPUT_CLASSES, per row type — this is what makes the two title rows
-# render large+bold, the third row bold, and everything else (normal/link
-# rows, including ones added later via "Insertar fila"/"Insertar vinculo")
-# plain. Applied server-side in LeftRightRowForm.__init__ below.
+# render large, extra-bold and centered, the third row semi-bold, and
+# everything else (normal/link rows, including ones added later via
+# "Insertar fila"/"Insertar vinculo") plain. Applied server-side in
+# LeftRightRowForm.__init__ below.
 ROW_TEXT_CLASSES = {
-    LeftRightRow.RowType.TITLE: "text-xl font-bold",
+    LeftRightRow.RowType.TITLE: "text-xl font-extrabold text-center",
     LeftRightRow.RowType.BOLD: "font-semibold",
 }
 
@@ -116,15 +117,18 @@ class LeftRightRowForm(TailwindFormMixin, forms.ModelForm):
     """One row in the LeftRightRowFormSet below. `row_type` and `order` are
     hidden inputs set by JS (see leftright_form.html) — not something the
     user picks from a dropdown; which button they click ("Insertar fila" vs
-    "Insertar vinculo") decides the type."""
+    "Insertar vinculo") decides the type. LINK rows use all three of
+    text/address/text_after (see LeftRightRow); other row types only use
+    `text`."""
 
     class Meta:
         model = LeftRightRow
-        fields = ["row_type", "order", "text", "url"]
+        fields = ["row_type", "order", "text", "address", "text_after"]
         widgets = {
             "row_type": forms.HiddenInput(),
             "order": forms.HiddenInput(),
-            "url": forms.URLInput(attrs={"placeholder": "https://…"}),
+            "address": forms.TextInput(attrs={"placeholder": "Address…"}),
+            "text_after": forms.TextInput(attrs={"placeholder": "Text…"}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -133,9 +137,7 @@ class LeftRightRowForm(TailwindFormMixin, forms.ModelForm):
         if extra_classes:
             existing = self.fields["text"].widget.attrs.get("class", "")
             self.fields["text"].widget.attrs["class"] = f"{existing} {extra_classes}".strip()
-        self.fields["text"].widget.attrs["placeholder"] = (
-            "Link text…" if self.instance.row_type == LeftRightRow.RowType.LINK else "Text…"
-        )
+        self.fields["text"].widget.attrs["placeholder"] = "Text…"
 
 
 # extra=0: the form only ever adds rows via JS-cloned formset forms
