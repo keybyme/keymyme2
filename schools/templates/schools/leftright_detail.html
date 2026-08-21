@@ -6,6 +6,9 @@
         <h1 class="text-2xl font-semibold text-gray-900">{{ leftright.route_name }} — {{ leftright.name }}</h1>
     </div>
     <div class="flex flex-wrap items-center gap-2">
+        <button type="button" onclick="window.print()" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
+            {% include "icons/printer.html" with class="w-4 h-4" %} Print
+        </button>
         <a href="{% url 'schools:leftright_update' leftright.pk %}" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
             {% include "icons/pencil.html" with class="w-4 h-4" %} Edit
         </a>
@@ -15,7 +18,28 @@
     </div>
 </div>
 
-<div class="max-w-2xl rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+<style>
+/* Print: hide everything on the page except #lr-print-area (the rows
+   themselves) -- no top nav, no storage bar, no h1/Edit/Back/Print
+   buttons, nothing from row 1 on down only. Standard "isolate one
+   element" print trick since visibility:hidden (unlike display:none)
+   still lets the visible descendant override it back to visible. */
+@media print {
+    body * { visibility: hidden; }
+    #lr-print-area, #lr-print-area * { visibility: visible; }
+    #lr-print-area {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        border: none;
+        box-shadow: none;
+        padding: 0;
+    }
+}
+</style>
+
+<div id="lr-print-area" class="max-w-2xl rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
     {% for row in leftright.rows.all %}
         {% if row.row_type == "link" %}
         <p class="mb-2 min-h-6 whitespace-pre-wrap text-gray-700">{{ row.text }} <a href="https://www.google.com/maps/dir/?api=1&destination={{ row.address|urlencode }}&travelmode=driving" onclick="return lrOpenDirections(event, '{{ row.address|escapejs }}');" target="_blank" rel="noopener" class="text-blue-600 underline hover:text-blue-800">{{ row.address }}</a> {{ row.text_after }}</p>
