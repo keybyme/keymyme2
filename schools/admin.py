@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import AmMidPmEntry, Employee, LeftRight, Route, School
+from .models import AmMidPmEntry, Employee, LeftRight, LeftRightRow, Route, School
 
 
 @admin.register(School)
@@ -30,7 +30,13 @@ class AmMidPmEntryAdmin(admin.ModelAdmin):
     search_fields = ("route__route_number", "address")
 
 
+class LeftRightRowInline(admin.TabularInline):
+    model = LeftRightRow
+    extra = 0
+
+
 @admin.register(LeftRight)
 class LeftRightAdmin(admin.ModelAdmin):
     list_display = ("route_name", "name")
     search_fields = ("route_name", "name")
+    inlines = [LeftRightRowInline]

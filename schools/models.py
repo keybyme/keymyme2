@@ -170,3 +170,36 @@ class LeftRight(models.Model):
 
     def __str__(self):
         return f"{self.route_name} — {self.name}"
+
+
+class LeftRightRow(models.Model):
+    """One row of freeform content in a LeftRight guide — the driver-facing
+    cheat sheet (LeftRightDetailView) is built entirely from these, in
+    `order`. LeftRightCreateView seeds every new LeftRight with four blank
+    rows (two TITLE, one BOLD, one NORMAL) as a starting scaffold; the Edit
+    page's "Insertar fila" / "Insertar vinculo" buttons add more (NORMAL /
+    LINK respectively) on top of that.
+
+    `text` holds the row's text for TITLE/BOLD/NORMAL rows and doubles as
+    the link label for LINK rows; `url` is only set on LINK rows.
+    """
+
+    class RowType(models.TextChoices):
+        TITLE = "title", "Title (large, bold)"
+        BOLD = "bold", "Bold"
+        NORMAL = "normal", "Normal"
+        LINK = "link", "Link"
+
+    leftright = models.ForeignKey(LeftRight, on_delete=models.CASCADE, related_name="rows")
+    order = models.PositiveIntegerField(default=0)
+    row_type = models.CharField(max_length=10, choices=RowType.choices, default=RowType.NORMAL, verbose_name="Type")
+    text = models.CharField(max_length=255, blank=True, verbose_name="Text")
+    url = models.URLField(max_length=500, blank=True, verbose_name="Link URL")
+
+    class Meta:
+        ordering = ["order", "pk"]
+        verbose_name = "Left & Right row"
+        verbose_name_plural = "Left & Right rows"
+
+    def __str__(self):
+        return f"{self.leftright} — row {self.order} ({self.row_type})"

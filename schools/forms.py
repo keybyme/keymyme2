@@ -2,10 +2,11 @@ import re
 from datetime import time
 
 from django import forms
+from django.forms import inlineformset_factory
 
 from vault.forms import TailwindFormMixin
 
-from .models import AmMidPmEntry, Employee, LeftRight, Route, School
+from .models import AmMidPmEntry, Employee, LeftRight, LeftRightRow, Route, School
 
 MINUTES_SECONDS_RE = re.compile(r"^([0-5]?\d):([0-5]\d)$")
 
@@ -98,3 +99,49 @@ class LeftRightForm(TailwindFormMixin, forms.ModelForm):
 
     def clean_route_name(self):
         return self.cleaned_data["route_name"].strip()
+
+
+#  Extra text-input classes layered on top of TailwindFormMixin's base
+# INPUT_CLASSES, per row type — this is what makes the two title rows
+# render large+bold, the third row bold, and everything else (normal/link
+# rows, including ones added later via "Insertar fila"/"Insertar vinculo")
+# plain. Applied server-side in LeftRightRowForm.__init__ below.
+ROW_TEXT_CLASSES = {
+    LeftRightRow.RowType.TITLE: "text-xl font-bold",
+    LeftRightRow.RowType.BOLD: "font-semibold",
+}
+
+
+class LeftRightRowForm(TailwindFormMixin, forms.ModelForm):
+    """One row in the LeftRightRowFormSet below. `row_type` and `order` are
+    hidden inputs set by JS (see leftright_form.html) — not something the
+    user picks from a dropdown; which button they click ("Insertar fila" vs
+    "Insertar vinculo") decides the type."""
+
+    class Meta:
+        model = LeftRightRow
+        fields = ["row_type", "order", "text", "url"]
+        widgets = {
+            "row_type": forms.HiddenInput(),
+            "order": forms.HiddenInput(),
+            "url": forms.URLInput(attrs={"placeholder": "https://…"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        extra_classes = ROW_TEXT_CLASSES.get(self.instance.row_type)
+        if extra_classes:
+            existing = self.fields["text"].widget.attrs.get("class", "")
+            self.fields["text"].widget.attrs["class"] = f"{existing} {extra_classes}".strip()
+        self.fields["text"].widget.attrs["placeholder"] = (
+            "Link text…" if self.instance.row_type == LeftRightRow.RowType.LINK else "Text…"
+        )
+
+
+# extra=0: the form only ever adds rows via JS-cloned formset forms
+# ("Insertar fila" / "Insertar vinculo" in leftright_form.html), not
+# server-rendered blank extras — LeftRightCreateView seeds the initial
+# four rows directly instead.
+LeftRightRowFormSet = inlineformset_factory(
+    LeftRight, LeftRightRow, form=LeftRightRowForm, extra=0, can_delete=True,
+)

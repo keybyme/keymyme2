@@ -1,13 +1,14 @@
 from urllib.parse import urlencode
 
 from django.db.models import Q
+from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, TemplateView, UpdateView
 
 from vault.mixins import AjaxPartialTemplateMixin, ModuleAccessRequiredMixin
 
-from .forms import AmMidPmEntryForm, EmployeeForm, LeftRightForm, RouteForm, SchoolForm
-from .models import AmMidPmEntry, Employee, LeftRight, Route, School
+from .forms import AmMidPmEntryForm, EmployeeForm, LeftRightForm, LeftRightRowFormSet, RouteForm, SchoolForm
+from .models import AmMidPmEntry, Employee, LeftRight, LeftRightRow, Route, School
 
 # Not owner-scoped on purpose: School/Employee/Route/AmMidPmEntry/LeftRight
 # are shared reference catalogs (MCPS public schools, MCPS transportation
@@ -397,15 +398,47 @@ class LeftRightCreateView(LeftRightRouteNamesDatalistMixin, ModuleAccessRequired
     template_name = "schools/leftright_form.html"
     module_codename = "artifacts_mcps"
 
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        # Seed the four default content rows every LeftRight opens with on
+        # its Edit page — two large-bold title rows, one normal-bold row,
+        # one plain row — see LeftRightRow and leftright_form.html.
+        LeftRightRow.objects.bulk_create([
+            LeftRightRow(leftright=self.object, order=0, row_type=LeftRightRow.RowType.TITLE),
+            LeftRightRow(leftright=self.object, order=1, row_type=LeftRightRow.RowType.TITLE),
+            LeftRightRow(leftright=self.object, order=2, row_type=LeftRightRow.RowType.BOLD),
+            LeftRightRow(leftright=self.object, order=3, row_type=LeftRightRow.RowType.NORMAL),
+        ])
+        return response
+
     def get_success_url(self):
         return reverse_lazy("schools:lefts_rights") + "?" + urlencode({"route": self.object.route_name})
 
 
 class LeftRightUpdateView(LeftRightRouteNamesDatalistMixin, ModuleAccessRequiredMixin, UpdateView):
+    """Edit page for one LeftRight: the route_name/name fields (LeftRightForm)
+    plus its content rows (LeftRightRowFormSet) — two separate forms posted
+    together, since ModelForm/UpdateView only natively drives one."""
     model = LeftRight
     form_class = LeftRightForm
     template_name = "schools/leftright_form.html"
     module_codename = "artifacts_mcps"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.setdefault("row_formset", LeftRightRowFormSet(instance=self.object, prefix="rows"))
+        return context
+
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        form = self.get_form()
+        row_formset = LeftRightRowFormSet(request.POST, instance=self.object, prefix="rows")
+        if form.is_valid() and row_formset.is_valid():
+            self.object = form.save()
+            row_formset.instance = self.object
+            row_formset.save()
+            return redirect(self.get_success_url())
+        return self.render_to_response(self.get_context_data(form=form, row_formset=row_formset))
 
     def get_success_url(self):
         return reverse_lazy("schools:lefts_rights") + "?" + urlencode({"route": self.object.route_name})
@@ -421,10 +454,13 @@ class LeftRightDeleteView(ModuleAccessRequiredMixin, DeleteView):
 
 
 class LeftRightDetailView(ModuleAccessRequiredMixin, DetailView):
-    """What one LeftRight guide actually shows is still to be designed —
-    this is a placeholder so the link from LeftsRightsView has somewhere
-    to go."""
+    """Renders one LeftRight guide's content rows (LeftRightRow), in order,
+    styled per row_type — the driver-facing cheat sheet built on the Edit
+    page (LeftRightUpdateView)."""
     model = LeftRight
     template_name = "schools/leftright_detail.html"
     context_object_name = "leftright"
     module_codename = "artifacts_mcps"
+
+    def get_queryset(self):
+        return super().get_queryset().prefetch_related("rows")
