@@ -210,3 +210,22 @@ class LeftRightRow(models.Model):
 
     def __str__(self):
         return f"{self.leftright} — row {self.order} ({self.row_type})"
+
+
+class DepotLink(models.Model):
+    """One row in the "Depot" directory — a single page shared by every
+    LeftRight (reached via the "Depot" button on LeftRightDetailView),
+    not tied to any one route/guide. `url` is both the display text and
+    the href: whatever is typed is shown verbatim and links to itself
+    (see DepotView / schools/depot.html)."""
+
+    order = models.PositiveIntegerField(default=0)
+    url = models.CharField(max_length=500, verbose_name="Link")
+
+    class Meta:
+        ordering = ["order", "pk"]
+        verbose_name = "Depot link"
+        verbose_name_plural = "Depot links"
+
+    def __str__(self):
+        return self.url

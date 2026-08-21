@@ -2,11 +2,11 @@ import re
 from datetime import time
 
 from django import forms
-from django.forms import inlineformset_factory
+from django.forms import inlineformset_factory, modelformset_factory
 
 from vault.forms import TailwindFormMixin
 
-from .models import AmMidPmEntry, Employee, LeftRight, LeftRightRow, Route, School
+from .models import AmMidPmEntry, DepotLink, Employee, LeftRight, LeftRightRow, Route, School
 
 MINUTES_SECONDS_RE = re.compile(r"^([0-5]?\d):([0-5]\d)$")
 
@@ -148,4 +148,31 @@ class LeftRightRowForm(TailwindFormMixin, forms.ModelForm):
 # four rows directly instead.
 LeftRightRowFormSet = inlineformset_factory(
     LeftRight, LeftRightRow, form=LeftRightRowForm, extra=0, can_delete=True,
+)
+
+
+class DepotLinkForm(TailwindFormMixin, forms.ModelForm):
+    """One row in the DepotLinkFormSet below — see DepotLink: `url` is both
+    the displayed text and the href. The `oninput` attr keeps the little
+    "open" link icon next to this field (see depot.html) pointed at
+    whatever's currently typed, live, without needing to save first."""
+
+    class Meta:
+        model = DepotLink
+        fields = ["order", "url"]
+        widgets = {
+            "order": forms.HiddenInput(),
+            "url": forms.TextInput(attrs={
+                "placeholder": "https://…",
+                "oninput": "this.nextElementSibling.href = this.value;",
+            }),
+        }
+
+
+# Not an inline formset -- DepotLink has no parent FK, it's a single flat
+# list shared by the whole "Depot" page (see DepotView). extra=0: new rows
+# are added client-side via JS ("Insertar fila" in depot.html), same
+# pattern as LeftRightRowFormSet above.
+DepotLinkFormSet = modelformset_factory(
+    DepotLink, form=DepotLinkForm, extra=0, can_delete=True,
 )

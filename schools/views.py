@@ -7,8 +7,10 @@ from django.views.generic import CreateView, DeleteView, DetailView, ListView, T
 
 from vault.mixins import AjaxPartialTemplateMixin, ModuleAccessRequiredMixin
 
-from .forms import AmMidPmEntryForm, EmployeeForm, LeftRightForm, LeftRightRowFormSet, RouteForm, SchoolForm
-from .models import AmMidPmEntry, Employee, LeftRight, LeftRightRow, Route, School
+from .forms import (
+    AmMidPmEntryForm, DepotLinkFormSet, EmployeeForm, LeftRightForm, LeftRightRowFormSet, RouteForm, SchoolForm,
+)
+from .models import AmMidPmEntry, DepotLink, Employee, LeftRight, LeftRightRow, Route, School
 
 # Not owner-scoped on purpose: School/Employee/Route/AmMidPmEntry/LeftRight
 # are shared reference catalogs (MCPS public schools, MCPS transportation
@@ -461,3 +463,27 @@ class LeftRightDetailView(ModuleAccessRequiredMixin, DetailView):
 
     def get_queryset(self):
         return super().get_queryset().prefetch_related("rows")
+
+
+class DepotView(ModuleAccessRequiredMixin, TemplateView):
+    """A single page shared by every LeftRight (reached via the "Depot"
+    button on LeftRightDetailView) -- a flat, editable list of DepotLink
+    rows, not tied to any one route/guide. Same edit-in-place formset
+    pattern as LeftRightUpdateView, but modelformset_factory instead of
+    inlineformset_factory since DepotLink has no parent FK."""
+    template_name = "schools/depot.html"
+    module_codename = "artifacts_mcps"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.setdefault(
+            "formset", DepotLinkFormSet(queryset=DepotLink.objects.all(), prefix="depot")
+        )
+        return context
+
+    def post(self, request, *args, **kwargs):
+        formset = DepotLinkFormSet(request.POST, queryset=DepotLink.objects.all(), prefix="depot")
+        if formset.is_valid():
+            formset.save()
+            return redirect("schools:depot")
+        return self.render_to_response(self.get_context_data(formset=formset))

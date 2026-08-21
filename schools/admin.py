@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import AmMidPmEntry, Employee, LeftRight, LeftRightRow, Route, School
+from .models import AmMidPmEntry, DepotLink, Employee, LeftRight, LeftRightRow, Route, School
 
 
 @admin.register(School)
@@ -40,3 +40,9 @@ class LeftRightAdmin(admin.ModelAdmin):
     list_display = ("route_name", "name")
     search_fields = ("route_name", "name")
     inlines = [LeftRightRowInline]
+
+
+@admin.register(DepotLink)
+class DepotLinkAdmin(admin.ModelAdmin):
+    list_display = ("order", "url")
+    search_fields = ("url",)

@@ -23,6 +23,7 @@ urlpatterns = [
     path("am-mid-pm/<int:pk>/delete/", views.AmMidPmEntryDeleteView.as_view(), name="ammidpm_delete"),
     path("lefts-rights/", views.LeftsRightsView.as_view(), name="lefts_rights"),
     path("lefts-rights/new/", views.LeftRightCreateView.as_view(), name="leftright_create"),
+    path("lefts-rights/depot/", views.DepotView.as_view(), name="depot"),
     path("lefts-rights/<int:pk>/", views.LeftRightDetailView.as_view(), name="leftright_detail"),
     path("lefts-rights/<int:pk>/edit/", views.LeftRightUpdateView.as_view(), name="leftright_update"),
     path("lefts-rights/<int:pk>/delete/", views.LeftRightDeleteView.as_view(), name="leftright_delete"),
