@@ -103,12 +103,13 @@ class LeftRightForm(TailwindFormMixin, forms.ModelForm):
 
 #  Extra text-input classes layered on top of TailwindFormMixin's base
 # INPUT_CLASSES, per row type — this is what makes the two title rows
-# render large, extra-bold and centered, the third row semi-bold, and
+# render large, black-weight and centered, the third row semi-bold, and
 # everything else (normal/link rows, including ones added later via
 # "Insertar fila"/"Insertar vinculo") plain. Applied server-side in
-# LeftRightRowForm.__init__ below.
+# LeftRightRowForm.__init__ below. Kept in sync with leftright_detail.html
+# so the input while editing looks like the rendered result.
 ROW_TEXT_CLASSES = {
-    LeftRightRow.RowType.TITLE: "text-xl font-extrabold text-center",
+    LeftRightRow.RowType.TITLE: "text-2xl font-black text-center text-black",
     LeftRightRow.RowType.BOLD: "font-semibold",
 }
 
