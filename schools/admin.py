@@ -44,5 +44,5 @@ class LeftRightAdmin(admin.ModelAdmin):
 
 @admin.register(DepotLink)
 class DepotLinkAdmin(admin.ModelAdmin):
-    list_display = ("order", "url")
-    search_fields = ("url",)
+    list_display = ("order", "name", "url")
+    search_fields = ("name", "url")
