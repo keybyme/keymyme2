@@ -11,7 +11,7 @@
         <button type="button" onclick="lrAddRow('link')" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
             {% include "icons/plus.html" with class="w-4 h-4" %} Insertar vinculo
         </button>
-        <button type="button" onclick="lrAddRow('title', '*** POST TRIP BUS NOW ***')" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
+        <button type="button" onclick="lrAddPostTrip()" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
             {% include "icons/plus.html" with class="w-4 h-4" %} Post Trip
         </button>
     </div>
@@ -97,6 +97,15 @@ function lrAddRow(kind, presetText) {
     `;
     document.getElementById('lr-rows').appendChild(wrapper);
     totalInput.value = index + 1;
+}
+
+// "Post Trip" button: a blank spacer row, the title-styled "*** POST TRIP
+// BUS NOW ***" row, then another blank spacer row -- one row of empty
+// space on each side of it, not just a margin tweak.
+function lrAddPostTrip() {
+    lrAddRow('normal', '');
+    lrAddRow('title', '*** POST TRIP BUS NOW ***');
+    lrAddRow('normal', '');
 }
 
 // Existing (already-saved) rows carry a DELETE checkbox from the formset
