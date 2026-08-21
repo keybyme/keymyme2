@@ -15,9 +15,7 @@
 
     <div id="depot-links">
         {% for link in links %}
-        <p class="depot-link-row mb-1 min-h-3 whitespace-pre-wrap font-extrabold text-gray-700">
-            <a href="{{ link.url }}" target="_blank" rel="noopener" class="text-blue-600 underline hover:text-blue-800">{{ link.name|default:link.url }}</a>
-        </p>
+        <p class="depot-link-row mb-1 min-h-3 whitespace-pre-wrap font-extrabold text-gray-700"><a href="{{ link.url }}" target="_blank" rel="noopener" class="text-blue-600 underline hover:text-blue-800">{{ link.name|default:link.url }}</a></p>
         {% empty %}
         <p class="text-sm text-gray-500">No links yet.</p>
         {% endfor %}
