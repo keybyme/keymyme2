@@ -372,24 +372,21 @@ class LeftsRightsView(ModuleAccessRequiredMixin, TemplateView):
         return context
 
 
-class LeftRightCreateView(ModuleAccessRequiredMixin, CreateView):
+class LeftRightCreateView(AmMidPmRoutesDatalistMixin, ModuleAccessRequiredMixin, CreateView):
+    # Route always starts blank (no prefill from the selected route on the
+    # Lefts & Rights page) — the user types/picks the route number fresh
+    # every time, since one route commonly gets several LeftRights added
+    # in a row under different names.
     model = LeftRight
     form_class = LeftRightForm
     template_name = "schools/leftright_form.html"
     module_codename = "artifacts_mcps"
 
-    def get_initial(self):
-        initial = super().get_initial()
-        route_id = self.request.GET.get("route")
-        if route_id:
-            initial["route"] = route_id
-        return initial
-
     def get_success_url(self):
         return reverse_lazy("schools:lefts_rights") + f"?route={self.object.route_id}"
 
 
-class LeftRightUpdateView(ModuleAccessRequiredMixin, UpdateView):
+class LeftRightUpdateView(AmMidPmRoutesDatalistMixin, ModuleAccessRequiredMixin, UpdateView):
     model = LeftRight
     form_class = LeftRightForm
     template_name = "schools/leftright_form.html"
