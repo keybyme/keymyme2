@@ -5,6 +5,12 @@
     <h1 class="text-2xl font-semibold text-gray-900">{% if object %}Edit{% else %}Add{% endif %} Left & Right</h1>
     {% if object %}
     <div class="flex flex-wrap items-center gap-2">
+        <a href="{% url 'schools:lefts_rights' %}" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
+            {% include "icons/map-pin.html" with class="w-4 h-4" %} Lefts & Rights
+        </a>
+        <a href="{% url 'schools:depot' %}" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
+            {% include "icons/link.html" with class="w-4 h-4" %} Depot
+        </a>
         <button type="button" onclick="lrAddRow('normal')" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
             {% include "icons/plus.html" with class="w-4 h-4" %} Insertar fila
         </button>
