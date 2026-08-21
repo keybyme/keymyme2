@@ -18,13 +18,13 @@
 <div class="max-w-2xl rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
     {% for row in leftright.rows.all %}
         {% if row.row_type == "link" %}
-        <p class="mb-2 whitespace-pre-wrap text-gray-700">{{ row.text }} <a href="https://www.google.com/maps/dir/?api=1&destination={{ row.address|urlencode }}&travelmode=driving" onclick="return lrOpenDirections(event, '{{ row.address|escapejs }}');" target="_blank" rel="noopener" class="text-blue-600 underline hover:text-blue-800">{{ row.address }}</a> {{ row.text_after }}</p>
+        <p class="mb-2 min-h-6 whitespace-pre-wrap text-gray-700">{{ row.text }} <a href="https://www.google.com/maps/dir/?api=1&destination={{ row.address|urlencode }}&travelmode=driving" onclick="return lrOpenDirections(event, '{{ row.address|escapejs }}');" target="_blank" rel="noopener" class="text-blue-600 underline hover:text-blue-800">{{ row.address }}</a> {{ row.text_after }}</p>
         {% elif row.row_type == "title" %}
-        <p class="mb-2 whitespace-pre-wrap text-center text-2xl font-black text-black">{{ row.text }}</p>
+        <p class="mb-2 min-h-9 whitespace-pre-wrap text-center text-2xl font-black text-black">{{ row.text }}</p>
         {% elif row.row_type == "bold" %}
-        <p class="mb-2 whitespace-pre-wrap font-semibold text-gray-900">{{ row.text }}</p>
+        <p class="mb-2 min-h-6 whitespace-pre-wrap font-semibold text-gray-900">{{ row.text }}</p>
         {% else %}
-        <p class="mb-2 whitespace-pre-wrap text-gray-700">{{ row.text }}</p>
+        <p class="mb-2 min-h-6 whitespace-pre-wrap text-gray-700">{{ row.text }}</p>
         {% endif %}
         {% if forloop.counter == 3 %}
         <!-- Extra breathing room between row 3 and row 4 specifically --
