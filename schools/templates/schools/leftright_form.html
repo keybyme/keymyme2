@@ -11,6 +11,9 @@
         <button type="button" onclick="lrAddRow('link')" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
             {% include "icons/plus.html" with class="w-4 h-4" %} Insertar vinculo
         </button>
+        <button type="button" onclick="lrAddRow('title', '*** POST TRIP BUS NOW ***')" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
+            {% include "icons/plus.html" with class="w-4 h-4" %} Post Trip
+        </button>
     </div>
     {% endif %}
 </div>
@@ -52,21 +55,31 @@
 const LR_INPUT_CLASSES = "block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500";
 const LR_TRASH_SVG = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>';
 
-// Adds a new, unsaved LeftRightRow to the formset -- "Insertar fila" (kind
-// 'normal': one text field) appends one row with a single text field;
-// "Insertar vinculo" (kind 'link') appends ONE row with three fields side
-// by side -- text, address, text_after, all part of the same formset
-// entry (same index), not separate rows. The middle field is always a
-// plain address (LeftRightDetailView turns it into a clickable Google
-// Maps GPS link at render time -- see LeftRightRow). Always appended at
-// the end (order = current row count), matching LeftRightRow.Meta.ordering.
-// Indices only ever increase (never reused or renumbered after a removal
-// -- see lrRemoveRow), so newly added rows can never collide with each
-// other or with existing ones.
-function lrAddRow(kind) {
+// Extra text-input classes per kind, layered on top of LR_INPUT_CLASSES --
+// kept in sync with ROW_TEXT_CLASSES in forms.py (server-side rendering of
+// existing rows) so a newly added row looks the same before and after
+// saving.
+const LR_EXTRA_CLASSES = {
+    title: "text-2xl font-black text-center text-black",
+};
+
+// Adds a new, unsaved LeftRightRow to the formset. `kind` is 'normal'
+// ("Insertar fila": one plain text field), 'link' ("Insertar vinculo": ONE
+// row with three fields side by side -- text, address, text_after, all
+// part of the same formset entry, not separate rows -- the middle field is
+// always a plain address that LeftRightDetailView turns into a clickable
+// Google Maps GPS link at render time, see LeftRightRow), or 'title'
+// ("Post Trip": one field styled like rows 1-2, optionally pre-filled via
+// `presetText`). Always appended at the end (order = current row count),
+// matching LeftRightRow.Meta.ordering. Indices only ever increase (never
+// reused or renumbered after a removal -- see lrRemoveRow), so newly added
+// rows can never collide with each other or with existing ones.
+function lrAddRow(kind, presetText) {
     const totalInput = document.getElementById('id_rows-TOTAL_FORMS');
     const index = parseInt(totalInput.value, 10);
     const prefix = `rows-${index}`;
+    const textClass = `${LR_INPUT_CLASSES} ${LR_EXTRA_CLASSES[kind] || ''}`.trim();
+    const textValue = presetText ? presetText.replace(/"/g, '&quot;') : '';
 
     const wrapper = document.createElement('div');
     wrapper.className = 'lr-row flex items-start gap-3';
@@ -74,7 +87,7 @@ function lrAddRow(kind) {
         <input type="hidden" name="${prefix}-row_type" value="${kind}">
         <input type="hidden" name="${prefix}-order" value="${index}">
         <div class="flex-1 ${kind === 'link' ? 'flex gap-2' : 'space-y-2'}">
-            <input type="text" name="${prefix}-text" placeholder="Text…" class="${LR_INPUT_CLASSES}">
+            <input type="text" name="${prefix}-text" placeholder="Text…" value="${textValue}" class="${textClass}">
             ${kind === 'link' ? `
             <input type="text" name="${prefix}-address" placeholder="Address…" class="${LR_INPUT_CLASSES}">
             <input type="text" name="${prefix}-text_after" placeholder="Text…" class="${LR_INPUT_CLASSES}">
