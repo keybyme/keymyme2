@@ -489,14 +489,20 @@ class DepotView(ModuleAccessRequiredMixin, TemplateView):
         return self.render_to_response(self.get_context_data(formset=formset))
 
 
-class DepotListView(ModuleAccessRequiredMixin, TemplateView):
+class DepotListView(TemplateView):
     """Read-only rendering of the Depot links ("Listar" button on
     DepotView) -- the "LEFTS & RIGHTS" row plus every DepotLink as an
     actual <a href>, and the Print button (same isolate-and-print trick as
     LeftRightDetailView) lives here instead of on the editable DepotView,
-    since printing raw <input> boxes there wouldn't read well."""
+    since printing raw <input> boxes there wouldn't read well.
+
+    Deliberately public — no LoginRequiredMixin/ModuleAccessRequiredMixin,
+    unlike every other schools view. Anyone with the link can view/print
+    it; base.html's `{% if user.is_authenticated %}` already hides the
+    KeyByMe nav/storage bar for anonymous visitors (same pattern as
+    vault's public vehicle/medical-record QR pages), so a logged-out
+    visitor sees nothing but "Depot" and the links."""
     template_name = "schools/depot_list.html"
-    module_codename = "artifacts_mcps"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

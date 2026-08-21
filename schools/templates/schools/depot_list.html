@@ -7,17 +7,14 @@
         <button type="button" onclick="window.print()" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
             {% include "icons/printer.html" with class="w-4 h-4" %} Print
         </button>
-        <a href="{% url 'schools:depot' %}" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
-            {% include "icons/pencil.html" with class="w-4 h-4" %} Edit
-        </a>
     </div>
 </div>
 
 <style>
 /* Same isolate-and-print trick as leftright_detail.html: hide everything
    on the page except #depot-print-area -- no top nav, no storage bar, no
-   h1/Print/Edit buttons, nothing but the "LEFTS & RIGHTS" row and the
-   links themselves. */
+   h1/Print button, nothing but the "LEFTS & RIGHTS" row and the links
+   themselves. */
 @media print {
     body * { visibility: hidden; }
     #depot-print-area, #depot-print-area * { visibility: visible; }
@@ -40,7 +37,7 @@
         <a href="{{ link.url }}" target="_blank" rel="noopener" class="text-blue-600 underline hover:text-blue-800">{{ link.name|default:link.url }}</a>
     </p>
     {% empty %}
-    <p class="text-sm text-gray-500">No links yet — click "Edit" above to add some.</p>
+    <p class="text-sm text-gray-500">No links yet.</p>
     {% endfor %}
 </div>
 {% endblock %}
