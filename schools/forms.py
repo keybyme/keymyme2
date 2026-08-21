@@ -83,30 +83,18 @@ class AmMidPmEntryForm(TailwindFormMixin, forms.ModelForm):
 
 
 class LeftRightForm(TailwindFormMixin, forms.ModelForm):
-    """`route` is exposed as a free-text field with a `<datalist>` (rendered
-    by the view/template, id="mcps-routes-datalist") instead of a plain
-    `<select>` — same pattern as AmMidPmEntryForm.route, so the user can
-    start typing a route number and quickly pick a match from the existing
-    MCPS Routes catalog."""
-
-    route = forms.CharField(
-        label="Route",
-        widget=forms.TextInput(attrs={"list": "mcps-routes-datalist", "autocomplete": "off", "placeholder": "Start typing a route number…"}),
-        help_text="Must match an existing MCPS Route number.",
-    )
+    """`route_name` is free text, not tied to the MCPS Routes catalog (see
+    LeftRight.route_name) — the `<datalist>` (rendered by the view/template,
+    id="lr-route-names-datalist") just suggests route names already used by
+    other LeftRight guides, purely so spelling stays consistent when adding
+    a second guide to the same route. Nothing enforces a match."""
 
     class Meta:
         model = LeftRight
-        fields = ["route", "name"]
+        fields = ["route_name", "name"]
+        widgets = {
+            "route_name": forms.TextInput(attrs={"list": "lr-route-names-datalist", "autocomplete": "off", "placeholder": "Type the route name…"}),
+        }
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        if self.instance.pk and self.instance.route_id:
-            self.fields["route"].initial = self.instance.route.route_number
-
-    def clean_route(self):
-        route_number = self.cleaned_data["route"].strip()
-        try:
-            return Route.objects.get(route_number__iexact=route_number)
-        except Route.DoesNotExist:
-            raise forms.ValidationError("No MCPS Route matches that route number. Pick one from the list.")
+    def clean_route_name(self):
+        return self.cleaned_data["route_name"].strip()

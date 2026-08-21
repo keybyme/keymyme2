@@ -32,5 +32,5 @@ class AmMidPmEntryAdmin(admin.ModelAdmin):
 
 @admin.register(LeftRight)
 class LeftRightAdmin(admin.ModelAdmin):
-    list_display = ("route", "name")
-    search_fields = ("route__route_number", "name")
+    list_display = ("route_name", "name")
+    search_fields = ("route_name", "name")

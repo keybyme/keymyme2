@@ -27,8 +27,8 @@
         <label for="lr-route" class="mb-1 block text-sm font-medium text-gray-700">Route</label>
         <select id="lr-route" name="route" onchange="this.form.submit()" class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
             <option value="">Select a route…</option>
-            {% for route in routes %}
-            <option value="{{ route.pk }}" {% if selected_route.pk == route.pk %}selected{% endif %}>{{ route.route_number }}</option>
+            {% for route_name in route_names %}
+            <option value="{{ route_name }}" {% if selected_route == route_name %}selected{% endif %}>{{ route_name }}</option>
             {% endfor %}
         </select>
     </div>
@@ -36,7 +36,7 @@
         {% include "icons/plus.html" with class="w-4 h-4" %} Add Left & Right
     </a>
 </form>
-{% if not routes %}
+{% if not route_names %}
 <p class="text-sm text-gray-500">No Lefts & Rights have been created yet — click "Add Left & Right" above to create the first one.</p>
 {% endif %}
 
@@ -62,7 +62,7 @@
             </div>
         </div>
         {% empty %}
-        <p class="text-sm text-gray-500">No Lefts & Rights yet for {{ selected_route.route_number }} — click "Add Left & Right" above to create one.</p>
+        <p class="text-sm text-gray-500">No Lefts & Rights yet for {{ selected_route }} — click "Add Left & Right" above to create one.</p>
         {% endfor %}
     </div>
     {% endif %}

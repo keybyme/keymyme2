@@ -141,30 +141,32 @@ class AmMidPmEntry(models.Model):
 
 
 class LeftRight(models.Model):
-    """A named, driver-facing left/right turn-by-turn guide for one MCPS
-    Route. A Route can have several of these (e.g. different variants or
-    times of day), each identified by its own name — see LeftsRightsView,
-    where picking a Route lists its LeftRight guides as links. What each
-    guide actually contains (the turn-by-turn steps) is added separately;
-    this model is just the named, per-route catalog entry for now.
+    """A named, driver-facing left/right turn-by-turn guide for one route.
+    A route can have several of these (e.g. different variants or times of
+    day), each identified by its own name — see LeftsRightsView, where
+    picking a route lists its LeftRight guides as links. What each guide
+    actually contains (the turn-by-turn steps) is added separately; this
+    model is just the named, per-route catalog entry for now.
+
+    `route_name` is a free-text label scoped to this module only —
+    deliberately NOT a FK to Route (the MCPS bus route catalog used by
+    AmMidPmEntry etc.): a LeftRight's route doesn't need a matching MCPS
+    Route to already exist.
 
     Same shared-reference pattern as School/Employee/Route/AmMidPmEntry —
     not owned by any user, just gated behind the artifacts_mcps Module.
     """
 
-    route = models.ForeignKey(
-        Route, on_delete=models.PROTECT, related_name="lefts_rights",
-        verbose_name="Route",
-    )
+    route_name = models.CharField(max_length=100, verbose_name="Route")
     name = models.CharField(max_length=100, verbose_name="Name")
 
     class Meta:
-        ordering = ["route__route_number", "name"]
+        ordering = ["route_name", "name"]
         verbose_name = "Left & Right"
         verbose_name_plural = "Lefts & Rights"
         constraints = [
-            models.UniqueConstraint(fields=["route", "name"], name="unique_leftright_name_per_route"),
+            models.UniqueConstraint(fields=["route_name", "name"], name="unique_leftright_name_per_route"),
         ]
 
     def __str__(self):
-        return f"{self.route.route_number} — {self.name}"
+        return f"{self.route_name} — {self.name}"

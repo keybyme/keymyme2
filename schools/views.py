@@ -345,55 +345,70 @@ class AmMidPmEntryDeleteView(ModuleAccessRequiredMixin, DeleteView):
 
 
 class LeftsRightsView(ModuleAccessRequiredMixin, TemplateView):
-    """Landing page for MCPS Lefts & Rights: pick a Route — the dropdown
-    only lists routes that already have at least one LeftRight — and see
-    that route's named LeftRight guides as links. What a given LeftRight
-    actually shows once you click it is handled by LeftRightDetailView."""
+    """Landing page for MCPS Lefts & Rights: pick a route name — the
+    dropdown only lists route names that already have at least one
+    LeftRight — and see that route's named LeftRight guides as links. What
+    a given LeftRight actually shows once you click it is handled by
+    LeftRightDetailView. Route names here are LeftRight.route_name, a
+    free-text label independent of the MCPS Routes catalog."""
     template_name = "schools/lefts_rights.html"
     module_codename = "artifacts_mcps"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["routes"] = (
-            Route.objects.filter(lefts_rights__isnull=False)
-            .distinct().order_by("route_number")
+        context["route_names"] = (
+            LeftRight.objects.order_by("route_name").values_list("route_name", flat=True).distinct()
         )
 
-        route_id = self.request.GET.get("route")
-        if not route_id:
+        route_name = self.request.GET.get("route", "").strip()
+        if not route_name:
             return context
 
-        route = Route.objects.filter(pk=route_id).first()
-        if route is None:
+        lefts_rights = LeftRight.objects.filter(route_name=route_name).order_by("name")
+        if not lefts_rights.exists():
             context["error"] = "Route not found."
             return context
-        context["selected_route"] = route
-        context["lefts_rights"] = LeftRight.objects.filter(route=route).order_by("name")
+        context["selected_route"] = route_name
+        context["lefts_rights"] = lefts_rights
         return context
 
 
-class LeftRightCreateView(AmMidPmRoutesDatalistMixin, ModuleAccessRequiredMixin, CreateView):
+class LeftRightRouteNamesDatalistMixin:
+    """Feeds the `<datalist>` of route names already used by existing
+    LeftRight guides, so a user adding another guide to the same route can
+    match the existing spelling exactly — purely a suggestion, not
+    enforced (LeftRight.route_name isn't tied to any other catalog)."""
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["route_names"] = (
+            LeftRight.objects.order_by("route_name").values_list("route_name", flat=True).distinct()
+        )
+        return context
+
+
+class LeftRightCreateView(LeftRightRouteNamesDatalistMixin, ModuleAccessRequiredMixin, CreateView):
     # Route always starts blank (no prefill from the selected route on the
-    # Lefts & Rights page) — the user types/picks the route number fresh
-    # every time, since one route commonly gets several LeftRights added
-    # in a row under different names.
+    # Lefts & Rights page) — the user types the route name fresh every
+    # time, since one route commonly gets several LeftRights added in a
+    # row under different names.
     model = LeftRight
     form_class = LeftRightForm
     template_name = "schools/leftright_form.html"
     module_codename = "artifacts_mcps"
 
     def get_success_url(self):
-        return reverse_lazy("schools:lefts_rights") + f"?route={self.object.route_id}"
+        return reverse_lazy("schools:lefts_rights") + "?" + urlencode({"route": self.object.route_name})
 
 
-class LeftRightUpdateView(AmMidPmRoutesDatalistMixin, ModuleAccessRequiredMixin, UpdateView):
+class LeftRightUpdateView(LeftRightRouteNamesDatalistMixin, ModuleAccessRequiredMixin, UpdateView):
     model = LeftRight
     form_class = LeftRightForm
     template_name = "schools/leftright_form.html"
     module_codename = "artifacts_mcps"
 
     def get_success_url(self):
-        return reverse_lazy("schools:lefts_rights") + f"?route={self.object.route_id}"
+        return reverse_lazy("schools:lefts_rights") + "?" + urlencode({"route": self.object.route_name})
 
 
 class LeftRightDeleteView(ModuleAccessRequiredMixin, DeleteView):
@@ -402,7 +417,7 @@ class LeftRightDeleteView(ModuleAccessRequiredMixin, DeleteView):
     module_codename = "artifacts_mcps"
 
     def get_success_url(self):
-        return reverse_lazy("schools:lefts_rights") + f"?route={self.object.route_id}"
+        return reverse_lazy("schools:lefts_rights") + "?" + urlencode({"route": self.object.route_name})
 
 
 class LeftRightDetailView(ModuleAccessRequiredMixin, DetailView):
