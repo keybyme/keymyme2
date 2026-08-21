@@ -103,14 +103,15 @@ class LeftRightForm(TailwindFormMixin, forms.ModelForm):
 
 #  Extra text-input classes layered on top of TailwindFormMixin's base
 # INPUT_CLASSES, per row type — this is what makes the two title rows
-# render large, black-weight and centered, the third row semi-bold, and
-# everything else (normal/link rows, including ones added later via
-# "Insertar fila"/"Insertar vinculo") plain. Applied server-side in
+# render large, black-weight and centered, and every other row (bold,
+# normal, link, including ones added later via "Insertar fila"/"Insertar
+# vinculo") extra-bold -- heavy, but a notch below the title's font-black
+# so titles still stand out. Applied server-side in
 # LeftRightRowForm.__init__ below. Kept in sync with leftright_detail.html
 # so the input while editing looks like the rendered result.
+ROW_TEXT_CLASSES_DEFAULT = "font-extrabold"
 ROW_TEXT_CLASSES = {
     LeftRightRow.RowType.TITLE: "text-2xl font-black text-center text-black",
-    LeftRightRow.RowType.BOLD: "font-semibold",
 }
 
 
@@ -134,7 +135,7 @@ class LeftRightRowForm(TailwindFormMixin, forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        extra_classes = ROW_TEXT_CLASSES.get(self.instance.row_type)
+        extra_classes = ROW_TEXT_CLASSES.get(self.instance.row_type, ROW_TEXT_CLASSES_DEFAULT)
         if extra_classes:
             existing = self.fields["text"].widget.attrs.get("class", "")
             self.fields["text"].widget.attrs["class"] = f"{existing} {extra_classes}".strip()
