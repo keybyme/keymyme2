@@ -415,12 +415,12 @@ class LeftRightCreateView(LeftRightRouteNamesDatalistMixin, ModuleAccessRequired
         return reverse_lazy("schools:lefts_rights") + "?" + urlencode({"route": self.object.route_name})
 
 
-class LeftRightUpdateView(LeftRightRouteNamesDatalistMixin, ModuleAccessRequiredMixin, UpdateView):
-    """Edit page for one LeftRight: the route_name/name fields (LeftRightForm)
-    plus its content rows (LeftRightRowFormSet) — two separate forms posted
-    together, since ModelForm/UpdateView only natively drives one."""
+class LeftRightUpdateView(ModuleAccessRequiredMixin, DetailView):
+    """Edit page for one LeftRight's content rows (LeftRightRowFormSet)
+    only — route_name/name are set once at creation (LeftRightCreateView)
+    and aren't editable here, so this isn't a ModelForm/UpdateView at all,
+    just a DetailView that also handles the formset's POST."""
     model = LeftRight
-    form_class = LeftRightForm
     template_name = "schools/leftright_form.html"
     module_codename = "artifacts_mcps"
 
@@ -431,14 +431,11 @@ class LeftRightUpdateView(LeftRightRouteNamesDatalistMixin, ModuleAccessRequired
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
-        form = self.get_form()
         row_formset = LeftRightRowFormSet(request.POST, instance=self.object, prefix="rows")
-        if form.is_valid() and row_formset.is_valid():
-            self.object = form.save()
-            row_formset.instance = self.object
+        if row_formset.is_valid():
             row_formset.save()
             return redirect(self.get_success_url())
-        return self.render_to_response(self.get_context_data(form=form, row_formset=row_formset))
+        return self.render_to_response(self.get_context_data(row_formset=row_formset))
 
     def get_success_url(self):
         return reverse_lazy("schools:lefts_rights") + "?" + urlencode({"route": self.object.route_name})
