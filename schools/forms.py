@@ -152,18 +152,18 @@ LeftRightRowFormSet = inlineformset_factory(
 
 
 class DepotLinkForm(TailwindFormMixin, forms.ModelForm):
-    """One row in the DepotLinkFormSet below — see DepotLink. Both fields'
-    `oninput` call depotSyncPreview() (depot.html) so the live preview link
-    next to them — the `<a href="{url}">{name}</a>` that's what actually
-    prints — stays in sync with whatever's currently typed, before saving."""
+    """One row in the DepotLinkFormSet below — see DepotLink. Rendered as
+    `<a href="{url}">{name}</a>` on the read-only "Listar" page
+    (DepotListView / depot_list.html), which is also where printing
+    happens; this edit page (depot.html) just has the two raw fields."""
 
     class Meta:
         model = DepotLink
         fields = ["order", "url", "name"]
         widgets = {
             "order": forms.HiddenInput(),
-            "url": forms.TextInput(attrs={"placeholder": "https://…", "oninput": "depotSyncPreview(this)"}),
-            "name": forms.TextInput(attrs={"placeholder": "Link text (e.g. TV156)…", "oninput": "depotSyncPreview(this)"}),
+            "url": forms.TextInput(attrs={"placeholder": "https://…"}),
+            "name": forms.TextInput(attrs={"placeholder": "Link text (e.g. TV156)…"}),
         }
 
 

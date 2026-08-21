@@ -487,3 +487,18 @@ class DepotView(ModuleAccessRequiredMixin, TemplateView):
             formset.save()
             return redirect("schools:depot")
         return self.render_to_response(self.get_context_data(formset=formset))
+
+
+class DepotListView(ModuleAccessRequiredMixin, TemplateView):
+    """Read-only rendering of the Depot links ("Listar" button on
+    DepotView) -- the "LEFTS & RIGHTS" row plus every DepotLink as an
+    actual <a href>, and the Print button (same isolate-and-print trick as
+    LeftRightDetailView) lives here instead of on the editable DepotView,
+    since printing raw <input> boxes there wouldn't read well."""
+    template_name = "schools/depot_list.html"
+    module_codename = "artifacts_mcps"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["links"] = DepotLink.objects.all()
+        return context

@@ -7,64 +7,36 @@
         <button type="button" onclick="depotAddRow()" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
             {% include "icons/plus.html" with class="w-4 h-4" %} Insertar fila
         </button>
-        <button type="button" onclick="window.print()" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
-            {% include "icons/printer.html" with class="w-4 h-4" %} Print
-        </button>
+        <a href="{% url 'schools:depot_list' %}" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
+            {% include "icons/link.html" with class="w-4 h-4" %} Listar
+        </a>
     </div>
 </div>
 
-<style>
-/* Same isolate-and-print trick as leftright_detail.html: hide everything
-   on the page except #depot-print-area (the fixed "LEFTS & RIGHTS" row
-   plus the link rows themselves) -- no top nav, no storage bar, no
-   h1/Insertar fila/Print buttons, no Save/Cancel. On top of that, each
-   row shows its two raw <input>s (.depot-edit-fields) while editing but
-   its rendered <a href="...">name</a> (.depot-preview-link) while
-   printing -- never both at once. */
-@media print {
-    body * { visibility: hidden; }
-    #depot-print-area, #depot-print-area * { visibility: visible; }
-    #depot-print-area {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        border: none;
-        box-shadow: none;
-        padding: 0;
-    }
-    .depot-edit-fields { display: none !important; }
-    .depot-preview-link { display: inline !important; }
-}
-</style>
-
-<form id="depot-form" method="post">
+<form id="depot-form" method="post" class="max-w-2xl rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
     {% csrf_token %}
     {{ formset.management_form }}
-    <div id="depot-print-area" class="max-w-2xl rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-        <!-- Fixed first row -- same on every visit, not part of the
-             formset/database, not deletable. -->
-        <p class="mb-2 min-h-9 whitespace-pre-wrap text-center text-2xl font-black text-black">LEFTS &amp; RIGHTS</p>
-        <div id="depot-rows" class="space-y-3">
-            {% for row_form in formset %}
-            <div class="depot-row flex items-center gap-3">
-                {{ row_form.id }}
-                {{ row_form.order }}
-                <div class="hidden">{{ row_form.DELETE }}</div>
-                <div class="depot-edit-fields flex flex-1 items-center gap-2">
-                    {{ row_form.url }}
-                    {{ row_form.name }}
-                </div>
-                <a href="{{ row_form.instance.url|default:'#' }}" target="_blank" rel="noopener" class="depot-preview-link hidden text-blue-600 underline hover:text-blue-800">{{ row_form.instance.name|default:row_form.instance.url }}</a>
-                <button type="button" onclick="depotRemoveRow(this)" class="flex-none text-crimson hover:text-red-800" title="Remove">
-                    {% include "icons/trash.html" with class="w-5 h-5" %}
-                </button>
+    <!-- Fixed first row -- same on every visit, not part of the
+         formset/database, not deletable. -->
+    <p class="mb-2 min-h-9 whitespace-pre-wrap text-center text-2xl font-black text-black">LEFTS &amp; RIGHTS</p>
+    <div id="depot-rows" class="space-y-3">
+        {% for row_form in formset %}
+        <div class="depot-row flex items-center gap-3">
+            {{ row_form.id }}
+            {{ row_form.order }}
+            <div class="hidden">{{ row_form.DELETE }}</div>
+            <div class="flex flex-1 items-center gap-2">
+                {{ row_form.url }}
+                {{ row_form.name }}
             </div>
-            {% endfor %}
+            <button type="button" onclick="depotRemoveRow(this)" class="flex-none text-crimson hover:text-red-800" title="Remove">
+                {% include "icons/trash.html" with class="w-5 h-5" %}
+            </button>
         </div>
+        {% endfor %}
     </div>
 
-    <div class="mt-6 flex max-w-2xl items-center gap-3">
+    <div class="mt-6 flex items-center gap-3">
         <button type="submit" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700">Save</button>
         <a href="{% url 'schools:lefts_rights' %}" class="text-sm font-medium text-gray-600 hover:text-gray-900">Cancel</a>
     </div>
@@ -74,27 +46,13 @@
 const DEPOT_INPUT_CLASSES = "block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500";
 const DEPOT_TRASH_SVG = '<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" /></svg>';
 
-// Every row's two raw fields (url, name) live-update the row's rendered
-// preview link -- href from url, text from name (falling back to the url
-// itself if name is blank, same as the model's __str__/detail rendering).
-// Wired via oninput both here (for depotAddRow()-created rows) and
-// server-side in DepotLinkForm (for rows the page was rendered with), so
-// it works before ever saving.
-function depotSyncPreview(input) {
-    const row = input.closest('.depot-row');
-    const url = row.querySelector('input[name$="-url"]').value.trim();
-    const name = row.querySelector('input[name$="-name"]').value.trim();
-    const preview = row.querySelector('.depot-preview-link');
-    preview.href = url || '#';
-    preview.textContent = name || url;
-}
-
-// Adds a new, unsaved DepotLink row: a URL field + a name field, plus the
-// preview link both keep in sync (see depotSyncPreview above). Always
-// appended at the end (order = current row count). Indices only ever
-// increase (never reused or renumbered after a removal -- see
-// depotRemoveRow), so newly added rows can never collide with each other
-// or with existing ones -- same pattern as lrAddRow in leftright_form.html.
+// Adds a new, unsaved DepotLink row -- a URL field + a name field.
+// Rendered as an actual link only on the "Listar" page (DepotListView) --
+// this edit page just has the two raw inputs. Always appended at the end
+// (order = current row count). Indices only ever increase (never reused
+// or renumbered after a removal -- see depotRemoveRow), so newly added
+// rows can never collide with each other or with existing ones -- same
+// pattern as lrAddRow in leftright_form.html.
 function depotAddRow() {
     const totalInput = document.getElementById('id_depot-TOTAL_FORMS');
     const index = parseInt(totalInput.value, 10);
@@ -104,11 +62,10 @@ function depotAddRow() {
     wrapper.className = 'depot-row flex items-center gap-3';
     wrapper.innerHTML = `
         <input type="hidden" name="${prefix}-order" value="${index}">
-        <div class="depot-edit-fields flex flex-1 items-center gap-2">
-            <input type="text" name="${prefix}-url" placeholder="https://…" oninput="depotSyncPreview(this)" class="${DEPOT_INPUT_CLASSES}">
-            <input type="text" name="${prefix}-name" placeholder="Link text (e.g. TV156)…" oninput="depotSyncPreview(this)" class="${DEPOT_INPUT_CLASSES}">
+        <div class="flex flex-1 items-center gap-2">
+            <input type="text" name="${prefix}-url" placeholder="https://…" class="${DEPOT_INPUT_CLASSES}">
+            <input type="text" name="${prefix}-name" placeholder="Link text (e.g. TV156)…" class="${DEPOT_INPUT_CLASSES}">
         </div>
-        <a href="#" target="_blank" rel="noopener" class="depot-preview-link hidden text-blue-600 underline hover:text-blue-800"></a>
         <button type="button" onclick="depotRemoveRow(this)" class="flex-none text-crimson hover:text-red-800" title="Remove">${DEPOT_TRASH_SVG}</button>
     `;
     document.getElementById('depot-rows').appendChild(wrapper);
