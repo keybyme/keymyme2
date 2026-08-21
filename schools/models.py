@@ -130,11 +130,6 @@ class AmMidPmEntry(models.Model):
         null=True, blank=True, verbose_name="Next",
         help_text="Minutes and seconds until the next stop (MM:SS), if applicable.",
     )
-    latitude = models.DecimalField(
-        max_digits=9, decimal_places=6, null=True, blank=True,
-        help_text="Geocoded from address by the MCPS Lefts & Rights view the first time it's opened; cached here to avoid re-geocoding on every visit.",
-    )
-    longitude = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
 
     class Meta:
         ordering = ["route__route_number", "type", "seq"]
@@ -144,17 +139,32 @@ class AmMidPmEntry(models.Model):
     def __str__(self):
         return f"{self.route.route_number} {self.type} #{self.seq}"
 
-    def save(self, *args, **kwargs):
-        # Invalidate the cached geocode when the address changes, so the
-        # Lefts & Rights view re-geocodes instead of routing to the old
-        # location. Skipped when the caller is *only* writing
-        # latitude/longitude (that view itself caching a fresh geocode —
-        # nothing to invalidate there). Same pattern as vault.RouteStop.save().
-        update_fields = kwargs.get("update_fields")
-        geocode_only = update_fields is not None and set(update_fields) <= {"latitude", "longitude"}
-        if not geocode_only and self.pk:
-            old_address = AmMidPmEntry.objects.filter(pk=self.pk).values_list("address", flat=True).first()
-            if old_address is not None and old_address != self.address:
-                self.latitude = None
-                self.longitude = None
-        super().save(*args, **kwargs)
+
+class LeftRight(models.Model):
+    """A named, driver-facing left/right turn-by-turn guide for one MCPS
+    Route. A Route can have several of these (e.g. different variants or
+    times of day), each identified by its own name — see LeftsRightsView,
+    where picking a Route lists its LeftRight guides as links. What each
+    guide actually contains (the turn-by-turn steps) is added separately;
+    this model is just the named, per-route catalog entry for now.
+
+    Same shared-reference pattern as School/Employee/Route/AmMidPmEntry —
+    not owned by any user, just gated behind the artifacts_mcps Module.
+    """
+
+    route = models.ForeignKey(
+        Route, on_delete=models.PROTECT, related_name="lefts_rights",
+        verbose_name="Route",
+    )
+    name = models.CharField(max_length=100, verbose_name="Name")
+
+    class Meta:
+        ordering = ["route__route_number", "name"]
+        verbose_name = "Left & Right"
+        verbose_name_plural = "Lefts & Rights"
+        constraints = [
+            models.UniqueConstraint(fields=["route", "name"], name="unique_leftright_name_per_route"),
+        ]
+
+    def __str__(self):
+        return f"{self.route.route_number} — {self.name}"

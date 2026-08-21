@@ -25,65 +25,44 @@
 <form method="get" class="mb-6 flex flex-wrap items-end gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
     <div class="flex-1 min-w-[220px]">
         <label for="lr-route" class="mb-1 block text-sm font-medium text-gray-700">Route</label>
-        <select id="lr-route" name="route" class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
+        <select id="lr-route" name="route" onchange="this.form.submit()" class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
             <option value="">Select a route…</option>
             {% for route in routes %}
             <option value="{{ route.pk }}" {% if selected_route.pk == route.pk %}selected{% endif %}>{{ route.route_number }}</option>
             {% endfor %}
         </select>
     </div>
-    <button type="submit" class="rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">Show directions</button>
+    <a href="{% url 'schools:leftright_create' %}{% if selected_route %}?route={{ selected_route.pk }}{% endif %}" class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700">
+        {% include "icons/plus.html" with class="w-4 h-4" %} Add Left & Right
+    </a>
 </form>
 {% if not routes %}
-<p class="text-sm text-gray-500">No routes have AM-MID-PM entries yet — add some on <a href="{% url 'schools:ammidpm_list' %}" class="text-blue-600 hover:text-blue-800">MCPS AM-MID-PM</a> first.</p>
+<p class="text-sm text-gray-500">No Lefts & Rights have been created yet — click "Add Left & Right" above to create the first one.</p>
 {% endif %}
 
 {% if selected_route %}
-    {% if entry_addresses %}
-    {{ entry_addresses|json_script:"mcps-route-addresses" }}
-    <div class="mb-6">
-        <div class="flex flex-wrap items-center gap-2">
-            <button type="button" onclick="return mcpsOpenRouteInGoogleMaps(event);" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
-                {% include "icons/map-pin.html" with class="w-4 h-4" %} Open full route in Google Maps
-            </button>
-            <button type="button" onclick="return mcpsOpenRouteInAppleMaps(event);" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
-                {% include "icons/map-pin.html" with class="w-4 h-4" %} Open full route in Apple Maps
-            </button>
-        </div>
-        <p class="mt-1 text-xs text-gray-500">Groups every AM-MID-PM address for {{ selected_route.route_number }} into one trip, starting from your current location — each app does its own geocoding here, independent of the left/right guide below.</p>
-    </div>
-    {% endif %}
     {% if error %}
     <div class="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
         {{ error }}
     </div>
     {% else %}
-    <p class="mb-6 text-xs text-gray-500">Left/right turns only — computed by OpenStreetMap (OSRM), not Google. Addresses are geocoded once and cached; edit an entry's address on MCPS AM-MID-PM to force a re-check.</p>
-    <div class="space-y-6">
-        {% for leg in legs %}
-        <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-            <div class="bg-cafe-dark px-4 py-2 text-sm font-bold uppercase tracking-wide text-white">
-                {{ leg.from_entry.get_type_display }} #{{ leg.from_entry.seq }} → {{ leg.to_entry.get_type_display }} #{{ leg.to_entry.seq }}: {{ leg.to_entry.address }}
+    <div class="space-y-3">
+        {% for lr in lefts_rights %}
+        <div class="flex items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
+            <a href="{% url 'schools:leftright_detail' lr.pk %}" class="flex items-center gap-2 text-sm font-medium text-cafe-dark hover:text-cafe">
+                {% include "icons/map-pin.html" with class="w-4 h-4 text-blue-600" %} {{ lr.name }}
+            </a>
+            <div class="flex items-center gap-3">
+                <a href="{% url 'schools:leftright_update' lr.pk %}" class="text-cafe hover:text-cafe-darker" title="Edit">
+                    {% include "icons/pencil.html" with class="w-5 h-5" %}
+                </a>
+                <a href="{% url 'schools:leftright_delete' lr.pk %}" class="text-crimson hover:text-red-800" title="Delete">
+                    {% include "icons/trash.html" with class="w-5 h-5" %}
+                </a>
             </div>
-            {% if leg.turns %}
-            <ol class="divide-y divide-gray-100">
-                {% for turn in leg.turns %}
-                <li class="flex items-center gap-3 px-4 py-2.5 text-sm">
-                    <span class="inline-flex h-6 w-6 flex-none items-center justify-center rounded-full bg-cream-soft text-xs font-bold text-cafe-dark">{{ forloop.counter }}</span>
-                    {% if "left" in turn.label|lower %}
-                        {% include "icons/chevron-left.html" with class="w-4 h-4 flex-none text-blue-600" %}
-                    {% else %}
-                        {% include "icons/chevron-right.html" with class="w-4 h-4 flex-none text-blue-600" %}
-                    {% endif %}
-                    <span class="text-gray-900">{{ turn.label }} onto <strong>{{ turn.street }}</strong></span>
-                    <span class="ml-auto whitespace-nowrap text-xs text-gray-400">{{ turn.distance_mi }} mi</span>
-                </li>
-                {% endfor %}
-            </ol>
-            {% else %}
-            <p class="px-4 py-3 text-sm text-gray-500">No turns — straight shot.</p>
-            {% endif %}
         </div>
+        {% empty %}
+        <p class="text-sm text-gray-500">No Lefts & Rights yet for {{ selected_route.route_number }} — click "Add Left & Right" above to create one.</p>
         {% endfor %}
     </div>
     {% endif %}
@@ -106,73 +85,5 @@
     updateClock();
     setInterval(updateClock, 1000);
 })();
-
-// Reads the AM-MID-PM addresses for the selected route (see
-// entry_addresses/json_script in the view/template) — null if there's
-// nothing to route through.
-function mcpsRouteAddresses() {
-    const dataEl = document.getElementById('mcps-route-addresses');
-    if (!dataEl) return null;
-    const addresses = JSON.parse(dataEl.textContent);
-    return addresses.length ? addresses : null;
-}
-
-// Geolocation is requested once up front, on page load, rather than inside
-// each button's click handler: getCurrentPosition() is async, and by the
-// time its callback fires the browser no longer considers a window.open()
-// call "in direct response to a user gesture" — Safari in particular then
-// blocks it outright (a tab opens but stays blank, never shows the map)
-// rather than just losing the precise origin like Chrome/Firefox mostly do.
-// Asking up front means the position (or the fact that it was denied) is
-// already known by click time, so both buttons below can open their tab
-// with a real, final URL synchronously.
-let mcpsCurrentPosition = null;  // {lat, lng} once resolved, else still null
-if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-        (position) => { mcpsCurrentPosition = { lat: position.coords.latitude, lng: position.coords.longitude }; },
-        () => {},  // denied/unavailable — both buttons below just omit origin
-        { timeout: 8000 }
-    );
-}
-
-// Groups every AM-MID-PM address for the selected route into one Google
-// Maps trip (origin + waypoints + destination), starting from the driver's
-// current GPS location — same current-location pattern as MCPS AM-MID-PM's
-// per-address links, just with the whole route as waypoints instead of one
-// stop. Google does its own geocoding on the raw address text here, so this
-// works even when our own LocationIQ/OSRM pipeline above couldn't (e.g. it
-// errored out, or hasn't finished geocoding yet).
-function mcpsOpenRouteInGoogleMaps(event) {
-    event.preventDefault();
-    const addresses = mcpsRouteAddresses();
-    if (!addresses) return false;
-
-    const destination = encodeURIComponent(addresses[addresses.length - 1]);
-    const waypoints = addresses.slice(0, -1).map(encodeURIComponent).join('|');
-
-    let url = `https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=driving`;
-    if (mcpsCurrentPosition) url += `&origin=${mcpsCurrentPosition.lat},${mcpsCurrentPosition.lng}`;
-    if (waypoints) url += `&waypoints=${waypoints}`;
-    window.open(url, '_blank', 'noopener');
-    return false;
-}
-
-// Same idea as mcpsOpenRouteInGoogleMaps, but for Apple Maps: multiple
-// destinations are chained in `daddr` with Apple's documented "+to:"
-// separator (see Apple's Maps URL Scheme reference) instead of Google's
-// `waypoints` param. Only actually opens the Maps *app* on Apple devices
-// (iOS/macOS Safari) — on other platforms maps.apple.com just shows a
-// bare web preview, same as visiting it directly.
-function mcpsOpenRouteInAppleMaps(event) {
-    event.preventDefault();
-    const addresses = mcpsRouteAddresses();
-    if (!addresses) return false;
-
-    const daddr = addresses.map(encodeURIComponent).join('+to:');
-    let url = `https://maps.apple.com/?daddr=${daddr}&dirflg=d`;
-    if (mcpsCurrentPosition) url = `https://maps.apple.com/?saddr=${mcpsCurrentPosition.lat},${mcpsCurrentPosition.lng}&daddr=${daddr}&dirflg=d`;
-    window.open(url, '_blank', 'noopener');
-    return false;
-}
 </script>
 {% endblock %}

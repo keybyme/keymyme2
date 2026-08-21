@@ -5,7 +5,7 @@ from django import forms
 
 from vault.forms import TailwindFormMixin
 
-from .models import AmMidPmEntry, Employee, Route, School
+from .models import AmMidPmEntry, Employee, LeftRight, Route, School
 
 MINUTES_SECONDS_RE = re.compile(r"^([0-5]?\d):([0-5]\d)$")
 
@@ -80,3 +80,9 @@ class AmMidPmEntryForm(TailwindFormMixin, forms.ModelForm):
             raise forms.ValidationError("Enter minutes and seconds as MM:SS, e.g. 05:30.")
         minutes, seconds = int(match.group(1)), int(match.group(2))
         return time(0, minutes, seconds)
+
+
+class LeftRightForm(TailwindFormMixin, forms.ModelForm):
+    class Meta:
+        model = LeftRight
+        fields = ["route", "name"]

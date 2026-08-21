@@ -1,42 +1,23 @@
-import time
 from urllib.parse import urlencode
 
 from django.db.models import Q
 from django.urls import reverse_lazy
-from django.views.generic import CreateView, DeleteView, ListView, TemplateView, UpdateView
+from django.views.generic import CreateView, DeleteView, DetailView, ListView, TemplateView, UpdateView
 
 from vault.mixins import AjaxPartialTemplateMixin, ModuleAccessRequiredMixin
-from vault.routing import GeocodingRateLimited, geocode_address, geocode_intersection, get_route_legs
 
-from .forms import AmMidPmEntryForm, EmployeeForm, RouteForm, SchoolForm
-from .models import AmMidPmEntry, Employee, Route, School
+from .forms import AmMidPmEntryForm, EmployeeForm, LeftRightForm, RouteForm, SchoolForm
+from .models import AmMidPmEntry, Employee, LeftRight, Route, School
 
-# Not owner-scoped on purpose: School/Employee/Route/AmMidPmEntry are shared
-# reference catalogs (MCPS public schools, MCPS transportation staff, MCPS
-# bus route stops, MCPS AM/MID/PM stop times), not per-user vault data — see
-# schools/models.py.
+# Not owner-scoped on purpose: School/Employee/Route/AmMidPmEntry/LeftRight
+# are shared reference catalogs (MCPS public schools, MCPS transportation
+# staff, MCPS bus route stops, MCPS AM/MID/PM stop times, MCPS left/right
+# turn-by-turn guides), not per-user vault data — see schools/models.py.
 
 SORTABLE_FIELDS = ("school_type", "address", "city", "zip_code")
 EMPLOYEE_SORTABLE_FIELDS = ("phone", "position")
 ROUTE_SORTABLE_FIELDS = ("bus_number",)
 AMMIDPM_SORTABLE_FIELDS = ("type", "seq", "time", "address", "next")
-
-# MCPS AM-MID-PM addresses are often given as a bare street corner ("Skylark
-# Rd & Walnut Haven Dr") with no city/state — used as the fallback location
-# for geocode_intersection() below since every MCPS route is within this
-# county.
-MCPS_COUNTY = "Montgomery County, MD"
-
-# Roughly Montgomery County, MD ("lon1,lat1,lon2,lat2" — LocationIQ's
-# viewbox format), padded generously past the county line so a stop just
-# outside it still matches. Passed to every geocode call below so an
-# ambiguous/malformed street name can't silently resolve to a same-named
-# street somewhere else in the country — happened for real: "20049
-# Dunstable Cir 20878" (a real Montgomery County stop) geocoded to Orlando,
-# FL without this, and "18855 Bent Willow Cir20874" (typo: no space before
-# the zip) to New Jersey — both then produced dozens of nonsense turns on
-# roads that don't lead anywhere near the actual route.
-MCPS_VIEWBOX = "-77.60,38.90,-76.85,39.40"
 
 
 class SchoolListView(AjaxPartialTemplateMixin, ModuleAccessRequiredMixin, ListView):
@@ -364,19 +345,17 @@ class AmMidPmEntryDeleteView(ModuleAccessRequiredMixin, DeleteView):
 
 
 class LeftsRightsView(ModuleAccessRequiredMixin, TemplateView):
-    """Turn-by-turn left/right driving guide for one MCPS Route, built from
-    every AM-MID-PM entry that route has (in the same Route→Type→Seq# order
-    as the AM-MID-PM list) — a driver cheat-sheet, not full narration. Same
-    geocoding/routing (LocationIQ + OSRM) and lat/lon caching pattern as
-    vault.RouteDirectionsView, just reading from AmMidPmEntry instead of
-    RouteStop — see vault/routing.py."""
+    """Landing page for MCPS Lefts & Rights: pick a Route — the dropdown
+    only lists routes that already have at least one LeftRight — and see
+    that route's named LeftRight guides as links. What a given LeftRight
+    actually shows once you click it is handled by LeftRightDetailView."""
     template_name = "schools/lefts_rights.html"
     module_codename = "artifacts_mcps"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["routes"] = (
-            Route.objects.filter(am_mid_pm_entries__isnull=False)
+            Route.objects.filter(lefts_rights__isnull=False)
             .distinct().order_by("route_number")
         )
 
@@ -389,59 +368,51 @@ class LeftsRightsView(ModuleAccessRequiredMixin, TemplateView):
             context["error"] = "Route not found."
             return context
         context["selected_route"] = route
-
-        entries = list(AmMidPmEntry.objects.filter(route=route).order_by("type", "seq"))
-        error = None
-        legs = []
-
-        # Feeds the "Open full route in Google Maps" button — a single
-        # Maps link with every stop as a waypoint, built from the raw
-        # address text and geocoded by Google itself, not by our own
-        # LocationIQ/OSRM pipeline below. Set unconditionally (even if that
-        # pipeline errors out) so the Maps button still works on its own.
-        context["entry_addresses"] = [entry.address for entry in entries if entry.address]
-
-        if len(entries) < 2:
-            error = "This route needs at least 2 AM-MID-PM entries with addresses to compute directions."
-        else:
-            try:
-                for entry in entries:
-                    if entry.latitude is not None and entry.longitude is not None:
-                        continue
-                    if not entry.address:
-                        error = f'{entry.get_type_display()} #{entry.seq} has no address to geocode.'
-                        break
-                    coords = geocode_address(entry.address, viewbox=MCPS_VIEWBOX)
-                    if coords is None:
-                        # Plain free-text search fails outright on "Street A
-                        # & Street B" intersections (it doesn't parse "&") —
-                        # approximate via geocode_intersection() instead.
-                        coords = geocode_intersection(entry.address, MCPS_COUNTY, viewbox=MCPS_VIEWBOX)
-                    if coords is None:
-                        error = f'Could not find coordinates for {entry.get_type_display()} #{entry.seq}: "{entry.address}".'
-                        break
-                    entry.latitude, entry.longitude = coords
-                    entry.save(update_fields=["latitude", "longitude"])
-                    time.sleep(1)  # stay well under LocationIQ's free-tier rate limit
-
-                if not error:
-                    route_legs = get_route_legs([(float(e.latitude), float(e.longitude)) for e in entries])
-                    if route_legs is None:
-                        error = "Could not compute driving directions between these stops right now — try again shortly."
-                    else:
-                        legs = [
-                            {"from_entry": entries[i], "to_entry": entries[i + 1], "turns": turns}
-                            for i, turns in enumerate(route_legs)
-                        ]
-            except GeocodingRateLimited:
-                # Distinct from "address not found" — the free OpenStreetMap
-                # geocoder is throttling/blocking this server's IP right
-                # now, not rejecting the address itself. See vault/routing.py.
-                error = (
-                    "OpenStreetMap's free geocoding service is rate-limiting this server right now "
-                    "(HTTP 429) — this isn't about a specific address, try again in a few minutes."
-                )
-
-        context["error"] = error
-        context["legs"] = legs
+        context["lefts_rights"] = LeftRight.objects.filter(route=route).order_by("name")
         return context
+
+
+class LeftRightCreateView(ModuleAccessRequiredMixin, CreateView):
+    model = LeftRight
+    form_class = LeftRightForm
+    template_name = "schools/leftright_form.html"
+    module_codename = "artifacts_mcps"
+
+    def get_initial(self):
+        initial = super().get_initial()
+        route_id = self.request.GET.get("route")
+        if route_id:
+            initial["route"] = route_id
+        return initial
+
+    def get_success_url(self):
+        return reverse_lazy("schools:lefts_rights") + f"?route={self.object.route_id}"
+
+
+class LeftRightUpdateView(ModuleAccessRequiredMixin, UpdateView):
+    model = LeftRight
+    form_class = LeftRightForm
+    template_name = "schools/leftright_form.html"
+    module_codename = "artifacts_mcps"
+
+    def get_success_url(self):
+        return reverse_lazy("schools:lefts_rights") + f"?route={self.object.route_id}"
+
+
+class LeftRightDeleteView(ModuleAccessRequiredMixin, DeleteView):
+    model = LeftRight
+    template_name = "schools/leftright_confirm_delete.html"
+    module_codename = "artifacts_mcps"
+
+    def get_success_url(self):
+        return reverse_lazy("schools:lefts_rights") + f"?route={self.object.route_id}"
+
+
+class LeftRightDetailView(ModuleAccessRequiredMixin, DetailView):
+    """What one LeftRight guide actually shows is still to be designed —
+    this is a placeholder so the link from LeftsRightsView has somewhere
+    to go."""
+    model = LeftRight
+    template_name = "schools/leftright_detail.html"
+    context_object_name = "leftright"
+    module_codename = "artifacts_mcps"
