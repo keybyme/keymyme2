@@ -455,22 +455,31 @@ class LeftRightDeleteView(ModuleAccessRequiredMixin, DeleteView):
 class LeftRightDetailView(DetailView):
     """Renders one LeftRight guide's content rows (LeftRightRow), in order,
     styled per row_type — the driver-facing cheat sheet built on the Edit
-    page (LeftRightUpdateView).
+    page (LeftRightUpdateView). Bare page (base_bare.html, no KeyByMe
+    nav), Print + Depot buttons only.
 
-    Deliberately public — no LoginRequiredMixin/ModuleAccessRequiredMixin.
-    Depot links (DepotLink.url) commonly point straight at one of these
-    pages, and the Depot list itself (DepotListView) is public too, so a
-    driver who isn't a KeyByMe user can open a shared link and see/print
-    the guide. leftright_detail.html hides the Depot/Back buttons for
-    anonymous visitors (`{% if user.is_authenticated %}`) — Print is the
-    only one they get — and base.html already hides the KeyByMe nav for
-    them the same way it does on vault's public QR pages."""
+    Deliberately public — no LoginRequiredMixin/ModuleAccessRequiredMixin
+    — same reasoning as DepotListView: a driver who isn't a KeyByMe user
+    can open a shared link and see/print the guide."""
     model = LeftRight
     template_name = "schools/leftright_detail.html"
     context_object_name = "leftright"
 
     def get_queryset(self):
         return super().get_queryset().prefetch_related("rows")
+
+
+class LeftRightShareDetailView(LeftRightDetailView):
+    """Identical to LeftRightDetailView except it hides the Depot button
+    (which points at the login-gated /depot/ editor) -- this is what
+    DepotLink.url should point at instead of the plain detail page, so a
+    visitor arriving via the public Depot list has no way to reach the
+    editor from here."""
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["hide_depot_button"] = True
+        return context
 
 
 class DepotView(ModuleAccessRequiredMixin, TemplateView):

@@ -9,9 +9,11 @@
         <button type="button" onclick="window.print()" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
             {% include "icons/printer.html" with class="w-4 h-4" %} Print
         </button>
+        {% if not hide_depot_button %}
         <a href="{% url 'schools:depot' %}" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
             {% include "icons/link.html" with class="w-4 h-4" %} Depot
         </a>
+        {% endif %}
     </div>
 </div>
 
