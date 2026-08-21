@@ -6,13 +6,42 @@
 </div>
 
 <div class="max-w-2xl rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-    <p class="mb-2 min-h-9 whitespace-pre-wrap text-center text-2xl font-black text-black">LEFTS &amp; RIGHTS</p>
-    {% for link in links %}
-    <p class="mb-2 min-h-6 whitespace-pre-wrap font-extrabold text-gray-700">
-        <a href="{{ link.url }}" target="_blank" rel="noopener" class="text-blue-600 underline hover:text-blue-800">{{ link.name|default:link.url }}</a>
-    </p>
-    {% empty %}
-    <p class="text-sm text-gray-500">No links yet.</p>
-    {% endfor %}
+    <p class="mb-1 min-h-4 whitespace-pre-wrap text-center text-2xl font-black text-black">LEFTS &amp; RIGHTS</p>
+
+    {% if links %}
+    <input type="text" id="depot-search" placeholder="Search…" autocomplete="off"
+           class="mb-3 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+    {% endif %}
+
+    <div id="depot-links">
+        {% for link in links %}
+        <p class="depot-link-row mb-1 min-h-3 whitespace-pre-wrap font-extrabold text-gray-700">
+            <a href="{{ link.url }}" target="_blank" rel="noopener" class="text-blue-600 underline hover:text-blue-800">{{ link.name|default:link.url }}</a>
+        </p>
+        {% empty %}
+        <p class="text-sm text-gray-500">No links yet.</p>
+        {% endfor %}
+    </div>
+    <p id="depot-no-results" class="hidden text-sm text-gray-500">No links match your search.</p>
 </div>
+
+<script>
+// Simple client-side filter -- the list is small and this page is public/
+// unauthenticated, so no server round-trip needed. Matches against each
+// row's visible text (the link's name/url), case-insensitive.
+const depotSearch = document.getElementById('depot-search');
+if (depotSearch) {
+    depotSearch.addEventListener('input', () => {
+        const query = depotSearch.value.trim().toLowerCase();
+        const rows = document.querySelectorAll('.depot-link-row');
+        let visibleCount = 0;
+        rows.forEach((row) => {
+            const matches = row.textContent.toLowerCase().includes(query);
+            row.classList.toggle('hidden', !matches);
+            if (matches) visibleCount += 1;
+        });
+        document.getElementById('depot-no-results').classList.toggle('hidden', visibleCount !== 0);
+    });
+}
+</script>
 {% endblock %}
