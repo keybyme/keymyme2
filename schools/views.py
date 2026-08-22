@@ -404,12 +404,16 @@ class LeftRightCreateView(LeftRightRouteNamesDatalistMixin, ModuleAccessRequired
         response = super().form_valid(form)
         # Seed the four default content rows every LeftRight opens with on
         # its Edit page — two large-bold title rows, one normal-bold row,
-        # one plain row — see LeftRightRow and leftright_form.html.
+        # one plain row — see LeftRightRow and leftright_form.html. order
+        # is spaced by tens (10, 20, 30, 40) to match the edit page's
+        # "sequence" column, leaving room to insert rows between them later
+        # (e.g. entering 25 to insert between the 20 and 30 rows) without
+        # renumbering anything.
         LeftRightRow.objects.bulk_create([
-            LeftRightRow(leftright=self.object, order=0, row_type=LeftRightRow.RowType.TITLE),
-            LeftRightRow(leftright=self.object, order=1, row_type=LeftRightRow.RowType.TITLE),
-            LeftRightRow(leftright=self.object, order=2, row_type=LeftRightRow.RowType.BOLD),
-            LeftRightRow(leftright=self.object, order=3, row_type=LeftRightRow.RowType.NORMAL),
+            LeftRightRow(leftright=self.object, order=10, row_type=LeftRightRow.RowType.TITLE),
+            LeftRightRow(leftright=self.object, order=20, row_type=LeftRightRow.RowType.TITLE),
+            LeftRightRow(leftright=self.object, order=30, row_type=LeftRightRow.RowType.BOLD),
+            LeftRightRow(leftright=self.object, order=40, row_type=LeftRightRow.RowType.NORMAL),
         ])
         return response
 
