@@ -20,12 +20,7 @@
         <button type="button" onclick="lrAddPostTrip()" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
             {% include "icons/plus.html" with class="w-4 h-4" %} Post Trip
         </button>
-        <span class="inline-flex items-center gap-2">
-            <input type="number" id="lr-insert-seq" placeholder="e.g. 35" title="Sequence number to insert at (see the # column)" class="w-24 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
-            <button type="button" onclick="lrInsertAt()" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
-                {% include "icons/plus.html" with class="w-4 h-4" %} Insertar
-            </button>
-        </span>
+        <input type="number" id="lr-insert-seq" placeholder="# (optional)" title="Optional: a # from the column below to insert there instead of at the end (e.g. 35 to insert between # 30 and # 40)" class="w-28 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
     </div>
     {% endif %}
 </div>
@@ -41,7 +36,7 @@
 <form id="lr-form" method="post" class="max-w-2xl rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
     {% csrf_token %}
     {{ row_formset.management_form }}
-    <p class="mb-2 text-xs text-gray-400"># is this row's editing sequence (used only on this page to insert a row in between — e.g. type 35 next to "Insertar" to insert between # 30 and # 40). Never shown when printing.</p>
+    <p class="mb-2 text-xs text-gray-400"># is this row's editing sequence (used only on this page). Leave the # field above blank to add rows at the end, or type one (e.g. 35) to insert the next row there — between # 30 and # 40. Never shown when printing.</p>
     <div id="lr-rows" class="space-y-3">
         {% for row_form in row_formset %}
         <div class="lr-row">
@@ -110,10 +105,10 @@ const LR_EXTRA_CLASSES = {
 // spaced by tens (10, 20, 30...) -- both server-seeded rows (views.py's
 // LeftRightCreateView) and existing data (0016_renumber_leftrightrow_order
 // migration) follow this scheme, purely so a row can later be inserted
-// between two others (lrInsertAt below) by picking a number in between,
-// without renumbering anything else. It's only ever read/shown on this
-// edit page -- LeftRightDetailView (the printable page) ignores `order`
-// beyond using it to sort rows.
+// between two others (lrAddRow below, via #lr-insert-seq) by picking a
+// number in between, without renumbering anything else. It's only ever
+// read/shown on this edit page -- LeftRightDetailView (the printable page)
+// ignores `order` beyond using it to sort rows.
 function lrMaxOrder() {
     const orders = Array.from(document.querySelectorAll('#lr-rows input[name$="-order"]')).map((i) => parseInt(i.value, 10) || 0);
     return orders.length ? Math.max(...orders) : 0;
@@ -162,35 +157,28 @@ function lrBuildRow(kind, presetText, order) {
     return wrapper;
 }
 
-// Appends a new row at the end, after every current row (# = current max
-// + 10), matching LeftRightRow.Meta.ordering.
+// Adds a row via "Insertar fila"/"Insertar vinculo" (Post Trip below always
+// appends instead, see there). If the optional #lr-insert-seq field next to
+// those buttons is blank, appends at the end (# = current max + 10),
+// matching LeftRightRow.Meta.ordering -- same as before. If it holds a
+// number, the new row is inserted at that # instead, in the matching visual
+// position (e.g. 35 lands it between the rows numbered 30 and 40) --
+// existing rows keep their numbers, nothing else is renumbered. The field
+// is cleared after each use so it doesn't silently apply again next time.
 function lrAddRow(kind, presetText) {
-    document.getElementById('lr-rows').appendChild(lrBuildRow(kind, presetText, lrNextOrder()));
-}
-
-// "Post Trip" button: a blank spacer row, the title-styled "*** POST TRIP
-// BUS NOW ***" row, then another blank spacer row -- one row of empty
-// space on each side of it, not just a margin tweak.
-function lrAddPostTrip() {
-    lrAddRow('normal', '');
-    lrAddRow('title', '*** POST TRIP BUS NOW ***');
-    lrAddRow('normal', '');
-}
-
-// "Insertar" button + the number field next to it: inserts one new plain
-// row at the "#" the user typed (e.g. 35 lands it between the rows
-// numbered 30 and 40), placed in the page at the matching visual position
-// -- not appended at the end like lrAddRow. Existing rows keep their
-// numbers; nothing is renumbered.
-function lrInsertAt() {
     const seqInput = document.getElementById('lr-insert-seq');
-    const order = parseInt(seqInput.value, 10);
-    if (!order) return;
-    const wrapper = lrBuildRow('normal', '', order);
+    const requestedOrder = seqInput && seqInput.value !== '' ? parseInt(seqInput.value, 10) : NaN;
     const rowsContainer = document.getElementById('lr-rows');
+
+    if (isNaN(requestedOrder)) {
+        rowsContainer.appendChild(lrBuildRow(kind, presetText, lrNextOrder()));
+        return;
+    }
+
+    const wrapper = lrBuildRow(kind, presetText, requestedOrder);
     const nextRow = Array.from(rowsContainer.querySelectorAll('.lr-row')).find((row) => {
         const orderInput = row.querySelector('input[name$="-order"]');
-        return orderInput && parseInt(orderInput.value, 10) > order;
+        return orderInput && parseInt(orderInput.value, 10) > requestedOrder;
     });
     if (nextRow) {
         rowsContainer.insertBefore(wrapper, nextRow);
@@ -198,6 +186,18 @@ function lrInsertAt() {
         rowsContainer.appendChild(wrapper);
     }
     seqInput.value = '';
+}
+
+// "Post Trip" button: a blank spacer row, the title-styled "*** POST TRIP
+// BUS NOW ***" row, then another blank spacer row -- one row of empty
+// space on each side of it, not just a margin tweak. Always appends at the
+// end regardless of #lr-insert-seq -- inserting a 3-row block mid-list
+// would need three separate #s, which isn't what that field is for.
+function lrAddPostTrip() {
+    const rowsContainer = document.getElementById('lr-rows');
+    rowsContainer.appendChild(lrBuildRow('normal', '', lrNextOrder()));
+    rowsContainer.appendChild(lrBuildRow('title', '*** POST TRIP BUS NOW ***', lrNextOrder()));
+    rowsContainer.appendChild(lrBuildRow('normal', '', lrNextOrder()));
 }
 
 // Existing (already-saved) rows carry a DELETE checkbox from the formset
