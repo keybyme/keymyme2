@@ -25,6 +25,7 @@ urlpatterns = [
     path("lefts-rights/new/", views.LeftRightCreateView.as_view(), name="leftright_create"),
     path("lefts-rights/depot/", views.DepotView.as_view(), name="depot"),
     path("lefts-rights/depot/list/", views.DepotListView.as_view(), name="depot_list"),
+    path("lefts-rights/depot/upload/", views.DepotUploadView.as_view(), name="depot_upload"),
     path("lefts-rights/<int:pk>/", views.LeftRightDetailView.as_view(), name="leftright_detail"),
     path("lefts-rights/<int:pk>/share/", views.LeftRightShareDetailView.as_view(), name="leftright_share"),
     path("lefts-rights/<int:pk>/edit/", views.LeftRightUpdateView.as_view(), name="leftright_update"),

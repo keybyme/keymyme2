@@ -1,9 +1,12 @@
 from urllib.parse import urlencode
 
+from django.core.mail import EmailMessage
 from django.db.models import Q, Value
 from django.db.models.functions import Coalesce, Lower, NullIf
+from django.http import JsonResponse
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
+from django.views import View
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, TemplateView, UpdateView
 
 from vault.mixins import AjaxPartialTemplateMixin, ModuleAccessRequiredMixin
@@ -17,6 +20,15 @@ from .models import AmMidPmEntry, DepotLink, Employee, LeftRight, LeftRightRow, 
 # are shared reference catalogs (MCPS public schools, MCPS transportation
 # staff, MCPS bus route stops, MCPS AM/MID/PM stop times, MCPS left/right
 # turn-by-turn guides), not per-user vault data — see schools/models.py.
+
+# Documents/photos accepted by DepotUploadView -- no video, so a handful of
+# attachments stays well under typical SMTP attachment-size limits.
+DEPOT_UPLOAD_ALLOWED_EXTENSIONS = {
+    "pdf", "doc", "docx", "xls", "xlsx", "ppt", "pptx", "txt", "csv",
+    "jpg", "jpeg", "png", "gif", "webp", "heic",
+}
+DEPOT_UPLOAD_MAX_FILES = 10
+DEPOT_UPLOAD_MAX_TOTAL_BYTES = 20 * 1024 * 1024  # 20 MB combined
 
 SORTABLE_FIELDS = ("school_type", "address", "city", "zip_code")
 EMPLOYEE_SORTABLE_FIELDS = ("phone", "position")
@@ -535,3 +547,55 @@ class DepotListView(TemplateView):
             display_text=Lower(Coalesce(NullIf("name", Value("")), "url"))
         ).order_by("display_text")
         return context
+
+
+class DepotUploadView(View):
+    """Backs the "Update" icon on DepotListView (fetch() POST, see
+    depot_list.html). Lets anyone with the public depot-list link attach
+    one or more documents/photos and emails them straight to the dispatch
+    inboxes as attachments -- deliberately not wired into MediaFile/storage
+    quota, this is a pass-through mailer, not a vault upload.
+
+    Public on purpose, same reasoning as DepotListView: a driver who isn't
+    a KeyByMe user still needs to be able to send in paperwork from this
+    page. Guarded only by an extension whitelist and size/count caps, since
+    there's no login to rate-limit by."""
+
+    DEPOT_UPLOAD_TO = ["wesnetwork@keybyme.com", "wesnetwork@gmail.com"]
+    DEPOT_UPLOAD_CC = ["wesnetworking@gmail.com"]
+
+    def post(self, request, *args, **kwargs):
+        files = request.FILES.getlist("files")
+        if not files:
+            return JsonResponse({"ok": False, "error": "No files were selected."}, status=400)
+        if len(files) > DEPOT_UPLOAD_MAX_FILES:
+            return JsonResponse(
+                {"ok": False, "error": f"Please upload at most {DEPOT_UPLOAD_MAX_FILES} files at a time."},
+                status=400,
+            )
+
+        total_size = 0
+        for f in files:
+            extension = f.name.rsplit(".", 1)[-1].lower() if "." in f.name else ""
+            if extension not in DEPOT_UPLOAD_ALLOWED_EXTENSIONS:
+                return JsonResponse(
+                    {"ok": False, "error": f'"{f.name}" is not an allowed file type.'}, status=400
+                )
+            total_size += f.size
+        if total_size > DEPOT_UPLOAD_MAX_TOTAL_BYTES:
+            return JsonResponse({"ok": False, "error": "Total upload size is too large (20 MB max)."}, status=400)
+
+        email = EmailMessage(
+            subject="Clarksburg Depot — new documents uploaded",
+            body=(
+                f"{len(files)} file(s) were uploaded from the Clarksburg Depot page:\n\n"
+                + "\n".join(f"- {f.name}" for f in files)
+            ),
+            to=self.DEPOT_UPLOAD_TO,
+            cc=self.DEPOT_UPLOAD_CC,
+        )
+        for f in files:
+            email.attach(f.name, f.read(), f.content_type)
+        email.send(fail_silently=False)
+
+        return JsonResponse({"ok": True})

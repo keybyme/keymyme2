@@ -9,10 +9,26 @@
 <div class="max-w-2xl rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
     <p class="mb-1 min-h-4 whitespace-pre-wrap text-center text-2xl font-black text-black">LEFTS &amp; RIGHTS</p>
 
-    {% if links %}
-    <input type="text" id="depot-search" placeholder="Search…" autocomplete="off"
-           class="mb-3 block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
-    {% endif %}
+    <div class="mb-1 flex items-end gap-4">
+        <div class="min-w-0 flex-1">
+            <p class="mb-1 text-xs font-bold uppercase tracking-wide text-gray-500">Routes</p>
+            {% if links %}
+            <input type="text" id="depot-search" placeholder="Search…" autocomplete="off"
+                   class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+            {% endif %}
+        </div>
+        <div class="shrink-0 text-center">
+            <p class="mb-1 text-xs font-bold uppercase tracking-wide text-gray-500">Update</p>
+            <button type="button" id="depot-upload-btn" title="Upload documents" aria-label="Upload documents"
+                    class="inline-flex items-center justify-center rounded-lg bg-cafe p-2.5 text-white shadow-sm hover:bg-cafe-darker">
+                {% include "icons/arrow-path.html" with class="w-5 h-5" %}
+            </button>
+            <form id="depot-csrf-form" class="hidden">{% csrf_token %}</form>
+            <input type="file" id="depot-upload-input" class="hidden" multiple
+                   accept=".doc,.docx,.pdf,.gif,.png,.jpg,.jpeg,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.heic,.webp">
+        </div>
+    </div>
+    <p id="depot-upload-status" class="mb-2 min-h-4 text-xs"></p>
 
     <div id="depot-links" class="overflow-hidden rounded-lg border border-gray-200 divide-y divide-gray-100">
         {% for link in links %}
@@ -40,6 +56,52 @@ if (depotSearch) {
             if (matches) visibleCount += 1;
         });
         document.getElementById('depot-no-results').classList.toggle('hidden', visibleCount !== 0);
+    });
+}
+
+// "Update" icon -- lets anyone on this public page attach one or more
+// documents/photos, which get emailed straight to the dispatch inboxes
+// (no KeyByMe login/storage involved). See DepotUploadView.
+const uploadBtn = document.getElementById('depot-upload-btn');
+const uploadInput = document.getElementById('depot-upload-input');
+const uploadStatus = document.getElementById('depot-upload-status');
+if (uploadBtn && uploadInput) {
+    uploadBtn.addEventListener('click', () => uploadInput.click());
+    uploadInput.addEventListener('change', () => {
+        const files = uploadInput.files;
+        if (!files.length) return;
+
+        const csrfToken = document.querySelector('#depot-csrf-form [name=csrfmiddlewaretoken]').value;
+        const formData = new FormData();
+        for (const file of files) formData.append('files', file);
+
+        uploadBtn.disabled = true;
+        uploadStatus.textContent = 'Sending…';
+        uploadStatus.className = 'mb-2 min-h-4 text-xs text-gray-500';
+
+        fetch("{% url 'schools:depot_upload' %}", {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrfToken },
+            body: formData,
+        })
+            .then((response) => response.json().then((data) => ({ ok: response.ok, data })))
+            .then(({ ok, data }) => {
+                if (ok && data.ok) {
+                    uploadStatus.textContent = `Sent ${files.length} file(s).`;
+                    uploadStatus.className = 'mb-2 min-h-4 text-xs text-green-600';
+                } else {
+                    uploadStatus.textContent = (data && data.error) || 'Upload failed.';
+                    uploadStatus.className = 'mb-2 min-h-4 text-xs text-red-600';
+                }
+            })
+            .catch(() => {
+                uploadStatus.textContent = 'Upload failed.';
+                uploadStatus.className = 'mb-2 min-h-4 text-xs text-red-600';
+            })
+            .finally(() => {
+                uploadBtn.disabled = false;
+                uploadInput.value = '';
+            });
     });
 }
 </script>
