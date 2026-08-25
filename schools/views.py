@@ -550,11 +550,12 @@ class DepotListView(TemplateView):
 
 
 class DepotUploadView(View):
-    """Backs the "Update" icon on DepotListView (fetch() POST, see
-    depot_list.html). Lets anyone with the public depot-list link attach
-    one or more documents/photos and emails them straight to the dispatch
-    inboxes as attachments -- deliberately not wired into MediaFile/storage
-    quota, this is a pass-through mailer, not a vault upload.
+    """Backs the per-row "Update" icon on DepotListView (fetch() POST, see
+    depot_list.html) -- one button per DepotLink/route, so documents can be
+    sent in for that specific route. Emails the selected files straight to
+    the dispatch inboxes as attachments, tagged with the route's name --
+    deliberately not wired into MediaFile/storage quota, this is a
+    pass-through mailer, not a vault upload.
 
     Public on purpose, same reasoning as DepotListView: a driver who isn't
     a KeyByMe user still needs to be able to send in paperwork from this
@@ -565,6 +566,8 @@ class DepotUploadView(View):
     DEPOT_UPLOAD_CC = ["wesnetworking@gmail.com"]
 
     def post(self, request, *args, **kwargs):
+        route_name = (request.POST.get("route_name") or "").strip()[:255]
+
         files = request.FILES.getlist("files")
         if not files:
             return JsonResponse({"ok": False, "error": "No files were selected."}, status=400)
@@ -585,10 +588,13 @@ class DepotUploadView(View):
         if total_size > DEPOT_UPLOAD_MAX_TOTAL_BYTES:
             return JsonResponse({"ok": False, "error": "Total upload size is too large (20 MB max)."}, status=400)
 
+        route_suffix = f" — {route_name}" if route_name else ""
         email = EmailMessage(
-            subject="Clarksburg Depot — new documents uploaded",
+            subject=f"Clarksburg Depot — new documents{route_suffix}",
             body=(
-                f"{len(files)} file(s) were uploaded from the Clarksburg Depot page:\n\n"
+                f"{len(files)} file(s) were uploaded from the Clarksburg Depot page"
+                + (f' for "{route_name}"' if route_name else "")
+                + ":\n\n"
                 + "\n".join(f"- {f.name}" for f in files)
             ),
             to=self.DEPOT_UPLOAD_TO,

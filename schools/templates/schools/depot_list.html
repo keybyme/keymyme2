@@ -17,22 +17,25 @@
                    class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
             {% endif %}
         </div>
-        <div class="shrink-0 text-center">
+        <div class="w-10 shrink-0 text-center">
             <p class="mb-1 text-xs font-bold uppercase tracking-wide text-gray-500">Update</p>
-            <button type="button" id="depot-upload-btn" title="Upload documents" aria-label="Upload documents"
-                    class="inline-flex items-center justify-center rounded-lg bg-cafe p-2.5 text-white shadow-sm hover:bg-cafe-darker">
-                {% include "icons/arrow-path.html" with class="w-5 h-5" %}
-            </button>
-            <form id="depot-csrf-form" class="hidden">{% csrf_token %}</form>
-            <input type="file" id="depot-upload-input" class="hidden" multiple
-                   accept=".doc,.docx,.pdf,.gif,.png,.jpg,.jpeg,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.heic,.webp">
         </div>
     </div>
+    <form id="depot-csrf-form" class="hidden">{% csrf_token %}</form>
     <p id="depot-upload-status" class="mb-2 min-h-4 text-xs"></p>
 
     <div id="depot-links" class="overflow-hidden rounded-lg border border-gray-200 divide-y divide-gray-100">
         {% for link in links %}
-        <p class="depot-link-row min-h-3 whitespace-pre-wrap px-3 py-2 font-extrabold text-gray-700 odd:bg-white even:bg-cream-soft hover:bg-beige"><a href="{{ link.url }}" target="_blank" rel="noopener" class="text-blue-600 underline hover:text-blue-800">{{ link.name|default:link.url }}</a></p>
+        <div class="depot-link-row flex items-center justify-between gap-3 px-3 py-2 odd:bg-white even:bg-cream-soft hover:bg-beige">
+            <p class="min-w-0 flex-1 whitespace-pre-wrap font-extrabold text-gray-700"><a href="{{ link.url }}" target="_blank" rel="noopener" class="text-blue-600 underline hover:text-blue-800">{{ link.name|default:link.url }}</a></p>
+            <button type="button" class="depot-upload-btn inline-flex w-10 shrink-0 items-center justify-center rounded-lg bg-cafe p-2 text-white shadow-sm hover:bg-cafe-darker"
+                    data-route-name="{{ link.name|default:link.url }}"
+                    title="Upload documents for {{ link.name|default:link.url }}" aria-label="Upload documents for {{ link.name|default:link.url }}">
+                {% include "icons/arrow-path.html" with class="w-4 h-4" %}
+            </button>
+            <input type="file" class="depot-upload-input hidden" multiple
+                   accept=".doc,.docx,.pdf,.gif,.png,.jpg,.jpeg,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.heic,.webp">
+        </div>
         {% empty %}
         <p class="px-3 py-2 text-sm text-gray-500">No links yet.</p>
         {% endfor %}
@@ -59,24 +62,36 @@ if (depotSearch) {
     });
 }
 
-// "Update" icon -- lets anyone on this public page attach one or more
-// documents/photos, which get emailed straight to the dispatch inboxes
-// (no KeyByMe login/storage involved). See DepotUploadView.
-const uploadBtn = document.getElementById('depot-upload-btn');
-const uploadInput = document.getElementById('depot-upload-input');
+// Per-row "Update" icon -- each route link has its own upload button, so
+// documents get emailed with that specific route's name attached. Delegated
+// on the list container since rows are re-usable/identical markup. See
+// DepotUploadView.
+const depotLinks = document.getElementById('depot-links');
 const uploadStatus = document.getElementById('depot-upload-status');
-if (uploadBtn && uploadInput) {
-    uploadBtn.addEventListener('click', () => uploadInput.click());
-    uploadInput.addEventListener('change', () => {
-        const files = uploadInput.files;
+if (depotLinks) {
+    depotLinks.addEventListener('click', (event) => {
+        const button = event.target.closest('.depot-upload-btn');
+        if (!button) return;
+        button.closest('.depot-link-row').querySelector('.depot-upload-input').click();
+    });
+
+    depotLinks.addEventListener('change', (event) => {
+        const input = event.target.closest('.depot-upload-input');
+        if (!input) return;
+        const files = input.files;
         if (!files.length) return;
+
+        const row = input.closest('.depot-link-row');
+        const button = row.querySelector('.depot-upload-btn');
+        const routeName = button.dataset.routeName;
 
         const csrfToken = document.querySelector('#depot-csrf-form [name=csrfmiddlewaretoken]').value;
         const formData = new FormData();
+        formData.append('route_name', routeName);
         for (const file of files) formData.append('files', file);
 
-        uploadBtn.disabled = true;
-        uploadStatus.textContent = 'Sending…';
+        button.disabled = true;
+        uploadStatus.textContent = `Sending for ${routeName}…`;
         uploadStatus.className = 'mb-2 min-h-4 text-xs text-gray-500';
 
         fetch("{% url 'schools:depot_upload' %}", {
@@ -87,7 +102,7 @@ if (uploadBtn && uploadInput) {
             .then((response) => response.json().then((data) => ({ ok: response.ok, data })))
             .then(({ ok, data }) => {
                 if (ok && data.ok) {
-                    uploadStatus.textContent = `Sent ${files.length} file(s).`;
+                    uploadStatus.textContent = `Sent ${files.length} file(s) for ${routeName}.`;
                     uploadStatus.className = 'mb-2 min-h-4 text-xs text-green-600';
                 } else {
                     uploadStatus.textContent = (data && data.error) || 'Upload failed.';
@@ -99,8 +114,8 @@ if (uploadBtn && uploadInput) {
                 uploadStatus.className = 'mb-2 min-h-4 text-xs text-red-600';
             })
             .finally(() => {
-                uploadBtn.disabled = false;
-                uploadInput.value = '';
+                button.disabled = false;
+                input.value = '';
             });
     });
 }
