@@ -12,12 +12,11 @@
 
     <div class="mb-3 flex items-center gap-3">
         <span class="shrink-0 text-sm font-extrabold uppercase tracking-wide text-gray-700">Routes</span>
-        <div class="min-w-0 flex-1">
-            {% if links %}
-            <input type="text" id="depot-search" placeholder="Search…" autocomplete="off"
-                   class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
-            {% endif %}
-        </div>
+        {% if links %}
+        <input type="text" id="depot-search" placeholder="Search…" autocomplete="off"
+               class="w-32 shrink-0 rounded-lg border border-gray-300 px-2 py-1.5 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:w-48">
+        {% endif %}
+        <div class="min-w-0 flex-1"></div>
         <span class="w-10 shrink-0 text-center text-sm font-extrabold uppercase tracking-wide text-gray-700">Update</span>
     </div>
     <form id="depot-csrf-form" class="hidden">{% csrf_token %}</form>
