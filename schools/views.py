@@ -1,6 +1,7 @@
 from urllib.parse import urlencode
 
-from django.db.models import Q
+from django.db.models import Q, Value
+from django.db.models.functions import Coalesce, Lower, NullIf
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, TemplateView, UpdateView
@@ -527,5 +528,10 @@ class DepotListView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["links"] = DepotLink.objects.all()
+        # Alphabetical by the text actually rendered — name, falling back to
+        # the raw url when name is blank — matching DepotLink.__str__, not
+        # the drag-order used on the editable DepotView.
+        context["links"] = DepotLink.objects.annotate(
+            display_text=Lower(Coalesce(NullIf("name", Value("")), "url"))
+        ).order_by("display_text")
         return context
