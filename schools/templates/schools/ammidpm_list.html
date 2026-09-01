@@ -71,24 +71,15 @@
 })();
 
 // Clicking an address should start driving directions from wherever the
-// driver actually is right now, not force them to type/confirm an origin.
-// Geolocation is requested once up front (below), on page load, rather than
-// inside the click handler: getCurrentPosition() is async, and by the time
-// its callback fires the browser no longer considers a window.open() call
-// "in direct response to a user gesture" — Safari in particular then blocks
-// it outright (shows nothing, not even a blank tab) rather than just losing
-// the precise origin like Chrome/Firefox mostly do. Asking up front means
-// the position (or the fact that it was denied) is already known by click
-// time, so the handler below can open the tab with a real URL synchronously.
-let mcpsCurrentPosition = null;  // {lat, lng} once resolved, else still null
-if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-        (position) => { mcpsCurrentPosition = { lat: position.coords.latitude, lng: position.coords.longitude }; },
-        () => {},  // denied/unavailable — mcpsOpenDirectionsFromHere below just omits origin
-        { timeout: 8000 }
-    );
-}
-
+// driver actually is right now, not force them to type/confirm an origin,
+// and not from a browser-geolocated snapshot that goes stale as they drive
+// through several of these addresses over one route. saddr=Current+Location
+// is the literal string Apple Maps recognizes as a special keyword: it's
+// resolved live, inside the app, at the moment each link is opened, which
+// is also what makes the origin field show as "My Location" instead of a
+// blank "From" the driver has to fill in themselves -- so no JS geolocation
+// call is needed at all.
+//
 // Defined globally (not inside an IIFE) because it's called via inline
 // onclick= from rows re-rendered by the live-search fetch (see
 // _ammidpm_live_search.html), which only replaces #ammidpm-results'
@@ -96,8 +87,7 @@ if (navigator.geolocation) {
 function mcpsOpenDirectionsFromHere(event, address) {
     event.preventDefault();
     const destination = encodeURIComponent(address);
-    let url = `https://maps.apple.com/?daddr=${destination}&dirflg=d`;
-    if (mcpsCurrentPosition) url += `&saddr=${mcpsCurrentPosition.lat},${mcpsCurrentPosition.lng}`;
+    const url = `https://maps.apple.com/?saddr=Current+Location&daddr=${destination}&dirflg=d`;
     window.open(url, '_blank', 'noopener');
     return false;
 }

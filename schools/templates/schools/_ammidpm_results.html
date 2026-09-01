@@ -58,7 +58,7 @@
             <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-700">{{ entry.seq }}</td>
             <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-700">{{ entry.time|time:"g:i A" }}</td>
             <td class="whitespace-nowrap px-4 py-3 text-sm">
-                <a href="https://maps.apple.com/?daddr={{ entry.address|urlencode }}&dirflg=d"
+                <a href="https://maps.apple.com/?saddr=Current+Location&daddr={{ entry.address|urlencode }}&dirflg=d"
                    onclick="return mcpsOpenDirectionsFromHere(event, '{{ entry.address|escapejs }}');"
                    target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-800">
                     {% include "icons/map-pin.html" with class="w-4 h-4" %} {{ entry.address }}

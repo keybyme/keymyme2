@@ -61,15 +61,18 @@
         <tr>
             <td class="px-6{% if forloop.last %} pb-6{% endif %}">
                 {% if row.row_type == "link" %}
-                <!-- No &saddr= here on purpose: a driver taps several of
-                     these STOP @ links over the course of one route, and a
-                     browser-geolocated origin captured once up front would
-                     go stale (pointing at wherever they were when the page
-                     first loaded, not where they are now). Destination-only
-                     lets Apple Maps fall back to its own live "Current
-                     Location", which is correct at click time regardless of
-                     how far into the route the driver is. -->
-                <p class="mb-1 min-h-3 whitespace-pre-wrap font-extrabold text-gray-700{% if 'STOP @' in row.text %} text-2xl{% endif %}">{{ row.text }} <a href="https://maps.apple.com/?daddr={{ row.address|urlencode }}&dirflg=d" target="_blank" rel="noopener" class="text-blue-600 underline hover:text-blue-800">{{ row.address }}</a> {{ row.text_after }}</p>
+                <!-- saddr is the literal string "Current Location", not a
+                     lat/lng -- Apple Maps recognizes that keyword specially
+                     and resolves it live, inside the app, at the moment the
+                     link is opened. That's what makes the origin field show
+                     as "My Location" instead of a blank "From" the driver
+                     has to fill in themselves. A driver taps several of
+                     these STOP @ links over the course of one route, so this
+                     also has to stay correct as they move -- a browser-
+                     geolocated lat/lng captured once up front would go stale
+                     (it'd keep pointing at wherever they were when the page
+                     first loaded), which the literal keyword avoids. -->
+                <p class="mb-1 min-h-3 whitespace-pre-wrap font-extrabold text-gray-700{% if 'STOP @' in row.text %} text-2xl{% endif %}">{{ row.text }} <a href="https://maps.apple.com/?saddr=Current+Location&daddr={{ row.address|urlencode }}&dirflg=d" target="_blank" rel="noopener" class="text-blue-600 underline hover:text-blue-800">{{ row.address }}</a> {{ row.text_after }}</p>
                 {% elif row.row_type == "title" %}
                 <p class="mb-1 min-h-4 whitespace-pre-wrap text-center text-2xl font-black text-black{% if 'STOP @' in row.text %} text-4xl{% endif %}">{{ row.text }}</p>
                 {% elif row.row_type == "bold" %}
