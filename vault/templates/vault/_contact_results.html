@@ -29,7 +29,7 @@
             <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-600">{{ contact.email }}</td>
             <td class="px-4 py-3 text-sm">
                 {% if contact.address %}
-                <a href="https://www.google.com/maps/search/?api=1&query={{ contact.address|urlencode }}" target="_blank"
+                <a href="https://maps.apple.com/?q={{ contact.address|urlencode }}" target="_blank"
                    class="inline-flex items-center gap-1 text-gray-600 hover:text-blue-600">
                     {% include "icons/map-pin.html" with class="w-4 h-4" %} {{ contact.address }}
                 </a>

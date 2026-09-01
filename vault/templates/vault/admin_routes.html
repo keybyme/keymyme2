@@ -69,7 +69,7 @@
                     <td class="whitespace-nowrap px-4 py-2 text-sm text-gray-600">{{ stop.remarks|default:"—" }}</td>
                     <td class="whitespace-nowrap px-4 py-2 text-sm text-gray-600">
                         {% if stop.address %}
-                        <a href="https://www.google.com/maps/search/?api=1&query={{ stop.address|urlencode }}" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-800">
+                        <a href="https://maps.apple.com/?q={{ stop.address|urlencode }}" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-800">
                             {% include "icons/map-pin.html" with class="w-4 h-4" %} {{ stop.address }}
                         </a>
                         {% else %}

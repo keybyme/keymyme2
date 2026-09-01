@@ -313,7 +313,7 @@ class LocationCheckIn(models.Model):
     def maps_url(self):
         if self.latitude is None or self.longitude is None:
             return ""
-        return f"https://www.google.com/maps?q={self.latitude},{self.longitude}"
+        return f"https://maps.apple.com/?ll={self.latitude},{self.longitude}&q=Check-in"
 
 
 class RouteStop(models.Model):

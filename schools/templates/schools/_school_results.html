@@ -48,7 +48,7 @@
             </td>
             <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-700">{{ school.get_school_type_display }}</td>
             <td class="whitespace-nowrap px-4 py-3 text-sm">
-                <a href="https://www.google.com/maps/dir/?api=1&destination={{ school.full_address|urlencode }}&travelmode=driving" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-800">
+                <a href="https://maps.apple.com/?daddr={{ school.full_address|urlencode }}&dirflg=d" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-800">
                     {% include "icons/map-pin.html" with class="w-4 h-4" %} {{ school.address }}
                 </a>
             </td>

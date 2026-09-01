@@ -800,7 +800,7 @@ class EmergencyLocationView(ModuleAccessRequiredMixin, View):
             return JsonResponse({"error": "Invalid location data."}, status=400)
 
         full_name = request.user.get_full_name() or request.user.username
-        maps_url = f"https://www.google.com/maps/search/?api=1&query={latitude},{longitude}"
+        maps_url = f"https://maps.apple.com/?ll={latitude},{longitude}&q=Emergency+location"
         send_mail(
             subject=f"EMERGENCY: {full_name}'s location",
             message=(

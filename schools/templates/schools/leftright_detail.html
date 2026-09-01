@@ -61,7 +61,7 @@
         <tr>
             <td class="px-6{% if forloop.last %} pb-6{% endif %}">
                 {% if row.row_type == "link" %}
-                <p class="mb-1 min-h-3 whitespace-pre-wrap font-extrabold text-gray-700{% if 'STOP @' in row.text %} text-2xl{% endif %}">{{ row.text }} <a href="https://www.google.com/maps/dir/?api=1&destination={{ row.address|urlencode }}&travelmode=driving" onclick="return lrOpenDirections(event, '{{ row.address|escapejs }}');" target="_blank" rel="noopener" class="text-blue-600 underline hover:text-blue-800">{{ row.address }}</a> {{ row.text_after }}</p>
+                <p class="mb-1 min-h-3 whitespace-pre-wrap font-extrabold text-gray-700{% if 'STOP @' in row.text %} text-2xl{% endif %}">{{ row.text }} <a href="https://maps.apple.com/?daddr={{ row.address|urlencode }}&dirflg=d" onclick="return lrOpenDirections(event, '{{ row.address|escapejs }}');" target="_blank" rel="noopener" class="text-blue-600 underline hover:text-blue-800">{{ row.address }}</a> {{ row.text_after }}</p>
                 {% elif row.row_type == "title" %}
                 <p class="mb-1 min-h-4 whitespace-pre-wrap text-center text-2xl font-black text-black{% if 'STOP @' in row.text %} text-4xl{% endif %}">{{ row.text }}</p>
                 {% elif row.row_type == "bold" %}
@@ -102,8 +102,8 @@ if (navigator.geolocation) {
 function lrOpenDirections(event, address) {
     event.preventDefault();
     const destination = encodeURIComponent(address);
-    let url = `https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=driving`;
-    if (lrCurrentPosition) url += `&origin=${lrCurrentPosition.lat},${lrCurrentPosition.lng}`;
+    let url = `https://maps.apple.com/?daddr=${destination}&dirflg=d`;
+    if (lrCurrentPosition) url += `&saddr=${lrCurrentPosition.lat},${lrCurrentPosition.lng}`;
     window.open(url, '_blank', 'noopener');
     return false;
 }

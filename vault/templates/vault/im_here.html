@@ -92,7 +92,7 @@
                 <td class="max-w-xs px-4 py-3 text-sm text-gray-600">{{ checkin.remarks|default:"—" }}</td>
                 <td class="max-w-xs px-4 py-3 text-sm text-gray-600">
                     {% if checkin.address %}
-                    <a href="https://www.google.com/maps/search/?api=1&query={{ checkin.address|urlencode }}" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-800">
+                    <a href="https://maps.apple.com/?q={{ checkin.address|urlencode }}" target="_blank" rel="noopener" class="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-800">
                         {% include "icons/map-pin.html" with class="w-4 h-4" %} {{ checkin.address }}
                     </a>
                     {% else %}

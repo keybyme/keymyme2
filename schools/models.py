@@ -185,9 +185,9 @@ class LeftRightRow(models.Model):
     in the middle, `text_after` trailing). `address` is a plain address —
     not a URL the user pastes in — LeftRightDetailView turns it into a
     driving-directions link at render time (same
-    google.com/maps/dir/?api=1&destination=... + geolocated-origin pattern
-    as AmMidPmEntry's per-address links), so clicking it opens Google Maps
-    GPS navigation to that address.
+    maps.apple.com/?daddr=... + geolocated-origin pattern as AmMidPmEntry's
+    per-address links), so clicking it opens Apple Maps GPS navigation to
+    that address.
     """
 
     class RowType(models.TextChoices):

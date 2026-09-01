@@ -96,8 +96,8 @@ if (navigator.geolocation) {
 function mcpsOpenDirectionsFromHere(event, address) {
     event.preventDefault();
     const destination = encodeURIComponent(address);
-    let url = `https://www.google.com/maps/dir/?api=1&destination=${destination}&travelmode=driving`;
-    if (mcpsCurrentPosition) url += `&origin=${mcpsCurrentPosition.lat},${mcpsCurrentPosition.lng}`;
+    let url = `https://maps.apple.com/?daddr=${destination}&dirflg=d`;
+    if (mcpsCurrentPosition) url += `&saddr=${mcpsCurrentPosition.lat},${mcpsCurrentPosition.lng}`;
     window.open(url, '_blank', 'noopener');
     return false;
 }
