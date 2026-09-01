@@ -184,10 +184,10 @@ class LeftRightRow(models.Model):
     the leading text on a LINK row (three fields: `text` before, `address`
     in the middle, `text_after` trailing). `address` is a plain address —
     not a URL the user pastes in — LeftRightDetailView turns it into a
-    driving-directions link at render time (same
-    maps.apple.com/?daddr=... + geolocated-origin pattern as AmMidPmEntry's
-    per-address links), so clicking it opens Apple Maps GPS navigation to
-    that address.
+    driving-directions link at render time (maps.apple.com/?daddr=...,
+    deliberately with no `saddr` -- see LeftRightDetailView's link markup
+    for why), so clicking it opens Apple Maps GPS navigation to that
+    address from wherever the driver actually is when they tap it.
     """
 
     class RowType(models.TextChoices):

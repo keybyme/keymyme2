@@ -61,7 +61,15 @@
         <tr>
             <td class="px-6{% if forloop.last %} pb-6{% endif %}">
                 {% if row.row_type == "link" %}
-                <p class="mb-1 min-h-3 whitespace-pre-wrap font-extrabold text-gray-700{% if 'STOP @' in row.text %} text-2xl{% endif %}">{{ row.text }} <a href="https://maps.apple.com/?daddr={{ row.address|urlencode }}&dirflg=d" onclick="return lrOpenDirections(event, '{{ row.address|escapejs }}');" target="_blank" rel="noopener" class="text-blue-600 underline hover:text-blue-800">{{ row.address }}</a> {{ row.text_after }}</p>
+                <!-- No &saddr= here on purpose: a driver taps several of
+                     these STOP @ links over the course of one route, and a
+                     browser-geolocated origin captured once up front would
+                     go stale (pointing at wherever they were when the page
+                     first loaded, not where they are now). Destination-only
+                     lets Apple Maps fall back to its own live "Current
+                     Location", which is correct at click time regardless of
+                     how far into the route the driver is. -->
+                <p class="mb-1 min-h-3 whitespace-pre-wrap font-extrabold text-gray-700{% if 'STOP @' in row.text %} text-2xl{% endif %}">{{ row.text }} <a href="https://maps.apple.com/?daddr={{ row.address|urlencode }}&dirflg=d" target="_blank" rel="noopener" class="text-blue-600 underline hover:text-blue-800">{{ row.address }}</a> {{ row.text_after }}</p>
                 {% elif row.row_type == "title" %}
                 <p class="mb-1 min-h-4 whitespace-pre-wrap text-center text-2xl font-black text-black{% if 'STOP @' in row.text %} text-4xl{% endif %}">{{ row.text }}</p>
                 {% elif row.row_type == "bold" %}
@@ -84,28 +92,4 @@
     {% endfor %}
     </tbody>
 </table>
-
-<script>
-// Same current-location-as-origin pattern as MCPS AM-MID-PM's per-address
-// links (see ammidpm_list.html) -- geolocation is requested once up front
-// so the click handler below can open the tab with a real URL
-// synchronously (Safari blocks window.open() from an async callback).
-let lrCurrentPosition = null;
-if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-        (position) => { lrCurrentPosition = { lat: position.coords.latitude, lng: position.coords.longitude }; },
-        () => {},  // denied/unavailable — just omit origin below
-        { timeout: 8000 }
-    );
-}
-
-function lrOpenDirections(event, address) {
-    event.preventDefault();
-    const destination = encodeURIComponent(address);
-    let url = `https://maps.apple.com/?daddr=${destination}&dirflg=d`;
-    if (lrCurrentPosition) url += `&saddr=${lrCurrentPosition.lat},${lrCurrentPosition.lng}`;
-    window.open(url, '_blank', 'noopener');
-    return false;
-}
-</script>
 {% endblock %}
