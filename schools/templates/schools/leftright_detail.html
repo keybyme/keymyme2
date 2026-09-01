@@ -73,6 +73,21 @@
                      (it'd keep pointing at wherever they were when the page
                      first loaded), which the literal keyword avoids. -->
                 <p class="mb-1 min-h-3 whitespace-pre-wrap font-extrabold text-gray-700{% if 'STOP @' in row.text %} text-2xl{% endif %}">{{ row.text }} <a href="https://maps.apple.com/?saddr=Current+Location&daddr={{ row.address|urlencode }}&dirflg=d" target="_blank" rel="noopener" class="text-blue-600 underline hover:text-blue-800">{{ row.address }}</a> {{ row.text_after }}</p>
+                {% if user.is_authenticated and user.is_admin_principal %}
+                <!-- Admin-only GPS picker: lets the Main Admin (Jorge) compare
+                     Apple vs. Google directions for an address without
+                     affecting what regular drivers/visitors see on this
+                     otherwise-public page. Outside the whitespace-pre-wrap
+                     <p> above on purpose -- that class means any literal
+                     newline in the source becomes a visible line break, so
+                     this block can't live inside it without corrupting the
+                     row's spacing. print:hidden since these are for testing,
+                     not part of the printed route sheet. -->
+                <p class="mb-1 min-h-3 print:hidden"><span class="inline-flex gap-1">
+                    <a href="https://maps.apple.com/?saddr=Current+Location&daddr={{ row.address|urlencode }}&dirflg=d" target="_blank" rel="noopener" class="rounded bg-cafe px-1.5 py-0.5 text-xs font-medium text-white hover:bg-cafe-darker">Apple</a>
+                    <a href="https://www.google.com/maps/dir/?api=1&destination={{ row.address|urlencode }}&travelmode=driving" target="_blank" rel="noopener" class="rounded bg-cafe px-1.5 py-0.5 text-xs font-medium text-white hover:bg-cafe-darker">Google</a>
+                </span></p>
+                {% endif %}
                 {% elif row.row_type == "title" %}
                 <p class="mb-1 min-h-4 whitespace-pre-wrap text-center text-2xl font-black text-black{% if 'STOP @' in row.text %} text-4xl{% endif %}">{{ row.text }}</p>
                 {% elif row.row_type == "bold" %}
