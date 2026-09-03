@@ -373,15 +373,41 @@ class LeftsRightsView(ModuleAccessRequiredMixin, TemplateView):
     from the new Transportation module too. MCPS itself isn't going away
     yet, only "eventually" (per the user) — this dual gate is what makes
     that transition gradual instead of an abrupt cutover; see
-    menus/migrations/0012_seed_transportation_module.py."""
+    menus/migrations/0012_seed_transportation_module.py.
+
+    Same single page/URL either way, but the header buttons back to MCPS
+    Schools/Employees/Routes/AM-MID-PM + Depot must ONLY show when this was
+    reached from MCPS — a Transportation-only user has no access to those
+    other MCPS views and would just hit a 403. There's no separate URL per
+    entry point, so `?from=mcps`/`?from=transportation` on the links that
+    lead here (MCPS's own list pages vs. the Transportation nav item in
+    base.html) records the origin in the session, and it sticks across
+    internal navigation (route dropdown, create/edit/delete) that doesn't
+    carry the param — see SESSION_ORIGIN_KEY / mcps_origin below. Falls
+    back to the user's actual artifacts_mcps access on a session with no
+    origin yet (e.g. a bookmarked link), so an MCPS user's experience is
+    unchanged even the very first time."""
     template_name = "schools/lefts_rights.html"
     module_codename = ("artifacts_mcps", "transportation")
+
+    SESSION_ORIGIN_KEY = "schools_lr_origin"
+
+    def get(self, request, *args, **kwargs):
+        origin = request.GET.get("from")
+        if origin in ("mcps", "transportation"):
+            request.session[self.SESSION_ORIGIN_KEY] = origin
+        return super().get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["route_names"] = (
             LeftRight.objects.order_by("route_name").values_list("route_name", flat=True).distinct()
         )
+        stored_origin = self.request.session.get(self.SESSION_ORIGIN_KEY)
+        if stored_origin:
+            context["mcps_origin"] = stored_origin == "mcps"
+        else:
+            context["mcps_origin"] = self.request.user.has_module_access("artifacts_mcps")
 
         route_name = self.request.GET.get("route", "").strip()
         if not route_name:
