@@ -360,7 +360,40 @@ class AmMidPmEntryDeleteView(ModuleAccessRequiredMixin, DeleteView):
     module_codename = "artifacts_mcps"
 
 
-class LeftsRightsView(ModuleAccessRequiredMixin, TemplateView):
+class LeftsRightsOriginMixin:
+    """Resolves and threads through the `?from=mcps`/`?from=transportation`
+    query param that keeps the Lefts & Rights header's MCPS cross-nav
+    buttons (Schools/Employees/Routes/AM-MID-PM/Depot) independent per
+    entry point — see LeftsRightsView. MCPS's own list pages link here with
+    `?from=mcps`; the Transportation nav item (base.html) links with
+    `?from=transportation`. Deliberately NOT stored in the session: a
+    session is shared by the same logged-in user across every tab, so
+    whatever was picked in one would leak into the other. Instead every
+    view on this create/edit/delete/list flow reads `?from=` straight off
+    the current request and threads the SAME value forward — as a query
+    param on GET links, and via each form's `action="?from=..."` on POST
+    (query strings survive on POST requests too, so `request.GET` still
+    sees it) — so nothing here is ever remembered past the request that
+    carried it.
+
+    Falls back to the user's actual `artifacts_mcps` access when no
+    `?from=` is present at all (e.g. a bookmarked URL with no origin to
+    read), so an MCPS user's very first visit still looks like before.
+    """
+
+    def get_origin(self):
+        origin = self.request.GET.get("from")
+        if origin in ("mcps", "transportation"):
+            return origin
+        return "mcps" if self.request.user.has_module_access("artifacts_mcps") else "transportation"
+
+    def lefts_rights_url(self, route_name):
+        return reverse_lazy("schools:lefts_rights") + "?" + urlencode(
+            {"route": route_name, "from": self.get_origin()}
+        )
+
+
+class LeftsRightsView(LeftsRightsOriginMixin, ModuleAccessRequiredMixin, TemplateView):
     """Landing page for Transportation's Lefts & Rights: pick a route name —
     the dropdown only lists route names that already have at least one
     LeftRight — and see that route's named LeftRight guides as links. What
@@ -378,36 +411,18 @@ class LeftsRightsView(ModuleAccessRequiredMixin, TemplateView):
     Same single page/URL either way, but the header buttons back to MCPS
     Schools/Employees/Routes/AM-MID-PM + Depot must ONLY show when this was
     reached from MCPS — a Transportation-only user has no access to those
-    other MCPS views and would just hit a 403. There's no separate URL per
-    entry point, so `?from=mcps`/`?from=transportation` on the links that
-    lead here (MCPS's own list pages vs. the Transportation nav item in
-    base.html) records the origin in the session, and it sticks across
-    internal navigation (route dropdown, create/edit/delete) that doesn't
-    carry the param — see SESSION_ORIGIN_KEY / mcps_origin below. Falls
-    back to the user's actual artifacts_mcps access on a session with no
-    origin yet (e.g. a bookmarked link), so an MCPS user's experience is
-    unchanged even the very first time."""
+    other MCPS views and would just hit a 403. See LeftsRightsOriginMixin
+    for how the origin is resolved/threaded without any shared state."""
     template_name = "schools/lefts_rights.html"
     module_codename = ("artifacts_mcps", "transportation")
-
-    SESSION_ORIGIN_KEY = "schools_lr_origin"
-
-    def get(self, request, *args, **kwargs):
-        origin = request.GET.get("from")
-        if origin in ("mcps", "transportation"):
-            request.session[self.SESSION_ORIGIN_KEY] = origin
-        return super().get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["route_names"] = (
             LeftRight.objects.order_by("route_name").values_list("route_name", flat=True).distinct()
         )
-        stored_origin = self.request.session.get(self.SESSION_ORIGIN_KEY)
-        if stored_origin:
-            context["mcps_origin"] = stored_origin == "mcps"
-        else:
-            context["mcps_origin"] = self.request.user.has_module_access("artifacts_mcps")
+        context["origin"] = self.get_origin()
+        context["mcps_origin"] = context["origin"] == "mcps"
 
         route_name = self.request.GET.get("route", "").strip()
         if not route_name:
@@ -436,7 +451,7 @@ class LeftRightRouteNamesDatalistMixin:
         return context
 
 
-class LeftRightCreateView(LeftRightRouteNamesDatalistMixin, ModuleAccessRequiredMixin, CreateView):
+class LeftRightCreateView(LeftRightRouteNamesDatalistMixin, LeftsRightsOriginMixin, ModuleAccessRequiredMixin, CreateView):
     # Route always starts blank (no prefill from the selected route on the
     # Lefts & Rights page) — the user types the route name fresh every
     # time, since one route commonly gets several LeftRights added in a
@@ -445,6 +460,11 @@ class LeftRightCreateView(LeftRightRouteNamesDatalistMixin, ModuleAccessRequired
     form_class = LeftRightForm
     template_name = "schools/leftright_form.html"
     module_codename = ("artifacts_mcps", "transportation")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["origin"] = self.get_origin()
+        return context
 
     def form_valid(self, form):
         response = super().form_valid(form)
@@ -464,10 +484,10 @@ class LeftRightCreateView(LeftRightRouteNamesDatalistMixin, ModuleAccessRequired
         return response
 
     def get_success_url(self):
-        return reverse_lazy("schools:lefts_rights") + "?" + urlencode({"route": self.object.route_name})
+        return self.lefts_rights_url(self.object.route_name)
 
 
-class LeftRightUpdateView(ModuleAccessRequiredMixin, DetailView):
+class LeftRightUpdateView(LeftsRightsOriginMixin, ModuleAccessRequiredMixin, DetailView):
     """Edit page for one LeftRight's content rows (LeftRightRowFormSet)
     only — route_name/name are set once at creation (LeftRightCreateView)
     and aren't editable here, so this isn't a ModelForm/UpdateView at all,
@@ -479,6 +499,7 @@ class LeftRightUpdateView(ModuleAccessRequiredMixin, DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context.setdefault("row_formset", LeftRightRowFormSet(instance=self.object, prefix="rows"))
+        context["origin"] = self.get_origin()
         return context
 
     def post(self, request, *args, **kwargs):
@@ -490,16 +511,21 @@ class LeftRightUpdateView(ModuleAccessRequiredMixin, DetailView):
         return self.render_to_response(self.get_context_data(row_formset=row_formset))
 
     def get_success_url(self):
-        return reverse_lazy("schools:lefts_rights") + "?" + urlencode({"route": self.object.route_name})
+        return self.lefts_rights_url(self.object.route_name)
 
 
-class LeftRightDeleteView(ModuleAccessRequiredMixin, DeleteView):
+class LeftRightDeleteView(LeftsRightsOriginMixin, ModuleAccessRequiredMixin, DeleteView):
     model = LeftRight
     template_name = "schools/leftright_confirm_delete.html"
     module_codename = ("artifacts_mcps", "transportation")
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["origin"] = self.get_origin()
+        return context
+
     def get_success_url(self):
-        return reverse_lazy("schools:lefts_rights") + "?" + urlencode({"route": self.object.route_name})
+        return self.lefts_rights_url(self.object.route_name)
 
 
 class LeftRightDetailView(ModuleAccessRequiredMixin, DetailView):

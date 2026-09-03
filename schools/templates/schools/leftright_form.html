@@ -5,7 +5,7 @@
     <h1 class="text-2xl font-semibold text-gray-900">{% if object %}Edit{% else %}Add{% endif %} Left & Right</h1>
     {% if object %}
     <div class="flex flex-wrap items-center gap-2">
-        <a href="{% url 'schools:lefts_rights' %}" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
+        <a href="{% url 'schools:lefts_rights' %}?from={{ origin }}" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
             {% include "icons/map-pin.html" with class="w-4 h-4" %} Lefts & Rights
         </a>
         <a href="{% url 'schools:depot' %}" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
@@ -33,7 +33,7 @@
     {% for error in row_formset.non_form_errors %}<p>{{ error }}</p>{% endfor %}
 </div>
 {% endif %}
-<form id="lr-form" method="post" class="max-w-2xl rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+<form id="lr-form" method="post" action="?from={{ origin }}" class="max-w-2xl rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
     {% csrf_token %}
     {{ row_formset.management_form }}
     <p class="mb-2 text-xs text-gray-400"># is this row's editing sequence (used only on this page). Leave the # field above blank to add rows at the end, or type one (e.g. 35) to insert the next row there — between # 30 and # 40. Never shown when printing.</p>
@@ -66,7 +66,7 @@
 
     <div class="mt-6 flex items-center gap-3">
         <button type="submit" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700">Save</button>
-        <a href="{% url 'schools:lefts_rights' %}?route={{ object.route_name|urlencode }}" class="text-sm font-medium text-gray-600 hover:text-gray-900">Cancel</a>
+        <a href="{% url 'schools:lefts_rights' %}?route={{ object.route_name|urlencode }}&from={{ origin }}" class="text-sm font-medium text-gray-600 hover:text-gray-900">Cancel</a>
     </div>
 </form>
 
@@ -222,7 +222,7 @@ function lrRemoveRow(button) {
 <!-- Create: just the identifying info (route_name/name). Content rows
      don't exist yet -- LeftRightCreateView seeds the four default ones,
      editable afterward on the Edit page above. -->
-<form method="post" class="max-w-lg rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+<form method="post" action="?from={{ origin }}" class="max-w-lg rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
     {% csrf_token %}
     {% include "_form_fields.html" %}
     <datalist id="lr-route-names-datalist">
@@ -232,7 +232,7 @@ function lrRemoveRow(button) {
     </datalist>
     <div class="mt-6 flex items-center gap-3">
         <button type="submit" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700">Save</button>
-        <a href="{% url 'schools:lefts_rights' %}" class="text-sm font-medium text-gray-600 hover:text-gray-900">Cancel</a>
+        <a href="{% url 'schools:lefts_rights' %}?from={{ origin }}" class="text-sm font-medium text-gray-600 hover:text-gray-900">Cancel</a>
     </div>
 </form>
 {% endif %}
