@@ -73,6 +73,9 @@
                 <button type="button" id="emergency-btn" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-base font-bold text-red-600 hover:bg-red-50 hover:text-red-700">
                     {% include "icons/exclamation-triangle.html" with class="w-5 h-5" %} Emergency
                 </button>
+                <a href="{% url 'vault:emergency_settings' %}" class="inline-flex items-center gap-1.5 rounded-lg bg-cafe px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
+                    {% include "icons/pencil.html" with class="w-4 h-4" %} Alert emails
+                </a>
                 {% endif %}
                 {% if request.user|has_module_access:"artifacts_qr" or request.user|has_module_access:"artifacts_mcps" or request.user|has_module_access:"artifacts_medical" or request.user|has_module_access:"artifacts_imhere" or request.user|has_module_access:"cars" %}
                 <details class="nav-dropdown relative">
@@ -194,6 +197,9 @@
                 <button type="button" id="emergency-btn-mobile" class="flex items-center gap-2 rounded-md px-3 py-2.5 text-base font-bold text-red-600 hover:bg-red-50 hover:text-red-700">
                     {% include "icons/exclamation-triangle.html" with class="w-5 h-5" %} Emergency
                 </button>
+                <a href="{% url 'vault:emergency_settings' %}" class="flex items-center gap-2 rounded-md bg-cafe px-3 py-2.5 text-sm font-medium text-white hover:bg-cafe-darker">
+                    {% include "icons/pencil.html" with class="w-4 h-4" %} Alert emails
+                </a>
                 {% endif %}
                 {% if request.user|has_module_access:"artifacts_qr" or request.user|has_module_access:"artifacts_mcps" or request.user|has_module_access:"artifacts_medical" or request.user|has_module_access:"artifacts_imhere" or request.user|has_module_access:"cars" %}
                 <details class="nav-dropdown">

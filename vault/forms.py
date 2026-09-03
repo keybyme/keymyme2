@@ -1,6 +1,8 @@
 from django import forms
 from django.core.files.uploadedfile import UploadedFile
 
+from accounts.models import CustomUser
+
 from .image_compression import compress_image
 from .models import (
     Category, Contact, LocationCheckIn, MaintenanceRecord, MedicalRecord, MediaFile, Reminder,
@@ -392,3 +394,16 @@ class MedicalRecordForm(TailwindFormMixin, forms.ModelForm):
         if commit:
             instance.save()
         return instance
+
+
+class EmergencyContactForm(TailwindFormMixin, forms.ModelForm):
+    """Lets a user manage their own Emergency alert email(s) — reachable via
+    the small edit icon next to the Emergency button in the nav. Previously
+    only settable by the admin from /admin."""
+
+    class Meta:
+        model = CustomUser
+        fields = ["emergency_emails"]
+        widgets = {
+            "emergency_emails": forms.Textarea(attrs={"rows": 2}),
+        }

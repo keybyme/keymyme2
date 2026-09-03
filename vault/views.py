@@ -34,6 +34,7 @@ from .forms import (
     CategoryForm,
     ContactForm,
     ContactImportForm,
+    EmergencyContactForm,
     LocationCheckInForm,
     MediaFileBulkUploadForm,
     MediaFileForm,
@@ -950,6 +951,26 @@ class EmergencyLocationView(ModuleAccessRequiredMixin, View):
             fail_silently=False,
         )
         return JsonResponse({"status": "ok"})
+
+
+class EmergencySettingsView(ModuleAccessRequiredMixin, UpdateView):
+    """Small edit icon next to the Emergency nav button: lets the user
+    manage their own emergency_emails without needing the admin to do it
+    from /admin. Always edits request.user, not a pk from the URL."""
+    model = get_user_model()
+    form_class = EmergencyContactForm
+    template_name = "vault/emergency_settings.html"
+    module_codename = "emergency"
+
+    def get_object(self, queryset=None):
+        return self.request.user
+
+    def form_valid(self, form):
+        messages.success(self.request, "Emergency alert email(s) updated.")
+        return super().form_valid(form)
+
+    def get_success_url(self):
+        return self.request.user.default_landing_url
 
 
 class LocationCheckInHereView(ModuleAccessRequiredMixin, View):

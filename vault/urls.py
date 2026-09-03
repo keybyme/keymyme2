@@ -155,6 +155,7 @@ urlpatterns = [
 
     # Emergency
     path("emergency/send/", views.EmergencyLocationView.as_view(), name="emergency_send"),
+    path("emergency/settings/", views.EmergencySettingsView.as_view(), name="emergency_settings"),
 
     # Cron externo (ver config/settings.py CRON_SECRET)
     path("cron/send-reminders/", views.SendDueRemindersCronView.as_view(), name="cron_send_reminders"),
