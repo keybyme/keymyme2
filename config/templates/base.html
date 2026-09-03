@@ -44,6 +44,11 @@
                     {% include "icons/bell.html" with class="w-4 h-4" %} Reminders
                 </a>
                 {% endif %}
+                {% if request.user|has_module_access:"transportation" %}
+                <a href="{% url 'schools:lefts_rights' %}" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-gray-100 hover:text-blue-700">
+                    {% include "icons/car.html" with class="w-4 h-4" %} Transportation
+                </a>
+                {% endif %}
                 {% if request.user|has_module_access:"finanzas_transacciones" or request.user|has_module_access:"finanzas_cuentas" or request.user|has_module_access:"finanzas_deudas" %}
                 <details class="nav-dropdown relative">
                     <summary class="flex list-none items-center gap-1.5 rounded-md px-3 py-1.5 cursor-pointer hover:bg-gray-100 hover:text-blue-700 [&::-webkit-details-marker]:hidden">
@@ -166,6 +171,11 @@
                 {% if request.user|has_module_access:"reminders" %}
                 <a href="{% url 'vault:reminder_list' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
                     {% include "icons/bell.html" with class="w-5 h-5" %} Reminders
+                </a>
+                {% endif %}
+                {% if request.user|has_module_access:"transportation" %}
+                <a href="{% url 'schools:lefts_rights' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
+                    {% include "icons/car.html" with class="w-5 h-5" %} Transportation
                 </a>
                 {% endif %}
                 {% if request.user|has_module_access:"finanzas_transacciones" or request.user|has_module_access:"finanzas_cuentas" or request.user|has_module_access:"finanzas_deudas" %}

@@ -361,14 +361,19 @@ class AmMidPmEntryDeleteView(ModuleAccessRequiredMixin, DeleteView):
 
 
 class LeftsRightsView(ModuleAccessRequiredMixin, TemplateView):
-    """Landing page for MCPS Lefts & Rights: pick a route name — the
-    dropdown only lists route names that already have at least one
+    """Landing page for Transportation's Lefts & Rights: pick a route name —
+    the dropdown only lists route names that already have at least one
     LeftRight — and see that route's named LeftRight guides as links. What
     a given LeftRight actually shows once you click it is handled by
     LeftRightDetailView. Route names here are LeftRight.route_name, a
-    free-text label independent of the MCPS Routes catalog."""
+    free-text label independent of the MCPS Routes catalog.
+
+    Used to live under MCPS (module 'artifacts_mcps') — moved to its own
+    'transportation' module since Transportation is meant to eventually
+    absorb MCPS and I am here entirely; see menus/migrations/
+    0012_seed_transportation_module.py."""
     template_name = "schools/lefts_rights.html"
-    module_codename = "artifacts_mcps"
+    module_codename = "transportation"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -411,7 +416,7 @@ class LeftRightCreateView(LeftRightRouteNamesDatalistMixin, ModuleAccessRequired
     model = LeftRight
     form_class = LeftRightForm
     template_name = "schools/leftright_form.html"
-    module_codename = "artifacts_mcps"
+    module_codename = "transportation"
 
     def form_valid(self, form):
         response = super().form_valid(form)
@@ -441,7 +446,7 @@ class LeftRightUpdateView(ModuleAccessRequiredMixin, DetailView):
     just a DetailView that also handles the formset's POST."""
     model = LeftRight
     template_name = "schools/leftright_form.html"
-    module_codename = "artifacts_mcps"
+    module_codename = "transportation"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -463,35 +468,40 @@ class LeftRightUpdateView(ModuleAccessRequiredMixin, DetailView):
 class LeftRightDeleteView(ModuleAccessRequiredMixin, DeleteView):
     model = LeftRight
     template_name = "schools/leftright_confirm_delete.html"
-    module_codename = "artifacts_mcps"
+    module_codename = "transportation"
 
     def get_success_url(self):
         return reverse_lazy("schools:lefts_rights") + "?" + urlencode({"route": self.object.route_name})
 
 
-class LeftRightDetailView(DetailView):
+class LeftRightDetailView(ModuleAccessRequiredMixin, DetailView):
     """Renders one LeftRight guide's content rows (LeftRightRow), in order,
     styled per row_type — the driver-facing cheat sheet built on the Edit
     page (LeftRightUpdateView). Bare page (base_bare.html, no KeyByMe
     nav), Print + Depot buttons only.
 
-    Deliberately public — no LoginRequiredMixin/ModuleAccessRequiredMixin
-    — same reasoning as DepotListView: a driver who isn't a KeyByMe user
-    can open a shared link and see/print the guide."""
+    Used to be deliberately public — no LoginRequiredMixin/
+    ModuleAccessRequiredMixin — same reasoning as DepotListView below, so a
+    driver without a KeyByMe account could open a shared link and see/print
+    the guide. Transportation's policy is different on purpose: every
+    driver needs their own KeyByMe account now (self-signup + admin
+    approval makes that easy — see accounts/adapters.py), so this requires
+    one like the rest of the module."""
     model = LeftRight
     template_name = "schools/leftright_detail.html"
     context_object_name = "leftright"
+    module_codename = "transportation"
 
     def get_queryset(self):
         return super().get_queryset().prefetch_related("rows")
 
 
 class LeftRightShareDetailView(LeftRightDetailView):
-    """Identical to LeftRightDetailView except it hides the Depot button
-    (which points at the login-gated /depot/ editor) -- this is what
-    DepotLink.url should point at instead of the plain detail page, so a
-    visitor arriving via the public Depot list has no way to reach the
-    editor from here."""
+    """Identical to LeftRightDetailView except it hides the Depot button —
+    DepotLink.url can point here instead of the plain detail page for a
+    cleaner read-only view (no editor button). Both require login now (see
+    LeftRightDetailView); this no longer has anything to do with public vs.
+    private access."""
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -506,7 +516,7 @@ class DepotView(ModuleAccessRequiredMixin, TemplateView):
     pattern as LeftRightUpdateView, but modelformset_factory instead of
     inlineformset_factory since DepotLink has no parent FK."""
     template_name = "schools/depot.html"
-    module_codename = "artifacts_mcps"
+    module_codename = "transportation"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -523,20 +533,18 @@ class DepotView(ModuleAccessRequiredMixin, TemplateView):
         return self.render_to_response(self.get_context_data(formset=formset))
 
 
-class DepotListView(TemplateView):
+class DepotListView(ModuleAccessRequiredMixin, TemplateView):
     """Read-only rendering of the Depot links ("Listar" button on
     DepotView) -- the "LEFTS & RIGHTS" row plus every DepotLink as an
     actual <a href>, and the Print button (same isolate-and-print trick as
     LeftRightDetailView) lives here instead of on the editable DepotView,
     since printing raw <input> boxes there wouldn't read well.
 
-    Deliberately public — no LoginRequiredMixin/ModuleAccessRequiredMixin,
-    unlike every other schools view. Anyone with the link can view/print
-    it; base.html's `{% if user.is_authenticated %}` already hides the
-    KeyByMe nav/storage bar for anonymous visitors (same pattern as
-    vault's public vehicle/medical-record QR pages), so a logged-out
-    visitor sees nothing but "Depot" and the links."""
+    Used to be deliberately public, same reasoning as LeftRightDetailView
+    above — now requires login + the transportation module like the rest
+    of it."""
     template_name = "schools/depot_list.html"
+    module_codename = "transportation"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -549,7 +557,7 @@ class DepotListView(TemplateView):
         return context
 
 
-class DepotUploadView(View):
+class DepotUploadView(ModuleAccessRequiredMixin, View):
     """Backs the per-row "Update" icon on DepotListView (fetch() POST, see
     depot_list.html) -- one button per DepotLink/route, so documents can be
     sent in for that specific route. Emails the selected files straight to
@@ -557,10 +565,10 @@ class DepotUploadView(View):
     deliberately not wired into MediaFile/storage quota, this is a
     pass-through mailer, not a vault upload.
 
-    Public on purpose, same reasoning as DepotListView: a driver who isn't
-    a KeyByMe user still needs to be able to send in paperwork from this
-    page. Guarded only by an extension whitelist and size/count caps, since
-    there's no login to rate-limit by."""
+    Used to be public on the same reasoning as DepotListView — now requires
+    login + the transportation module too, same as the rest of it. Still
+    guarded by an extension whitelist and size/count caps regardless."""
+    module_codename = "transportation"
 
     DEPOT_UPLOAD_TO = ["wesnetwork@keybyme.com", "wesnetwork@gmail.com"]
     DEPOT_UPLOAD_CC = ["wesnetworking@gmail.com"]
