@@ -412,6 +412,7 @@ class LeftsRightsDomainMixin:
                          "leftright_update", "leftright_delete", "leftright_row_save",
                          "leftright_addresses", "leftright_generate_rows",
                          "leftright_create_from_addresses", "leftright_route_list",
+                         "leftright_route_delete",
                          "depot", "depot_list")
         }
         # depot_upload is a stateless mailer with no LeftRight/DepotLink
@@ -484,13 +485,15 @@ class LeftsRightsView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin, Templat
 
 
 class LeftRightRouteListView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin, TemplateView):
-    """Read-only "Routes" page -- a bare page with a live clock and
-    client-side search, same look as DepotListView/depot_list.html --
-    listing every route name known in THIS domain (has a LeftRight guide,
-    a saved LeftRightAddressList, or both -- same union LeftsRightsView's
+    """"Routes" page -- a bare page with a live clock and client-side
+    search, same look as DepotListView/depot_list.html -- listing every
+    route name known in THIS domain (has a LeftRight guide, a saved
+    LeftRightAddressList, or both -- same union LeftsRightsView's
     dropdown uses) with its guide count, each linking straight into
-    schools:lefts_rights?route=<name>. A quick way to find/open a route
-    without going through the dropdown first."""
+    schools:lefts_rights?route=<name>, plus a trash icon
+    (LeftRightRouteDeleteView) to remove the whole route at once. A quick
+    way to find/open (or clean up) a route without going through the
+    dropdown first."""
     template_name = "schools/leftright_route_list.html"
 
     def get_context_data(self, **kwargs):
@@ -504,7 +507,55 @@ class LeftRightRouteListView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin, 
         )
         all_route_names = sorted(set(guide_counts) | address_route_names)
         context["routes"] = [{"name": name, "count": guide_counts.get(name, 0)} for name in all_route_names]
+        # See LeftRightRouteDeleteView.post() -- this bare page's own
+        # feedback for a delete, since django.contrib.messages never
+        # renders here (base_bare.html has no messages block).
+        context["deleted_route"] = self.request.GET.get("deleted", "").strip()
         return context
+
+
+class LeftRightRouteDeleteView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin, TemplateView):
+    """Confirm-then-delete for one whole route, from the trash icon on
+    the "Routes" page (leftright_route_list.html) -- removes every
+    LeftRight guide for (domain, route_name) at once (cascades to their
+    LeftRightRow rows, per LeftRightRow.leftright's on_delete=CASCADE)
+    plus the route's LeftRightAddressList, if any -- everything tied to
+    that route name in this domain, gone in one action, since a route
+    with several guides (e.g. AM/PM) has no single LeftRight to delete
+    from a plain confirm-delete page the way LeftRightDeleteView does for
+    one guide.
+
+    `route_name` travels as `?route=`/a POST field, the same convention
+    the rest of this file uses, rather than a URL path segment --
+    route names are free text and could contain characters that don't
+    survive a path segment cleanly."""
+    template_name = "schools/leftright_route_confirm_delete.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        route_name = self.request.GET.get("route", "").strip()
+        context["route_name"] = route_name
+        context["guide_count"] = LeftRight.objects.filter(domain=self.domain, route_name=route_name).count()
+        context["has_address_list"] = LeftRightAddressList.objects.filter(
+            domain=self.domain, route_name=route_name
+        ).exists()
+        return context
+
+    def post(self, request, *args, **kwargs):
+        route_name = request.POST.get("route", "").strip()
+        list_url = reverse_lazy(self.url_name("leftright_route_list"))
+        if not route_name:
+            return redirect(list_url)
+
+        LeftRight.objects.filter(domain=self.domain, route_name=route_name).delete()
+        LeftRightAddressList.objects.filter(domain=self.domain, route_name=route_name).delete()
+        # Not django.contrib.messages: the redirect target
+        # (leftright_route_list.html) extends base_bare.html, which
+        # deliberately never renders the messages block (meant to look
+        # identical to everyone, nav-less, see base_bare.html) -- ?deleted=
+        # is this page's own self-contained feedback instead, same spirit
+        # as depot_list.html's inline upload status.
+        return redirect(list_url + "?" + urlencode({"deleted": route_name}))
 
 
 class LeftRightAddressListView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin, TemplateView):

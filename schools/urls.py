@@ -25,6 +25,7 @@ urlpatterns = [
     # ("mcps"), exactly as this worked before Transportation existed.
     path("lefts-rights/", views.LeftsRightsView.as_view(), name="lefts_rights"),
     path("lefts-rights/routes/", views.LeftRightRouteListView.as_view(), name="leftright_route_list"),
+    path("lefts-rights/routes/delete/", views.LeftRightRouteDeleteView.as_view(), name="leftright_route_delete"),
     path("lefts-rights/addresses/", views.LeftRightAddressListView.as_view(), name="leftright_addresses"),
     path("lefts-rights/addresses/generate/", views.LeftRightCreateFromAddressesView.as_view(), name="leftright_create_from_addresses"),
     path("lefts-rights/new/", views.LeftRightCreateView.as_view(), name="leftright_create"),
@@ -46,6 +47,7 @@ urlpatterns = [
     # DepotUploadView.
     path("transportation/lefts-rights/", views.LeftsRightsView.as_view(domain="transportation"), name="transportation_lefts_rights"),
     path("transportation/lefts-rights/routes/", views.LeftRightRouteListView.as_view(domain="transportation"), name="transportation_leftright_route_list"),
+    path("transportation/lefts-rights/routes/delete/", views.LeftRightRouteDeleteView.as_view(domain="transportation"), name="transportation_leftright_route_delete"),
     path("transportation/lefts-rights/addresses/", views.LeftRightAddressListView.as_view(domain="transportation"), name="transportation_leftright_addresses"),
     path("transportation/lefts-rights/addresses/generate/", views.LeftRightCreateFromAddressesView.as_view(domain="transportation"), name="transportation_leftright_create_from_addresses"),
     path("transportation/lefts-rights/new/", views.LeftRightCreateView.as_view(domain="transportation"), name="transportation_leftright_create"),

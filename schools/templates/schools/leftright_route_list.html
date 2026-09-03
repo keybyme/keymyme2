@@ -7,6 +7,12 @@
     <div></div>
 </div>
 
+{% if deleted_route %}
+<div class="mx-auto mb-4 max-w-2xl rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+    Deleted route "{{ deleted_route }}" — its guides and saved addresses are gone.
+</div>
+{% endif %}
+
 <div class="max-w-2xl rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
     <p class="mb-1 min-h-4 whitespace-pre-wrap text-center text-2xl font-black text-black">LEFTS &amp; RIGHTS</p>
 
@@ -28,6 +34,9 @@
                 {{ route.name }}
             </a>
             <span class="w-16 shrink-0 text-center text-sm text-gray-500">{{ route.count }}</span>
+            <a href="{% url url_names.leftright_route_delete %}?route={{ route.name|urlencode }}" class="shrink-0 text-crimson hover:text-red-800" title="Delete route">
+                {% include "icons/trash.html" with class="w-5 h-5" %}
+            </a>
         </div>
         {% empty %}
         <p class="px-3 py-2 text-sm text-gray-500">No routes yet.</p>
