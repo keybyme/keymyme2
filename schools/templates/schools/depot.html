@@ -7,9 +7,11 @@
         <button type="button" onclick="depotAddRow()" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
             {% include "icons/plus.html" with class="w-4 h-4" %} Insertar fila
         </button>
+        {% if domain == "mcps" %}
         <a href="{% url url_names.depot_list %}" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
             {% include "icons/link.html" with class="w-4 h-4" %} Listar
         </a>
+        {% endif %}
     </div>
 </div>
 

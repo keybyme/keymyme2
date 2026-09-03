@@ -8,9 +8,11 @@
         <a href="{% url url_names.lefts_rights %}" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
             {% include "icons/map-pin.html" with class="w-4 h-4" %} Lefts & Rights
         </a>
+        {% if domain == "mcps" %}
         <a href="{% url url_names.depot %}" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
             {% include "icons/link.html" with class="w-4 h-4" %} Depot
         </a>
+        {% endif %}
         <button type="button" onclick="lrAddRow('normal')" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
             {% include "icons/plus.html" with class="w-4 h-4" %} Insertar fila
         </button>
