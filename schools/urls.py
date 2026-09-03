@@ -21,6 +21,8 @@ urlpatterns = [
     path("am-mid-pm/new/", views.AmMidPmEntryCreateView.as_view(), name="ammidpm_create"),
     path("am-mid-pm/<int:pk>/edit/", views.AmMidPmEntryUpdateView.as_view(), name="ammidpm_update"),
     path("am-mid-pm/<int:pk>/delete/", views.AmMidPmEntryDeleteView.as_view(), name="ammidpm_delete"),
+    # MCPS's own Lefts & Rights / Depot -- domain left at its default
+    # ("mcps"), exactly as this worked before Transportation existed.
     path("lefts-rights/", views.LeftsRightsView.as_view(), name="lefts_rights"),
     path("lefts-rights/new/", views.LeftRightCreateView.as_view(), name="leftright_create"),
     path("lefts-rights/depot/", views.DepotView.as_view(), name="depot"),
@@ -30,4 +32,18 @@ urlpatterns = [
     path("lefts-rights/<int:pk>/share/", views.LeftRightShareDetailView.as_view(), name="leftright_share"),
     path("lefts-rights/<int:pk>/edit/", views.LeftRightUpdateView.as_view(), name="leftright_update"),
     path("lefts-rights/<int:pk>/delete/", views.LeftRightDeleteView.as_view(), name="leftright_delete"),
+
+    # Transportation's own Lefts & Rights / Depot -- same view classes,
+    # registered again with domain="transportation" (see
+    # LeftsRightsDomainMixin in views.py): fully independent data from
+    # MCPS's above, never mixed. depot_upload has no domain-specific data
+    # of its own, so it's shared rather than duplicated -- see
+    # DepotUploadView.
+    path("transportation/lefts-rights/", views.LeftsRightsView.as_view(domain="transportation"), name="transportation_lefts_rights"),
+    path("transportation/lefts-rights/new/", views.LeftRightCreateView.as_view(domain="transportation"), name="transportation_leftright_create"),
+    path("transportation/lefts-rights/depot/", views.DepotView.as_view(domain="transportation"), name="transportation_depot"),
+    path("transportation/lefts-rights/depot/list/", views.DepotListView.as_view(domain="transportation"), name="transportation_depot_list"),
+    path("transportation/lefts-rights/<int:pk>/", views.LeftRightDetailView.as_view(domain="transportation"), name="transportation_leftright_detail"),
+    path("transportation/lefts-rights/<int:pk>/edit/", views.LeftRightUpdateView.as_view(domain="transportation"), name="transportation_leftright_update"),
+    path("transportation/lefts-rights/<int:pk>/delete/", views.LeftRightDeleteView.as_view(domain="transportation"), name="transportation_leftright_delete"),
 ]

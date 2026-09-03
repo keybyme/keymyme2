@@ -154,14 +154,30 @@ class LeftRight(models.Model):
     Route to already exist.
 
     Same shared-reference pattern as School/Employee/Route/AmMidPmEntry —
-    not owned by any user. Gated behind BOTH the artifacts_mcps Module (like
-    the rest of this app) and the newer 'transportation' Module — see
-    schools/views.py and menus/migrations/0012_seed_transportation_module.py.
-    MCPS itself isn't being retired yet ("eventually", not now), so this
-    stays reachable exactly as it always was from there, with Transportation
-    as an additional path rather than a replacement.
+    not owned by any user. Reachable from both the MCPS module
+    (artifacts_mcps) and the newer Transportation module, but NOT the same
+    data either way — `domain` splits the rows into two fully independent
+    sets, one per module, so nothing created/edited/deleted under one ever
+    shows up under the other. See LeftsRightsDomainMixin in schools/views.py
+    (which view flavor sets `domain`) and menus/migrations/
+    0012_seed_transportation_module.py (how Transportation itself was
+    added). MCPS itself isn't being retired yet ("eventually", not now) —
+    this is a parallel, separate space, not a takeover of MCPS's existing
+    guides.
     """
 
+    class Domain(models.TextChoices):
+        MCPS = "mcps", "MCPS"
+        TRANSPORTATION = "transportation", "Transportation"
+
+    domain = models.CharField(
+        max_length=20, choices=Domain.choices, default=Domain.MCPS, verbose_name="Domain",
+        help_text=(
+            "Which module owns this guide — MCPS and Transportation each only ever see their "
+            "own. Existing rows default to MCPS, since that's the only module this ever lived "
+            "under before Transportation existed."
+        ),
+    )
     route_name = models.CharField(max_length=100, verbose_name="Route")
     name = models.CharField(max_length=100, verbose_name="Name")
 
@@ -170,7 +186,7 @@ class LeftRight(models.Model):
         verbose_name = "Left & Right"
         verbose_name_plural = "Lefts & Rights"
         constraints = [
-            models.UniqueConstraint(fields=["route_name", "name"], name="unique_leftright_name_per_route"),
+            models.UniqueConstraint(fields=["domain", "route_name", "name"], name="unique_leftright_name_per_route_per_domain"),
         ]
 
     def __str__(self):
@@ -220,13 +236,20 @@ class LeftRightRow(models.Model):
 
 
 class DepotLink(models.Model):
-    """One row in the "Depot" directory — a single page shared by every
-    LeftRight (reached via the "Depot" button on LeftRightDetailView),
-    not tied to any one route/guide. Renders as `<a href="{url}">{name}</a>`
-    (name falls back to the raw url if left blank) — see DepotView /
-    schools/depot.html, where editing shows both fields but printing shows
-    only the rendered link."""
+    """One row in the "Depot" directory — a page shared by every LeftRight
+    IN THE SAME DOMAIN (reached via the "Depot" button on
+    LeftRightDetailView), not tied to any one route/guide. Renders as
+    `<a href="{url}">{name}</a>` (name falls back to the raw url if left
+    blank) — see DepotView / schools/depot.html, where editing shows both
+    fields but printing shows only the rendered link.
 
+    `domain` splits this the same way as LeftRight.domain — MCPS's Depot
+    and Transportation's Depot are two independent lists, never mixed."""
+
+    domain = models.CharField(
+        max_length=20, choices=LeftRight.Domain.choices, default=LeftRight.Domain.MCPS, verbose_name="Domain",
+        help_text="Which module's Depot list this link belongs to — see LeftRight.domain.",
+    )
     order = models.PositiveIntegerField(default=0)
     url = models.CharField(max_length=500, verbose_name="Link URL")
     name = models.CharField(max_length=255, blank=True, verbose_name="Link text")

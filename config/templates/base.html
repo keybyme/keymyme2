@@ -45,7 +45,7 @@
                 </a>
                 {% endif %}
                 {% if request.user|has_module_access:"transportation" %}
-                <a href="{% url 'schools:lefts_rights' %}?from=transportation" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-gray-100 hover:text-blue-700">
+                <a href="{% url 'schools:transportation_lefts_rights' %}" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-gray-100 hover:text-blue-700">
                     {% include "icons/car.html" with class="w-4 h-4" %} Transportation
                 </a>
                 {% endif %}
@@ -174,7 +174,7 @@
                 </a>
                 {% endif %}
                 {% if request.user|has_module_access:"transportation" %}
-                <a href="{% url 'schools:lefts_rights' %}?from=transportation" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
+                <a href="{% url 'schools:transportation_lefts_rights' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
                     {% include "icons/car.html" with class="w-5 h-5" %} Transportation
                 </a>
                 {% endif %}

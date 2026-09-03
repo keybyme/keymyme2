@@ -7,10 +7,10 @@
         <h1 class="text-lg font-semibold text-gray-900">Delete "{{ object.name }}"?</h1>
     </div>
     <p class="mb-6 text-sm text-gray-600">This action cannot be undone.</p>
-    <form method="post" action="?from={{ origin }}" class="flex gap-3">
+    <form method="post" class="flex gap-3">
         {% csrf_token %}
         <button type="submit" class="rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-700">Yes, delete</button>
-        <a href="{% url 'schools:lefts_rights' %}?route={{ object.route_name|urlencode }}&from={{ origin }}" class="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100">Cancel</a>
+        <a href="{% url url_names.lefts_rights %}?route={{ object.route_name|urlencode }}" class="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100">Cancel</a>
     </form>
 </div>
 {% endblock %}

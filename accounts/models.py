@@ -19,7 +19,7 @@ class CustomUser(AbstractUser):
         ("links", "vault:url_list"),
         ("files", "vault:mediafile_list"),
         ("reminders", "vault:reminder_list"),
-        ("transportation", "schools:lefts_rights"),
+        ("transportation", "schools:transportation_lefts_rights"),
         ("finanzas_transacciones", "finanzas:transaccion_list"),
         ("finanzas_cuentas", "finanzas:cuenta_list"),
         ("finanzas_deudas", "finanzas:deuda_list"),

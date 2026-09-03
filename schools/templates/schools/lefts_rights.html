@@ -6,7 +6,7 @@
         <h1 class="text-2xl font-semibold text-gray-900">Lefts & Rights</h1>
         <p id="mcps-lr-clock" class="mt-1 text-sm text-gray-500"></p>
     </div>
-    {% if mcps_origin %}
+    {% if domain == "mcps" %}
     <div class="flex flex-wrap items-center gap-2">
         <a href="{% url 'schools:school_list' %}" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
             {% include "icons/academic-cap.html" with class="w-4 h-4" %} MCPS Schools
@@ -20,7 +20,7 @@
         <a href="{% url 'schools:ammidpm_list' %}" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
             {% include "icons/clock.html" with class="w-4 h-4" %} MCPS AM-MID-PM
         </a>
-        <a href="{% url 'schools:depot' %}" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
+        <a href="{% url url_names.depot %}" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
             {% include "icons/link.html" with class="w-4 h-4" %} Depot
         </a>
     </div>
@@ -28,7 +28,6 @@
 </div>
 
 <form method="get" class="mb-6 flex flex-wrap items-end gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-    <input type="hidden" name="from" value="{{ origin }}">
     <div class="flex-1 min-w-[220px]">
         <label for="lr-route" class="mb-1 block text-sm font-medium text-gray-700">Route</label>
         <select id="lr-route" name="route" onchange="this.form.submit()" class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
@@ -38,7 +37,7 @@
             {% endfor %}
         </select>
     </div>
-    <a href="{% url 'schools:leftright_create' %}?from={{ origin }}" class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700">
+    <a href="{% url url_names.leftright_create %}" class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700">
         {% include "icons/plus.html" with class="w-4 h-4" %} Add Left & Right
     </a>
 </form>
@@ -55,14 +54,14 @@
     <div class="space-y-3">
         {% for lr in lefts_rights %}
         <div class="flex items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
-            <a href="{% url 'schools:leftright_detail' lr.pk %}" class="flex items-center gap-2 text-sm font-medium text-cafe-dark hover:text-cafe">
+            <a href="{% url url_names.leftright_detail lr.pk %}" class="flex items-center gap-2 text-sm font-medium text-cafe-dark hover:text-cafe">
                 {% include "icons/map-pin.html" with class="w-4 h-4 text-blue-600" %} {{ lr.name }}
             </a>
             <div class="flex items-center gap-3">
-                <a href="{% url 'schools:leftright_update' lr.pk %}?from={{ origin }}" class="text-cafe hover:text-cafe-darker" title="Edit">
+                <a href="{% url url_names.leftright_update lr.pk %}" class="text-cafe hover:text-cafe-darker" title="Edit">
                     {% include "icons/pencil.html" with class="w-5 h-5" %}
                 </a>
-                <a href="{% url 'schools:leftright_delete' lr.pk %}?from={{ origin }}" class="text-crimson hover:text-red-800" title="Delete">
+                <a href="{% url url_names.leftright_delete lr.pk %}" class="text-crimson hover:text-red-800" title="Delete">
                     {% include "icons/trash.html" with class="w-5 h-5" %}
                 </a>
             </div>

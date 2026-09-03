@@ -7,7 +7,7 @@
         <button type="button" onclick="depotAddRow()" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
             {% include "icons/plus.html" with class="w-4 h-4" %} Insertar fila
         </button>
-        <a href="{% url 'schools:depot_list' %}" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
+        <a href="{% url url_names.depot_list %}" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
             {% include "icons/link.html" with class="w-4 h-4" %} Listar
         </a>
     </div>
@@ -38,7 +38,7 @@
 
     <div class="mt-6 flex items-center gap-3">
         <button type="submit" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700">Save</button>
-        <a href="{% url 'schools:lefts_rights' %}" class="text-sm font-medium text-gray-600 hover:text-gray-900">Cancel</a>
+        <a href="{% url url_names.lefts_rights %}" class="text-sm font-medium text-gray-600 hover:text-gray-900">Cancel</a>
     </div>
 </form>
 
