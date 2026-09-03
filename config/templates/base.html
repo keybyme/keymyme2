@@ -109,6 +109,11 @@
                     </div>
                 </details>
                 {% endif %}
+                {% if user.is_admin_principal %}
+                <a href="{% url 'menus:user_access_list' %}" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-gray-100 hover:text-blue-700">
+                    {% include "icons/shield-check.html" with class="w-4 h-4" %} User Access
+                </a>
+                {% endif %}
             </div>
 
             <div class="hidden items-center gap-3 text-sm text-gray-600 md:flex">
@@ -224,6 +229,11 @@
                         {% endif %}
                     </div>
                 </details>
+                {% endif %}
+                {% if user.is_admin_principal %}
+                <a href="{% url 'menus:user_access_list' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
+                    {% include "icons/shield-check.html" with class="w-5 h-5" %} User Access
+                </a>
                 {% endif %}
             </div>
             <div class="flex items-center justify-between gap-3 border-t border-gray-100 px-4 py-3 text-sm text-gray-600">

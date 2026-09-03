@@ -19,6 +19,7 @@ urlpatterns = [
     # Login/signup/logout/password-reset, "Sign in with Google" incluido —
     # ver accounts/adapters.py, accounts/forms.py, y config/settings.py.
     path("accounts/", include("allauth.urls")),
+    path("menus/", include("menus.urls")),
     path("vault/", include("vault.urls")),
     path("finanzas/", include("finanzas.urls")),
     path("schools/", include("schools.urls")),

@@ -110,6 +110,27 @@ class UserRole(models.Model):
         return True
 
 
+class UserModuleOverride(models.Model):
+    """Per-user grant/revoke of a whole Module, independent of their Roles —
+    same override-first-then-role-fallback pattern as UserPermissionOverride
+    (see CustomUser.has_module_access), but at Module granularity instead of
+    SubModule. This is what the simple 'User Access' admin page (menus/views.py)
+    writes to: it lets the admin manage exactly which modules one user can
+    see without having to understand or edit Roles at all."""
+    user = models.ForeignKey("accounts.CustomUser", on_delete=models.CASCADE, related_name="module_overrides")
+    module = models.ForeignKey(Module, on_delete=models.CASCADE)
+    granted = models.BooleanField(default=True, help_text="True = grant access, False = revoke access, regardless of the user's Roles.")
+
+    class Meta:
+        unique_together = ("user", "module")
+        verbose_name = "Module override"
+        verbose_name_plural = "Module overrides"
+
+    def __str__(self):
+        estado = "granted" if self.granted else "revoked"
+        return f"{self.user} → {self.module.codename} ({estado})"
+
+
 class UserPermissionOverride(models.Model):
     """Excepción puntual: otorga o quita un permiso a un usuario específico,
     sin importar lo que diga su Role."""

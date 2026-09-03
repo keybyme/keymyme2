@@ -1,6 +1,8 @@
 from django.contrib import admin
 
-from .models import Module, SubModule, Role, RolePermission, UserRole, UserPermissionOverride
+from .models import (
+    Module, Role, RolePermission, SubModule, UserModuleOverride, UserPermissionOverride, UserRole,
+)
 
 
 class SubModuleInline(admin.TabularInline):
@@ -38,6 +40,15 @@ class SubModuleAdmin(admin.ModelAdmin):
 class UserPermissionOverrideAdmin(admin.ModelAdmin):
     list_display = ("user", "submodule", "granted")
     list_filter = ("granted",)
+
+
+@admin.register(UserModuleOverride)
+class UserModuleOverrideAdmin(admin.ModelAdmin):
+    # Managed day-to-day from the simpler /menus/access/ page (see
+    # menus/views.py) — kept registered here too for direct inspection.
+    list_display = ("user", "module", "granted")
+    list_filter = ("granted", "module")
+    autocomplete_fields = ("user",)
 
 
 @admin.register(UserRole)

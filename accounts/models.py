@@ -128,11 +128,17 @@ class CustomUser(AbstractUser):
         return (self.storage_used_bytes + additional_bytes) <= self.storage_quota_bytes
 
     def has_module_access(self, module_codename: str) -> bool:
-        """Whether the user's currently active roles grant access to a
-        Module (e.g. 'contacts', 'passwords'). The main admin always has
-        access to every module."""
+        """Whether the user can access a Module (e.g. 'contacts', 'passwords').
+        The main admin always has access to everything. Otherwise, checks
+        UserModuleOverride first (per-user grant/revoke, set from the simple
+        'User Access' admin page — see menus/views.py) and only falls back to
+        the user's active Roles if there's no override — same pattern as
+        has_permission() below, at Module instead of SubModule granularity."""
         if self.is_admin_principal:
             return True
+        override = self.module_overrides.filter(module__codename=module_codename).first()
+        if override is not None:
+            return override.granted
         return self._active_user_roles().filter(role__modules__codename=module_codename).exists()
 
     @property
