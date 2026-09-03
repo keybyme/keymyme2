@@ -27,6 +27,7 @@ class StyledLoginView(auth_views.LoginView):
 
 urlpatterns = [
     path("", index, name="index"),
+    path("privacy/", lambda request: render(request, "privacy.html"), name="privacy"),
     path("admin/", admin.site.urls),
     path("login/", StyledLoginView.as_view(), name="login"),
     path("logout/", auth_views.LogoutView.as_view(), name="logout"),

@@ -1,0 +1,61 @@
+{% extends "base_bare.html" %}
+{% block title %}Privacy Policy — KeyByMe{% endblock %}
+{% block content %}
+<div class="mx-auto max-w-3xl">
+    <a href="{% url 'index' %}" class="text-sm font-medium text-cafe hover:text-cafe-darker">&larr; Back to KeyByMe</a>
+
+    <h1 class="mt-4 text-3xl font-extrabold text-ink">Privacy Policy</h1>
+    <p class="mt-2 text-sm text-gray-500">Last updated: {% now "F j, Y" %}</p>
+
+    <div class="mt-8 space-y-8 text-gray-700">
+        <section>
+            <h2 class="text-lg font-semibold text-ink">What KeyByMe is</h2>
+            <p class="mt-2">KeyByMe (keybyme.com) is a personal organizer app: it lets an account holder keep contacts, passwords, bookmarked links, documents/photos/videos, and reminders in one place, organized by category. Accounts are created or approved by the site administrator; each account only ever sees its own data.</p>
+        </section>
+
+        <section>
+            <h2 class="text-lg font-semibold text-ink">Information we collect</h2>
+            <ul class="mt-2 list-disc space-y-1 pl-5">
+                <li><strong>Account information:</strong> your name and email address, either entered directly or provided by Google when you sign in with your Google account.</li>
+                <li><strong>Content you store:</strong> contacts, passwords, links, files, and reminders you add to your own account.</li>
+                <li><strong>Basic usage data:</strong> how much of your storage quota is in use, and timestamps such as when a record was created or updated.</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2 class="text-lg font-semibold text-ink">Signing in with Google</h2>
+            <p class="mt-2">If you choose "Sign in with Google," we request your name, email address, and profile picture from Google to create or log you into your KeyByMe account. We do not request access to your Gmail, Google Drive, or any other Google data, and we never post to any Google service on your behalf.</p>
+        </section>
+
+        <section>
+            <h2 class="text-lg font-semibold text-ink">How your information is used</h2>
+            <p class="mt-2">Your information is used only to operate your account: to show you your own contacts/passwords/links/files/reminders, to enforce your storage quota, and to email you reminder notifications you've scheduled (sent via our email provider). We do not use your data for advertising, and we do not sell or rent your information to anyone.</p>
+        </section>
+
+        <section>
+            <h2 class="text-lg font-semibold text-ink">How your information is protected</h2>
+            <p class="mt-2">Passwords you store in KeyByMe are encrypted before being saved to the database. Your session is protected by a login cookie. Access to the underlying server is limited to the site administrator.</p>
+        </section>
+
+        <section>
+            <h2 class="text-lg font-semibold text-ink">Who we share information with</h2>
+            <p class="mt-2">We don't share your information with third parties, except the minimum needed to run the service: Google (if you sign in with Google) and our email provider (to deliver reminder emails you scheduled). We do not sell your data.</p>
+        </section>
+
+        <section>
+            <h2 class="text-lg font-semibold text-ink">Cookies</h2>
+            <p class="mt-2">KeyByMe uses a single session cookie to keep you signed in. We don't use advertising or third-party tracking cookies.</p>
+        </section>
+
+        <section>
+            <h2 class="text-lg font-semibold text-ink">Your choices</h2>
+            <p class="mt-2">You can edit or delete any record you've added at any time from within the app. To close your account entirely or request deletion of your data, contact the administrator at the email below.</p>
+        </section>
+
+        <section>
+            <h2 class="text-lg font-semibold text-ink">Contact</h2>
+            <p class="mt-2">Questions about this policy or your data can be sent to <a href="mailto:wesnetworking@gmail.com" class="text-cafe hover:text-cafe-darker">wesnetworking@gmail.com</a>.</p>
+        </section>
+    </div>
+</div>
+{% endblock %}
