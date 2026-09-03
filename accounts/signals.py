@@ -50,14 +50,23 @@ def handle_user_signed_up(request, user, **kwargs):
 
 @receiver(email_confirmed)
 def handle_email_confirmed(request, email_address, **kwargs):
-    """Fires both for a brand-new signup's first verification AND for an
-    already-approved user re-verifying a changed email (see account/email
-    management) — only the former should gate the account and notify the
-    admin. user.last_login is None exactly for the first case: a self-
-    registered account that has never completed a login, because the
-    mandatory-verification stage was blocking it until just now."""
+    """Fires for a brand-new signup's first verification, but ALSO for a
+    repeat click on an already-used confirmation link, or an already-
+    approved user re-verifying a changed email (see account/email
+    management) — allauth's verify_email() re-fires this signal even when
+    the address was already verified. Only the first case should gate the
+    account and notify the admin.
+
+    user.approved_at is the durable marker for "already handled, don't
+    touch again": it's set exactly once, by the admin's 'Approve selected
+    accounts' action (or immediately for any account created directly via
+    /admin — see CustomUserAdmin.save_model), and NEVER unset. An earlier
+    version of this check used `user.last_login is None` instead, which
+    doesn't actually distinguish "still pending" from "approved but hasn't
+    logged in yet" — reopening the old confirmation email after being
+    approved silently flipped is_active back to False."""
     user = email_address.user
-    if user.last_login is not None or not user.is_active:
+    if user.approved_at is not None or not user.is_active:
         return
     user.is_active = False
     user.save(update_fields=["is_active"])

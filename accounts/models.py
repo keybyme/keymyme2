@@ -42,6 +42,15 @@ class CustomUser(AbstractUser):
     is_suspended = models.BooleanField(
         default=False, help_text="If True, the user cannot log in even if is_active is True.",
     )
+    approved_at = models.DateTimeField(
+        null=True, blank=True, editable=False,
+        help_text=(
+            "When this account was approved by the admin. Set once and never touched again — "
+            "see accounts/signals.py: without it, allauth re-firing email_confirmed (e.g. a "
+            "self-registered user reopening their old confirmation link, or later re-verifying a "
+            "changed email) would silently re-deactivate an already-approved account."
+        ),
+    )
     created_by = models.ForeignKey(
         "self", on_delete=models.SET_NULL, null=True, blank=True, related_name="created_users",
         help_text="Main admin who created this account.",
