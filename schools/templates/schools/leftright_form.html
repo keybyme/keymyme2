@@ -38,7 +38,7 @@
 <form id="lr-form" method="post" class="max-w-2xl rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
     {% csrf_token %}
     {{ row_formset.management_form }}
-    <p class="mb-2 text-xs text-gray-400"># is this row's editing sequence (used only on this page). Leave the # field above blank to add rows at the end, or type one (e.g. 35) to insert the next row there — between # 30 and # 40. Never shown when printing.</p>
+    <p class="mb-2 text-xs text-gray-400"># is this row's editing sequence (used only on this page). Leave the # field above blank to add at the end, or type one (e.g. 35) to insert there instead — between # 30 and # 40 — for "Insertar fila", "Insertar vinculo", and "Post Trip" alike. Never shown when printing.</p>
     <div id="lr-rows" class="space-y-3">
         {% for row_form in row_formset %}
         <div class="lr-row">
@@ -49,7 +49,7 @@
                 {{ row_form.id }}
                 {{ row_form.row_type }}
                 {{ row_form.order }}
-                <span class="lr-seq mt-2 w-8 flex-none text-right font-mono text-xs text-gray-400 select-none">{{ row_form.order.value }}</span>
+                <span class="lr-seq mt-2 w-8 flex-none text-right font-mono text-xs font-bold text-gray-600 select-none">{{ row_form.order.value }}</span>
                 <div class="hidden">{{ row_form.DELETE }}</div>
                 <div class="flex-1 {% if row_form.instance.row_type == 'link' %}flex gap-2{% else %}space-y-2{% endif %}">
                     {{ row_form.text }}
@@ -142,7 +142,7 @@ function lrBuildRow(kind, presetText, order) {
     const wrapper = document.createElement('div');
     wrapper.className = 'lr-row flex items-start gap-3';
     wrapper.innerHTML = `
-        <span class="lr-seq mt-2 w-8 flex-none text-right font-mono text-xs text-gray-400 select-none">${order}</span>
+        <span class="lr-seq mt-2 w-8 flex-none text-right font-mono text-xs font-bold text-gray-600 select-none">${order}</span>
         <input type="hidden" name="${prefix}-row_type" value="${kind}">
         <input type="hidden" name="${prefix}-order" value="${order}">
         <div class="flex-1 ${kind === 'link' ? 'flex gap-2' : 'space-y-2'}">
@@ -159,47 +159,71 @@ function lrBuildRow(kind, presetText, order) {
     return wrapper;
 }
 
-// Adds a row via "Insertar fila"/"Insertar vinculo" (Post Trip below always
-// appends instead, see there). If the optional #lr-insert-seq field next to
-// those buttons is blank, appends at the end (# = current max + 10),
-// matching LeftRightRow.Meta.ordering -- same as before. If it holds a
-// number, the new row is inserted at that # instead, in the matching visual
-// position (e.g. 35 lands it between the rows numbered 30 and 40) --
-// existing rows keep their numbers, nothing else is renumbered. The field
-// is cleared after each use so it doesn't silently apply again next time.
-function lrAddRow(kind, presetText) {
+// Reads #lr-insert-seq (shared by "Insertar fila"/"Insertar vinculo"/"Post
+// Trip") -- NaN when left blank, meaning "append at the end" to every
+// caller below.
+function lrRequestedOrder() {
     const seqInput = document.getElementById('lr-insert-seq');
-    const requestedOrder = seqInput && seqInput.value !== '' ? parseInt(seqInput.value, 10) : NaN;
+    return seqInput && seqInput.value !== '' ? parseInt(seqInput.value, 10) : NaN;
+}
+
+// Inserts `wrapper` right before the first existing row whose # exceeds
+// `order` (i.e. in the matching visual position -- e.g. order=35 lands it
+// between the rows numbered 30 and 40), or at the end if none do.
+// Existing rows keep their numbers, nothing else is renumbered.
+function lrInsertAt(wrapper, order) {
     const rowsContainer = document.getElementById('lr-rows');
-
-    if (isNaN(requestedOrder)) {
-        rowsContainer.appendChild(lrBuildRow(kind, presetText, lrNextOrder()));
-        return;
-    }
-
-    const wrapper = lrBuildRow(kind, presetText, requestedOrder);
     const nextRow = Array.from(rowsContainer.querySelectorAll('.lr-row')).find((row) => {
         const orderInput = row.querySelector('input[name$="-order"]');
-        return orderInput && parseInt(orderInput.value, 10) > requestedOrder;
+        return orderInput && parseInt(orderInput.value, 10) > order;
     });
     if (nextRow) {
         rowsContainer.insertBefore(wrapper, nextRow);
     } else {
         rowsContainer.appendChild(wrapper);
     }
-    seqInput.value = '';
+}
+
+// Adds a row via "Insertar fila"/"Insertar vinculo". If #lr-insert-seq is
+// blank, appends at the end (# = current max + 10), matching
+// LeftRightRow.Meta.ordering -- same as before. If it holds a number, the
+// new row is inserted there instead (see lrInsertAt). The field is cleared
+// after each use so it doesn't silently apply again next time.
+function lrAddRow(kind, presetText) {
+    const requestedOrder = lrRequestedOrder();
+
+    if (isNaN(requestedOrder)) {
+        document.getElementById('lr-rows').appendChild(lrBuildRow(kind, presetText, lrNextOrder()));
+        return;
+    }
+
+    lrInsertAt(lrBuildRow(kind, presetText, requestedOrder), requestedOrder);
+    document.getElementById('lr-insert-seq').value = '';
 }
 
 // "Post Trip" button: a blank spacer row, the title-styled "*** POST TRIP
 // BUS NOW ***" row, then another blank spacer row -- one row of empty
-// space on each side of it, not just a margin tweak. Always appends at the
-// end regardless of #lr-insert-seq -- inserting a 3-row block mid-list
-// would need three separate #s, which isn't what that field is for.
+// space on each side of it, not just a margin tweak. Same #lr-insert-seq
+// field as lrAddRow: blank appends the whole 3-row block at the end (three
+// consecutive # values past the current max); a number inserts the block
+// there instead, using that number and the next two (e.g. 35 -> 35/36/37,
+// landing right after whatever's at 30 and before whatever's at 40) --
+// each row is inserted in turn so the three land in that same order.
 function lrAddPostTrip() {
-    const rowsContainer = document.getElementById('lr-rows');
-    rowsContainer.appendChild(lrBuildRow('normal', '', lrNextOrder()));
-    rowsContainer.appendChild(lrBuildRow('title', '*** POST TRIP BUS NOW ***', lrNextOrder()));
-    rowsContainer.appendChild(lrBuildRow('normal', '', lrNextOrder()));
+    const requestedOrder = lrRequestedOrder();
+
+    if (isNaN(requestedOrder)) {
+        const rowsContainer = document.getElementById('lr-rows');
+        rowsContainer.appendChild(lrBuildRow('normal', '', lrNextOrder()));
+        rowsContainer.appendChild(lrBuildRow('title', '*** POST TRIP BUS NOW ***', lrNextOrder()));
+        rowsContainer.appendChild(lrBuildRow('normal', '', lrNextOrder()));
+        return;
+    }
+
+    lrInsertAt(lrBuildRow('normal', '', requestedOrder), requestedOrder);
+    lrInsertAt(lrBuildRow('title', '*** POST TRIP BUS NOW ***', requestedOrder + 1), requestedOrder + 1);
+    lrInsertAt(lrBuildRow('normal', '', requestedOrder + 2), requestedOrder + 2);
+    document.getElementById('lr-insert-seq').value = '';
 }
 
 // Existing (already-saved) rows carry a DELETE checkbox from the formset
