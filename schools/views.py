@@ -368,12 +368,14 @@ class LeftsRightsView(ModuleAccessRequiredMixin, TemplateView):
     LeftRightDetailView. Route names here are LeftRight.route_name, a
     free-text label independent of the MCPS Routes catalog.
 
-    Used to live under MCPS (module 'artifacts_mcps') — moved to its own
-    'transportation' module since Transportation is meant to eventually
-    absorb MCPS and I am here entirely; see menus/migrations/
-    0012_seed_transportation_module.py."""
+    Reachable via either the 'artifacts_mcps' (MCPS) or 'transportation'
+    module — kept working under MCPS exactly as before, PLUS made reachable
+    from the new Transportation module too. MCPS itself isn't going away
+    yet, only "eventually" (per the user) — this dual gate is what makes
+    that transition gradual instead of an abrupt cutover; see
+    menus/migrations/0012_seed_transportation_module.py."""
     template_name = "schools/lefts_rights.html"
-    module_codename = "transportation"
+    module_codename = ("artifacts_mcps", "transportation")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -416,7 +418,7 @@ class LeftRightCreateView(LeftRightRouteNamesDatalistMixin, ModuleAccessRequired
     model = LeftRight
     form_class = LeftRightForm
     template_name = "schools/leftright_form.html"
-    module_codename = "transportation"
+    module_codename = ("artifacts_mcps", "transportation")
 
     def form_valid(self, form):
         response = super().form_valid(form)
@@ -446,7 +448,7 @@ class LeftRightUpdateView(ModuleAccessRequiredMixin, DetailView):
     just a DetailView that also handles the formset's POST."""
     model = LeftRight
     template_name = "schools/leftright_form.html"
-    module_codename = "transportation"
+    module_codename = ("artifacts_mcps", "transportation")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -468,7 +470,7 @@ class LeftRightUpdateView(ModuleAccessRequiredMixin, DetailView):
 class LeftRightDeleteView(ModuleAccessRequiredMixin, DeleteView):
     model = LeftRight
     template_name = "schools/leftright_confirm_delete.html"
-    module_codename = "transportation"
+    module_codename = ("artifacts_mcps", "transportation")
 
     def get_success_url(self):
         return reverse_lazy("schools:lefts_rights") + "?" + urlencode({"route": self.object.route_name})
@@ -490,7 +492,7 @@ class LeftRightDetailView(ModuleAccessRequiredMixin, DetailView):
     model = LeftRight
     template_name = "schools/leftright_detail.html"
     context_object_name = "leftright"
-    module_codename = "transportation"
+    module_codename = ("artifacts_mcps", "transportation")
 
     def get_queryset(self):
         return super().get_queryset().prefetch_related("rows")
@@ -516,7 +518,7 @@ class DepotView(ModuleAccessRequiredMixin, TemplateView):
     pattern as LeftRightUpdateView, but modelformset_factory instead of
     inlineformset_factory since DepotLink has no parent FK."""
     template_name = "schools/depot.html"
-    module_codename = "transportation"
+    module_codename = ("artifacts_mcps", "transportation")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -541,10 +543,10 @@ class DepotListView(ModuleAccessRequiredMixin, TemplateView):
     since printing raw <input> boxes there wouldn't read well.
 
     Used to be deliberately public, same reasoning as LeftRightDetailView
-    above — now requires login + the transportation module like the rest
-    of it."""
+    above — now requires login (+ either the artifacts_mcps or
+    transportation module) like the rest of it."""
     template_name = "schools/depot_list.html"
-    module_codename = "transportation"
+    module_codename = ("artifacts_mcps", "transportation")
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -566,9 +568,10 @@ class DepotUploadView(ModuleAccessRequiredMixin, View):
     pass-through mailer, not a vault upload.
 
     Used to be public on the same reasoning as DepotListView — now requires
-    login + the transportation module too, same as the rest of it. Still
-    guarded by an extension whitelist and size/count caps regardless."""
-    module_codename = "transportation"
+    login (+ either the artifacts_mcps or transportation module) too, same
+    as the rest of it. Still guarded by an extension whitelist and
+    size/count caps regardless."""
+    module_codename = ("artifacts_mcps", "transportation")
 
     DEPOT_UPLOAD_TO = ["wesnetwork@keybyme.com", "wesnetwork@gmail.com"]
     DEPOT_UPLOAD_CC = ["wesnetworking@gmail.com"]

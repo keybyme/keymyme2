@@ -154,13 +154,12 @@ class LeftRight(models.Model):
     Route to already exist.
 
     Same shared-reference pattern as School/Employee/Route/AmMidPmEntry —
-    not owned by any user. Used to be gated behind the artifacts_mcps
-    Module like the rest of this app; now lives under its own
-    'transportation' Module instead (see menus/migrations/
-    0012_seed_transportation_module.py) — kept in this app/table rather
-    than moved to a separate one since it was already decoupled from
-    School/Employee/Route/AmMidPmEntry data-model-wise (see route_name
-    above), only the permission gate and nav placement needed to change.
+    not owned by any user. Gated behind BOTH the artifacts_mcps Module (like
+    the rest of this app) and the newer 'transportation' Module — see
+    schools/views.py and menus/migrations/0012_seed_transportation_module.py.
+    MCPS itself isn't being retired yet ("eventually", not now), so this
+    stays reachable exactly as it always was from there, with Transportation
+    as an additional path rather than a replacement.
     """
 
     route_name = models.CharField(max_length=100, verbose_name="Route")

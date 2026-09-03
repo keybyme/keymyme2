@@ -11,16 +11,23 @@ class ModuleAccessRequiredMixin(LoginRequiredMixin):
     Module `module_codename` (vía uno de sus Roles activos, o automático
     para is_admin_principal) — ver CustomUser.has_module_access(). Dejar
     `module_codename = None` (default) para no exigir ningún módulo.
+
+    `module_codename` también acepta una tupla/lista de codenames — el
+    usuario pasa si tiene acceso a CUALQUIERA de ellos (OR, no AND). Usado
+    por ejemplo en schools' Lefts & Rights/Depot, accesible tanto vía
+    'artifacts_mcps' como vía 'transportation' mientras ambos módulos
+    conviven (ver schools/views.py).
     """
     module_codename = None
 
     def dispatch(self, request, *args, **kwargs):
-        if (
-            request.user.is_authenticated
-            and self.module_codename is not None
-            and not request.user.has_module_access(self.module_codename)
-        ):
-            raise PermissionDenied("You don't have access to this section.")
+        if request.user.is_authenticated and self.module_codename is not None:
+            codenames = (
+                self.module_codename if isinstance(self.module_codename, (list, tuple))
+                else (self.module_codename,)
+            )
+            if not any(request.user.has_module_access(codename) for codename in codenames):
+                raise PermissionDenied("You don't have access to this section.")
         return super().dispatch(request, *args, **kwargs)
 
 
