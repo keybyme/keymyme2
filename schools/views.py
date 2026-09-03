@@ -412,7 +412,7 @@ class LeftsRightsDomainMixin:
                          "leftright_update", "leftright_delete", "leftright_row_save",
                          "leftright_addresses", "leftright_generate_rows",
                          "leftright_create_from_addresses", "leftright_route_list",
-                         "leftright_route_delete",
+                         "leftright_route_delete", "leftright_address_list_delete",
                          "depot", "depot_list")
         }
         # depot_upload is a stateless mailer with no LeftRight/DepotLink
@@ -485,15 +485,17 @@ class LeftsRightsView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin, Templat
 
 
 class LeftRightRouteListView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin, TemplateView):
-    """"Routes" page -- a bare page with a live clock and client-side
-    search, same look as DepotListView/depot_list.html -- listing every
-    route name known in THIS domain (has a LeftRight guide, a saved
-    LeftRightAddressList, or both -- same union LeftsRightsView's
-    dropdown uses) with its guide count, each linking straight into
-    schools:lefts_rights?route=<name>, plus a trash icon
-    (LeftRightRouteDeleteView) to remove the whole route at once. A quick
-    way to find/open (or clean up) a route without going through the
-    dropdown first."""
+    """"Routes" page -- clock + client-side search + list, same look as
+    DepotListView/depot_list.html, but with the normal KeyByMe nav (unlike
+    Depot/the printable detail page, this is a management page reached
+    from within the app, not something meant to look identical to an
+    anonymous driver) -- listing every route name known in THIS domain
+    (has a LeftRight guide, a saved LeftRightAddressList, or both -- same
+    union LeftsRightsView's dropdown uses) with its guide count, each
+    linking straight into schools:lefts_rights?route=<name>, plus a trash
+    icon (LeftRightRouteDeleteView) to remove the whole route at once. A
+    quick way to find/open (or clean up) a route without going through
+    the dropdown first."""
     template_name = "schools/leftright_route_list.html"
 
     def get_context_data(self, **kwargs):
@@ -507,10 +509,6 @@ class LeftRightRouteListView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin, 
         )
         all_route_names = sorted(set(guide_counts) | address_route_names)
         context["routes"] = [{"name": name, "count": guide_counts.get(name, 0)} for name in all_route_names]
-        # See LeftRightRouteDeleteView.post() -- this bare page's own
-        # feedback for a delete, since django.contrib.messages never
-        # renders here (base_bare.html has no messages block).
-        context["deleted_route"] = self.request.GET.get("deleted", "").strip()
         return context
 
 
@@ -549,13 +547,8 @@ class LeftRightRouteDeleteView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin
 
         LeftRight.objects.filter(domain=self.domain, route_name=route_name).delete()
         LeftRightAddressList.objects.filter(domain=self.domain, route_name=route_name).delete()
-        # Not django.contrib.messages: the redirect target
-        # (leftright_route_list.html) extends base_bare.html, which
-        # deliberately never renders the messages block (meant to look
-        # identical to everyone, nav-less, see base_bare.html) -- ?deleted=
-        # is this page's own self-contained feedback instead, same spirit
-        # as depot_list.html's inline upload status.
-        return redirect(list_url + "?" + urlencode({"deleted": route_name}))
+        messages.success(request, f'Deleted route "{route_name}" — its guides and saved addresses are gone.')
+        return redirect(list_url)
 
 
 class LeftRightAddressListView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin, TemplateView):
@@ -619,6 +612,37 @@ class LeftRightAddressListView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin
                 reverse_lazy(self.url_name("leftright_addresses")) + "?" + urlencode({"route": address_list.route_name})
             )
         return self.render_to_response(self.get_context_data(form=form))
+
+
+class LeftRightAddressListDeleteView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin, TemplateView):
+    """Confirm-then-delete for one saved address list, from the trash
+    icon next to Save on the "Addresses" page (leftright_addresses.html,
+    shown only once an existing list is loaded) -- removes the
+    LeftRightAddressList for (domain, route_name). Doesn't touch any
+    LeftRight/LeftRightRow -- if a guide already exists for this route,
+    it's untouched; only the saved addresses (and the "Generate from
+    Addresses" button they power, on both the Edit page and the list
+    page's empty state) go away.
+
+    `route_name` travels as `?route=`/a POST field, same convention as
+    the rest of this file."""
+    template_name = "schools/leftright_address_list_confirm_delete.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        route_name = self.request.GET.get("route", "").strip()
+        context["route_name"] = route_name
+        address_list = LeftRightAddressList.objects.filter(domain=self.domain, route_name=route_name).first()
+        context["address_count"] = len(address_list.address_lines) if address_list else 0
+        return context
+
+    def post(self, request, *args, **kwargs):
+        route_name = request.POST.get("route", "").strip()
+        list_url = reverse_lazy(self.url_name("leftright_addresses"))
+        if route_name:
+            LeftRightAddressList.objects.filter(domain=self.domain, route_name=route_name).delete()
+            messages.success(request, f'Deleted the saved addresses for route "{route_name}".')
+        return redirect(list_url)
 
 
 class LeftRightRouteNamesDatalistMixin:

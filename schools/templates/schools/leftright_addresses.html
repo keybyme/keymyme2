@@ -34,6 +34,13 @@
         {% endfor %}
     </datalist>
     <p class="mb-4 text-xs text-gray-400">Saving always fully replaces whatever was previously saved for this route — it doesn't add to it.</p>
-    <button type="submit" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700">Save</button>
+    <div class="flex items-center gap-3">
+        <button type="submit" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700">Save</button>
+        {% if form.instance.pk %}
+        <a href="{% url url_names.leftright_address_list_delete %}?route={{ selected_route|urlencode }}" class="text-crimson hover:text-red-800" title="Delete this saved address list">
+            {% include "icons/trash.html" with class="w-5 h-5" %}
+        </a>
+        {% endif %}
+    </div>
 </form>
 {% endblock %}
