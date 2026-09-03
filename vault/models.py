@@ -80,7 +80,7 @@ class Contact(models.Model):
     email = models.EmailField(blank=True)
     address = models.CharField(max_length=255, blank=True)
     category = models.ForeignKey(
-        Category, on_delete=models.SET_NULL, null=True, blank=True, related_name="contacts"
+        Category, on_delete=models.PROTECT, null=True, blank=True, related_name="contacts"
     )
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -103,7 +103,7 @@ class VaultPassword(models.Model):
     site_url = models.URLField(blank=True)
     username = models.CharField(max_length=150, blank=True)
     category = models.ForeignKey(
-        Category, on_delete=models.SET_NULL, null=True, blank=True, related_name="passwords"
+        Category, on_delete=models.PROTECT, null=True, blank=True, related_name="passwords"
     )
     _encrypted_password = models.BinaryField(db_column="encrypted_password")
     notes = models.TextField(blank=True)
@@ -131,7 +131,7 @@ class Url(models.Model):
     name = models.CharField(max_length=150)
     url = models.URLField()
     category = models.ForeignKey(
-        Category, on_delete=models.SET_NULL, null=True, blank=True, related_name="urls"
+        Category, on_delete=models.PROTECT, null=True, blank=True, related_name="urls"
     )
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -163,7 +163,7 @@ class MediaFile(models.Model):
     file_type = models.CharField(max_length=10, choices=FileType.choices)
     original_name = models.CharField(max_length=255)
     category = models.ForeignKey(
-        Category, on_delete=models.SET_NULL, null=True, blank=True, related_name="media_files"
+        Category, on_delete=models.PROTECT, null=True, blank=True, related_name="media_files"
     )
     file_size_bytes = models.BigIntegerField(default=0)
     uploaded_at = models.DateTimeField(auto_now_add=True)
@@ -227,7 +227,7 @@ class Reminder(models.Model):
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
     category = models.ForeignKey(
-        Category, on_delete=models.SET_NULL, null=True, blank=True, related_name="reminders"
+        Category, on_delete=models.PROTECT, null=True, blank=True, related_name="reminders"
     )
     remind_at = models.DateTimeField()
     frequency = models.CharField(

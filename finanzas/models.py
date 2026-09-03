@@ -56,7 +56,7 @@ class Transaccion(models.Model):
     fecha = models.DateField(verbose_name="Date")
     concepto = models.CharField(max_length=200, verbose_name="Description")
     category = models.ForeignKey(
-        Category, on_delete=models.SET_NULL, null=True, blank=True, related_name="transacciones",
+        Category, on_delete=models.PROTECT, null=True, blank=True, related_name="transacciones",
         verbose_name="Category",
     )
     recibo = models.ForeignKey(

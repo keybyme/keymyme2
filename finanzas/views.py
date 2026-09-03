@@ -280,6 +280,7 @@ class TransaccionCategoryDeleteView(CategoryDeleteView):
     success_url = reverse_lazy("finanzas:transaccion_category_list")
     category_kind = Category.Kind.FINANZAS
     module_codename = "finanzas_transacciones"
+    record_label = "transactions"
 
 
 # ---------- Deudas ----------

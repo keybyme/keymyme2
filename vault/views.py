@@ -17,6 +17,7 @@ from django.core.mail import send_mail
 from django.core.management import call_command
 from django.core.paginator import Paginator
 from django.db.models import Max, Q
+from django.db.models.deletion import ProtectedError
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse, reverse_lazy
@@ -97,9 +98,24 @@ class CategoryUpdateView(UserFormKwargsMixin, OwnerQuerysetMixin, UpdateView):
 
 class CategoryDeleteView(OwnerQuerysetMixin, DeleteView):
     model = Category
+    # Category.category FKs are on_delete=PROTECT (see vault/models.py) —
+    # deleting a category that still has records pointing to it raises
+    # ProtectedError; subclasses set record_label to name what those are.
+    record_label = "records"
 
     def get_queryset(self):
         return super().get_queryset().filter(kind=self.category_kind)
+
+    def form_valid(self, form):
+        try:
+            return super().form_valid(form)
+        except ProtectedError:
+            messages.error(
+                self.request,
+                f"This category can't be deleted: it still has {self.record_label} "
+                "using it. Reassign or delete those first.",
+            )
+            return redirect(self.success_url)
 
 
 class ContactCategoryListView(CategoryListView):
@@ -127,6 +143,7 @@ class ContactCategoryDeleteView(CategoryDeleteView):
     success_url = reverse_lazy("vault:contact_category_list")
     category_kind = Category.Kind.CONTACTS
     module_codename = "contacts"
+    record_label = "contacts"
 
 
 class PasswordCategoryListView(CategoryListView):
@@ -154,6 +171,7 @@ class PasswordCategoryDeleteView(CategoryDeleteView):
     success_url = reverse_lazy("vault:password_category_list")
     category_kind = Category.Kind.PASSWORDS
     module_codename = "passwords"
+    record_label = "passwords"
 
 
 class UrlCategoryListView(CategoryListView):
@@ -181,6 +199,7 @@ class UrlCategoryDeleteView(CategoryDeleteView):
     success_url = reverse_lazy("vault:url_category_list")
     category_kind = Category.Kind.LINKS
     module_codename = "links"
+    record_label = "links"
 
 
 class MediaFileCategoryListView(CategoryListView):
@@ -208,6 +227,7 @@ class MediaFileCategoryDeleteView(CategoryDeleteView):
     success_url = reverse_lazy("vault:mediafile_category_list")
     category_kind = Category.Kind.FILES
     module_codename = "files"
+    record_label = "files"
 
 
 class ReminderCategoryListView(CategoryListView):
@@ -235,6 +255,7 @@ class ReminderCategoryDeleteView(CategoryDeleteView):
     success_url = reverse_lazy("vault:reminder_category_list")
     category_kind = Category.Kind.REMINDERS
     module_codename = "reminders"
+    record_label = "reminders"
 
 
 class NoAccessView(ModuleAccessRequiredMixin, TemplateView):
