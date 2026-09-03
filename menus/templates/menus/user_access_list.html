@@ -13,6 +13,7 @@
             <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">User</th>
             <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Email</th>
             <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Status</th>
+            <th class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wide text-white">Storage</th>
             <th class="px-4 py-3"></th>
         </tr>
     </thead>
@@ -32,6 +33,9 @@
                 <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800">Active</span>
                 {% endif %}
             </td>
+            <td class="whitespace-nowrap px-4 py-3 text-sm text-gray-600">
+                {{ target_user.storage_used_bytes|filesizeformat }} of {{ target_user.storage_quota_gb }} GB
+            </td>
             <td class="whitespace-nowrap px-4 py-3 text-right text-sm">
                 <a href="{% url 'menus:user_access_detail' target_user.pk %}" class="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">
                     {% include "icons/shield-check.html" with class="w-4 h-4" %} Manage access
@@ -39,7 +43,7 @@
             </td>
         </tr>
         {% empty %}
-        <tr><td colspan="4" class="px-4 py-6 text-center text-sm text-gray-500">No users yet.</td></tr>
+        <tr><td colspan="5" class="px-4 py-6 text-center text-sm text-gray-500">No users yet.</td></tr>
         {% endfor %}
     </tbody>
 </table>
