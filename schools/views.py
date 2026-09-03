@@ -405,7 +405,8 @@ class LeftsRightsDomainMixin:
         context["url_names"] = {
             base: self.url_name(base)
             for base in ("lefts_rights", "leftright_create", "leftright_detail",
-                         "leftright_update", "leftright_delete", "depot", "depot_list")
+                         "leftright_update", "leftright_delete", "depot", "depot_list",
+                         "leftright_help")
         }
         # depot_upload is a stateless mailer with no LeftRight/DepotLink
         # queries of its own (see DepotUploadView) -- one URL serves both
@@ -452,6 +453,17 @@ class LeftsRightsView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin, Templat
         context["selected_route"] = route_name
         context["lefts_rights"] = lefts_rights
         return context
+
+
+class LeftRightHelpView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin, TemplateView):
+    """Static how-to page for Lefts & Rights: what the list/print page
+    shows and how to use it, and how to fill out the edit page (row
+    types, the R/L/S/U direction-letter trick, Insertar fila/vinculo/Post
+    Trip, the # sequence field). No dynamic content of its own -- just
+    text -- but still domain-scoped like the rest of this file (registered
+    twice, MCPS + Transportation) so its "back to the list" link always
+    points at the right one."""
+    template_name = "schools/leftright_help.html"
 
 
 class LeftRightRouteNamesDatalistMixin:

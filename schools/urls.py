@@ -24,6 +24,7 @@ urlpatterns = [
     # MCPS's own Lefts & Rights / Depot -- domain left at its default
     # ("mcps"), exactly as this worked before Transportation existed.
     path("lefts-rights/", views.LeftsRightsView.as_view(), name="lefts_rights"),
+    path("lefts-rights/help/", views.LeftRightHelpView.as_view(), name="leftright_help"),
     path("lefts-rights/new/", views.LeftRightCreateView.as_view(), name="leftright_create"),
     path("lefts-rights/depot/", views.DepotView.as_view(), name="depot"),
     path("lefts-rights/depot/list/", views.DepotListView.as_view(), name="depot_list"),
@@ -40,6 +41,7 @@ urlpatterns = [
     # of its own, so it's shared rather than duplicated -- see
     # DepotUploadView.
     path("transportation/lefts-rights/", views.LeftsRightsView.as_view(domain="transportation"), name="transportation_lefts_rights"),
+    path("transportation/lefts-rights/help/", views.LeftRightHelpView.as_view(domain="transportation"), name="transportation_leftright_help"),
     path("transportation/lefts-rights/new/", views.LeftRightCreateView.as_view(domain="transportation"), name="transportation_leftright_create"),
     path("transportation/lefts-rights/depot/", views.DepotView.as_view(domain="transportation"), name="transportation_depot"),
     path("transportation/lefts-rights/depot/list/", views.DepotListView.as_view(domain="transportation"), name="transportation_depot_list"),
