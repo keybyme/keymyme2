@@ -428,11 +428,16 @@ class LeftsRightsDomainMixin:
 
 class LeftsRightsView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin, TemplateView):
     """Landing page for Lefts & Rights: pick a route name — the dropdown
-    only lists route names that already have at least one LeftRight in
-    THIS domain — and see that route's named LeftRight guides as links.
-    What a given LeftRight actually shows once you click it is handled by
-    LeftRightDetailView. Route names here are LeftRight.route_name, a
-    free-text label independent of the MCPS Routes catalog.
+    lists every route name that has EITHER at least one LeftRight guide
+    OR a saved LeftRightAddressList (the "Addresses" page) in THIS
+    domain, so a route becomes selectable here as soon as its addresses
+    are saved, even before its first guide exists — and see that route's
+    named LeftRight guides as links (or, for an addresses-only route, the
+    empty state prompting "Add Left & Right"). What a given LeftRight
+    actually shows once you click it is handled by LeftRightDetailView.
+    Route names here are LeftRight.route_name / LeftRightAddressList.
+    route_name, the same free-text label, independent of the MCPS Routes
+    catalog.
 
     Registered twice (see LeftsRightsDomainMixin): once for MCPS at
     schools:lefts_rights (unchanged from before Transportation existed),
@@ -442,21 +447,34 @@ class LeftsRightsView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin, Templat
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["route_names"] = (
-            LeftRight.objects.filter(domain=self.domain)
-            .order_by("route_name").values_list("route_name", flat=True).distinct()
+        leftright_route_names = set(
+            LeftRight.objects.filter(domain=self.domain).values_list("route_name", flat=True)
         )
+        address_route_names = set(
+            LeftRightAddressList.objects.filter(domain=self.domain).values_list("route_name", flat=True)
+        )
+        context["route_names"] = sorted(leftright_route_names | address_route_names)
 
         route_name = self.request.GET.get("route", "").strip()
         if not route_name:
             return context
+        # Set even on the not-found path below: the template's error
+        # display is itself gated on selected_route being set (it doubles
+        # as "was anything actually searched for" — see lefts_rights.html)
+        # — leaving it unset there meant "Route not found" could never
+        # actually render. Harmless if the name matches no <option>: the
+        # dropdown just falls back to showing its placeholder.
+        context["selected_route"] = route_name
 
-        lefts_rights = LeftRight.objects.filter(domain=self.domain, route_name=route_name).order_by("name")
-        if not lefts_rights.exists():
+        # A route counts as "known" (no "Route not found" error) as soon
+        # as it appears from EITHER source above -- an addresses-only
+        # route legitimately has zero LeftRight rows yet, that's not an
+        # error, the empty state below (leftright_form.html's "Add Left &
+        # Right") is what fills it in.
+        if route_name not in leftright_route_names and route_name not in address_route_names:
             context["error"] = "Route not found."
             return context
-        context["selected_route"] = route_name
-        context["lefts_rights"] = lefts_rights
+        context["lefts_rights"] = LeftRight.objects.filter(domain=self.domain, route_name=route_name).order_by("name")
         return context
 
 
