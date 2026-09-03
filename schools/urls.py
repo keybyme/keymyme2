@@ -25,6 +25,7 @@ urlpatterns = [
     # ("mcps"), exactly as this worked before Transportation existed.
     path("lefts-rights/", views.LeftsRightsView.as_view(), name="lefts_rights"),
     path("lefts-rights/addresses/", views.LeftRightAddressListView.as_view(), name="leftright_addresses"),
+    path("lefts-rights/addresses/generate/", views.LeftRightCreateFromAddressesView.as_view(), name="leftright_create_from_addresses"),
     path("lefts-rights/new/", views.LeftRightCreateView.as_view(), name="leftright_create"),
     path("lefts-rights/depot/", views.DepotView.as_view(), name="depot"),
     path("lefts-rights/depot/list/", views.DepotListView.as_view(), name="depot_list"),
@@ -44,6 +45,7 @@ urlpatterns = [
     # DepotUploadView.
     path("transportation/lefts-rights/", views.LeftsRightsView.as_view(domain="transportation"), name="transportation_lefts_rights"),
     path("transportation/lefts-rights/addresses/", views.LeftRightAddressListView.as_view(domain="transportation"), name="transportation_leftright_addresses"),
+    path("transportation/lefts-rights/addresses/generate/", views.LeftRightCreateFromAddressesView.as_view(domain="transportation"), name="transportation_leftright_create_from_addresses"),
     path("transportation/lefts-rights/new/", views.LeftRightCreateView.as_view(domain="transportation"), name="transportation_leftright_create"),
     path("transportation/lefts-rights/depot/", views.DepotView.as_view(domain="transportation"), name="transportation_depot"),
     path("transportation/lefts-rights/depot/list/", views.DepotListView.as_view(domain="transportation"), name="transportation_depot_list"),

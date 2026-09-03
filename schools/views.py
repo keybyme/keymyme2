@@ -411,6 +411,7 @@ class LeftsRightsDomainMixin:
             for base in ("lefts_rights", "leftright_create", "leftright_detail",
                          "leftright_update", "leftright_delete", "leftright_row_save",
                          "leftright_addresses", "leftright_generate_rows",
+                         "leftright_create_from_addresses",
                          "depot", "depot_list")
         }
         # depot_upload is a stateless mailer with no LeftRight/DepotLink
@@ -465,6 +466,10 @@ class LeftsRightsView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin, Templat
         # actually render. Harmless if the name matches no <option>: the
         # dropdown just falls back to showing its placeholder.
         context["selected_route"] = route_name
+        # Drives the "Generate from Addresses" button on the empty state
+        # (lefts_rights.html) -- only meaningful when this route has zero
+        # LeftRight guides yet, but harmless to set regardless.
+        context["has_address_list"] = route_name in address_route_names
 
         # A route counts as "known" (no "Route not found" error) as soon
         # as it appears from EITHER source above -- an addresses-only
@@ -637,100 +642,144 @@ GENERATE_ROWS_DIRECTION_LETTERS = {
 }
 
 
-class LeftRightGenerateRowsView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin, View):
-    """Backs the "Generate from Addresses" button on the Edit page --
-    draws on the LeftRightAddressList saved for this LeftRight's (domain,
-    route_name) on the "Addresses" page (LeftRightAddressListView) and
-    turns it into a first draft of turn-by-turn rows, appended after
-    whatever's already in the guide: geocodes each address (LocationIQ,
-    same as vault.routing/"I am here" Directions), asks OSRM for the
-    driving route between them in order, and creates one Normal row per
-    left/right/U-turn maneuver ("R     STREET NAME" etc. -- see
-    GENERATE_ROWS_DIRECTION_LETTERS and LeftRightDetailView's direction-
-    icon trick) plus one Link "STOP @" row per address after the first
-    (the first address is just the starting point, not a stop).
+def _generate_rows_from_addresses(leftright, domain):
+    """Geocodes+routes the LeftRightAddressList matching (domain,
+    leftright.route_name) and bulk_creates the resulting rows onto
+    `leftright`, appended after whatever's already there -- the shared
+    core of LeftRightGenerateRowsView (Edit page button, existing
+    LeftRight) and LeftRightCreateFromAddressesView (list page's empty-
+    state button, creates the LeftRight too). See GENERATE_ROWS_
+    DIRECTION_LETTERS/LeftRightGenerateRowsView's docstring for what this
+    actually produces and why it's only ever a draft.
 
-    Not exact -- OSRM's idea of the best route between two points isn't
-    necessarily the bus's actual path, and "continue straight" legs are
-    silently skipped (see vault.routing.get_route_legs: only left/right/
-    uturn maneuvers are surfaced) -- but a real starting draft beats a
-    blank page. Synchronous: a full 15-address list takes on the order of
-    15-30 seconds (LocationIQ's free tier is ~2 req/sec, spaced out here
-    to stay well under it) -- the browser just waits for the redirect
-    back to the edit page, same as LeftRightRowSaveView's callers don't
-    need to since this is a one-off action, not per-keystroke."""
+    Returns (row_count, address_count, None) on success, or
+    (None, None, error_message) if nothing could be generated (no saved
+    address list, too few addresses, a geocoding failure, rate limiting,
+    or OSRM being unable to compute a route) -- never raises, callers
+    surface the message via django.contrib.messages."""
+    address_list = LeftRightAddressList.objects.filter(domain=domain, route_name=leftright.route_name).first()
+    if address_list is None:
+        return None, None, (
+            f'No saved addresses for route "{leftright.route_name}" — add some on the Addresses page first.'
+        )
+
+    addresses = address_list.address_lines
+    if len(addresses) < 4:
+        return None, None, "The saved address list needs at least 4 addresses to generate directions."
+
+    coords = []
+    try:
+        for address in addresses:
+            coord = geocode_address(address)
+            if coord is None:
+                return None, None, (
+                    f'Could not find coordinates for "{address}" — nothing was generated. '
+                    f"Fix it on the Addresses page and try again."
+                )
+            coords.append(coord)
+            time.sleep(1)  # stay well under LocationIQ's free-tier rate limit
+    except GeocodingRateLimited:
+        return None, None, (
+            "OpenStreetMap's free geocoding service is rate-limiting this server right now "
+            "(HTTP 429) — try again in a few minutes."
+        )
+
+    legs = get_route_legs(coords)
+    if legs is None:
+        return None, None, "Could not compute driving directions between these addresses right now — try again shortly."
+
+    order = leftright.rows.aggregate(Max("order"))["order__max"] or 0
+    new_rows = []
+    for i, turns in enumerate(legs):
+        for turn in turns:
+            letter = GENERATE_ROWS_DIRECTION_LETTERS.get(turn["label"])
+            if not letter:
+                continue
+            order += 10
+            new_rows.append(LeftRightRow(
+                leftright=leftright, order=order, row_type=LeftRightRow.RowType.NORMAL,
+                text=f"{letter}     {turn['street']}",
+            ))
+        order += 10
+        new_rows.append(LeftRightRow(
+            leftright=leftright, order=order, row_type=LeftRightRow.RowType.LINK,
+            text="STOP @", address=addresses[i + 1],
+        ))
+    LeftRightRow.objects.bulk_create(new_rows)
+    return len(new_rows), len(addresses), None
+
+
+class LeftRightGenerateRowsView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin, View):
+    """Backs the "Generate from Addresses" button on the Edit page, for a
+    LeftRight that already exists -- see _generate_rows_from_addresses for
+    what this actually does and why it's only ever a draft. Synchronous:
+    a full 15-address list takes on the order of 15-30 seconds
+    (LocationIQ's free tier is ~2 req/sec, spaced out to stay well under
+    it) -- the browser just waits for the redirect back to the edit page,
+    same as LeftRightRowSaveView's callers don't need to since this is a
+    one-off action, not per-keystroke."""
 
     def post(self, request, *args, **kwargs):
         leftright = get_object_or_404(LeftRight, pk=kwargs["pk"], domain=self.domain)
         edit_url = reverse_lazy(self.url_name("leftright_update"), kwargs={"pk": leftright.pk})
 
-        address_list = LeftRightAddressList.objects.filter(
-            domain=self.domain, route_name=leftright.route_name
-        ).first()
-        if address_list is None:
-            messages.error(
-                request,
-                f'No saved addresses for route "{leftright.route_name}" — add some on the Addresses page first.',
+        row_count, address_count, error = _generate_rows_from_addresses(leftright, self.domain)
+        if error:
+            messages.error(request, error)
+        else:
+            messages.success(
+                request, f"Generated {row_count} row(s) from {address_count} addresses — review and adjust as needed."
             )
-            return redirect(edit_url)
-
-        addresses = address_list.address_lines
-        if len(addresses) < 4:
-            messages.error(request, "The saved address list needs at least 4 addresses to generate directions.")
-            return redirect(edit_url)
-
-        coords = []
-        try:
-            for address in addresses:
-                coord = geocode_address(address)
-                if coord is None:
-                    messages.error(
-                        request,
-                        f'Could not find coordinates for "{address}" — nothing was generated. '
-                        f"Fix it on the Addresses page and try again.",
-                    )
-                    return redirect(edit_url)
-                coords.append(coord)
-                time.sleep(1)  # stay well under LocationIQ's free-tier rate limit
-        except GeocodingRateLimited:
-            messages.error(
-                request,
-                "OpenStreetMap's free geocoding service is rate-limiting this server right now "
-                "(HTTP 429) — try again in a few minutes.",
-            )
-            return redirect(edit_url)
-
-        legs = get_route_legs(coords)
-        if legs is None:
-            messages.error(
-                request,
-                "Could not compute driving directions between these addresses right now — try again shortly.",
-            )
-            return redirect(edit_url)
-
-        order = leftright.rows.aggregate(Max("order"))["order__max"] or 0
-        new_rows = []
-        for i, turns in enumerate(legs):
-            for turn in turns:
-                letter = GENERATE_ROWS_DIRECTION_LETTERS.get(turn["label"])
-                if not letter:
-                    continue
-                order += 10
-                new_rows.append(LeftRightRow(
-                    leftright=leftright, order=order, row_type=LeftRightRow.RowType.NORMAL,
-                    text=f"{letter}     {turn['street']}",
-                ))
-            order += 10
-            new_rows.append(LeftRightRow(
-                leftright=leftright, order=order, row_type=LeftRightRow.RowType.LINK,
-                text="STOP @", address=addresses[i + 1],
-            ))
-        LeftRightRow.objects.bulk_create(new_rows)
-
-        messages.success(
-            request, f"Generated {len(new_rows)} row(s) from {len(addresses)} addresses — review and adjust as needed."
-        )
         return redirect(edit_url)
+
+
+class LeftRightCreateFromAddressesView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin, View):
+    """Backs the "Generate from Addresses" button shown on the list page's
+    empty state (lefts_rights.html: "No Lefts & Rights yet for X") when
+    that route has a saved LeftRightAddressList but no LeftRight guide at
+    all yet -- creates one (name="Draft") and immediately runs
+    _generate_rows_from_addresses on it, in one step, so the route no
+    longer looks empty by the time the redirect lands back on the list
+    page. Opening the new guide's Edit page from there shows the
+    generated rows. `route_name` comes from the list page's own
+    `?route=` (a hidden field in the button's form, not the URL, since
+    there's no LeftRight pk to put in a URL yet)."""
+
+    DRAFT_NAME = "Draft"
+
+    def post(self, request, *args, **kwargs):
+        route_name = request.POST.get("route_name", "").strip()
+        list_url = reverse_lazy(self.url_name("lefts_rights")) + "?" + urlencode({"route": route_name})
+
+        if not route_name:
+            messages.error(request, "No route was specified.")
+            return redirect(list_url)
+        if not LeftRightAddressList.objects.filter(domain=self.domain, route_name=route_name).exists():
+            messages.error(request, f'No saved addresses for route "{route_name}" — add some on the Addresses page first.')
+            return redirect(list_url)
+        if LeftRight.objects.filter(domain=self.domain, route_name=route_name).exists():
+            # Already has at least one guide -- nothing to auto-create;
+            # send them to the existing one instead of risking a
+            # same-named duplicate (LeftRight's uniqueness is per
+            # domain+route_name+name, not just route_name).
+            messages.error(
+                request,
+                f'Route "{route_name}" already has a Left & Right — open it and use '
+                f'"Generate from Addresses" there instead.',
+            )
+            return redirect(list_url)
+
+        leftright = LeftRight.objects.create(domain=self.domain, route_name=route_name, name=self.DRAFT_NAME)
+        row_count, address_count, error = _generate_rows_from_addresses(leftright, self.domain)
+        if error:
+            messages.error(request, error)
+        else:
+            messages.success(
+                request,
+                f'Created "{leftright.name}" for route "{route_name}" with {row_count} row(s) from '
+                f"{address_count} addresses — review and adjust as needed.",
+            )
+        return redirect(list_url)
 
 
 class LeftRightRowSaveView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin, View):

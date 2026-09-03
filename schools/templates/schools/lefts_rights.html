@@ -70,7 +70,18 @@
             </div>
         </div>
         {% empty %}
-        <p class="text-sm text-gray-500">No Lefts & Rights yet for {{ selected_route }} — click "Add Left & Right" above to create one.</p>
+        <div class="rounded-xl border border-gray-200 bg-white p-4">
+            <p class="text-sm text-gray-500">No Lefts & Rights yet for {{ selected_route }} — click "Add Left & Right" above to create one.</p>
+            {% if has_address_list %}
+            <form method="post" action="{% url url_names.leftright_create_from_addresses %}" onsubmit="return lrGenerateFromEmptyState(this)" class="mt-3">
+                {% csrf_token %}
+                <input type="hidden" name="route_name" value="{{ selected_route }}">
+                <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
+                    {% include "icons/map-pin.html" with class="w-4 h-4" %} Generate from Addresses
+                </button>
+            </form>
+            {% endif %}
+        </div>
         {% endfor %}
     </div>
     {% endif %}
@@ -93,5 +104,17 @@
     updateClock();
     setInterval(updateClock, 1000);
 })();
+
+// "Generate from Addresses" on the empty state -- a plain form POST
+// (LeftRightCreateFromAddressesView redirects back here when it's done),
+// not fetch, since geocoding + OSRM for up to 15 addresses can take
+// ~15-30s -- just disables the button and says so, same pattern as
+// leftright_form.html's lrConfirmGenerate.
+function lrGenerateFromEmptyState(form) {
+    const button = form.querySelector('button');
+    button.disabled = true;
+    button.textContent = 'Generating… (can take up to ~30s)';
+    return true;
+}
 </script>
 {% endblock %}
