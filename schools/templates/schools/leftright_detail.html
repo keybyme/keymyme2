@@ -1,4 +1,4 @@
-{% extends "base_bare.html" %}
+{% extends "base.html" %}
 {% load schools_extras %}
 {% block title %}{{ leftright.name }}{% endblock %}
 {% block content %}
@@ -22,11 +22,14 @@
 </div>
 
 <style>
-/* Print: hide everything on the page except #lr-print-area (the rows
-   themselves) -- no top nav, no storage bar, no h1/Edit/Back/Print
-   buttons, nothing from row 1 on down only. Standard "isolate one
-   element" print trick since visibility:hidden (unlike display:none)
-   still lets the visible descendant override it back to visible. */
+/* This page now extends base.html (normal KeyByMe nav + storage bar on
+   screen, per the user's request), but printing must still look exactly
+   like it did as a bare page -- no nav, no storage bar, no h1/Edit/Back/
+   Print buttons, nothing but the rows themselves (#lr-print-area).
+   Standard "isolate one element" print trick: visibility:hidden (unlike
+   display:none) still lets a visible descendant override it back to
+   visible, so `body *` hides literally everything -- nav/storage bar
+   included -- and only #lr-print-area opts back in. */
 @media print {
     body * { visibility: hidden; }
     #lr-print-area, #lr-print-area * { visibility: visible; }
