@@ -40,6 +40,9 @@
     <a href="{% url url_names.leftright_create %}" class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700">
         {% include "icons/plus.html" with class="w-4 h-4" %} Add Left & Right
     </a>
+    <a href="{% url url_names.leftright_addresses %}" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
+        {% include "icons/map-pin.html" with class="w-4 h-4" %} Addresses
+    </a>
 </form>
 {% if not route_names %}
 <p class="text-sm text-gray-500">No Lefts & Rights have been created yet — click "Add Left & Right" above to create the first one.</p>

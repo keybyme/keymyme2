@@ -193,6 +193,54 @@ class LeftRight(models.Model):
         return f"{self.route_name} — {self.name}"
 
 
+class LeftRightAddressList(models.Model):
+    """A draft list of addresses for one route (domain + route_name),
+    entered on the "Addresses" page (LeftRightAddressListView) so
+    LeftRightGenerateRowsView can turn them into a first-draft set of
+    turn-by-turn LeftRightRow rows later, on the Edit page for whichever
+    LeftRight actually gets created for that route — see schools/views.py.
+    There's no FK to LeftRight: the two are associated purely by matching
+    `route_name` (+ `domain`), the same free-text convention
+    LeftRight.route_name already uses, since an address list is often
+    entered before its LeftRight even exists, and one route can still
+    have several LeftRight guides.
+
+    Saving always fully replaces whatever was saved before for that
+    (domain, route_name) — same "always overrides" pattern as Rutas' Save
+    Route — rather than keeping any history.
+
+    `addresses` is one address per line, deliberately not split into a
+    child table: order is everything (this becomes stop 1, 2, 3... in
+    that order) and it's never queried/filtered per-line, just read back
+    whole and split in Python (see address_lines)."""
+
+    domain = models.CharField(
+        max_length=20, choices=LeftRight.Domain.choices, default=LeftRight.Domain.MCPS, verbose_name="Domain",
+        help_text="Which module this address list belongs to — see LeftRight.domain.",
+    )
+    route_name = models.CharField(max_length=100, verbose_name="Route")
+    addresses = models.TextField(
+        verbose_name="Addresses",
+        help_text="One address per line, 4 to 15 addresses, in the order they should be visited.",
+    )
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Last updated")
+
+    class Meta:
+        ordering = ["route_name"]
+        verbose_name = "Address list"
+        verbose_name_plural = "Address lists"
+        constraints = [
+            models.UniqueConstraint(fields=["domain", "route_name"], name="unique_address_list_per_route_per_domain"),
+        ]
+
+    def __str__(self):
+        return f"{self.route_name} ({self.get_domain_display()})"
+
+    @property
+    def address_lines(self):
+        return [line.strip() for line in self.addresses.splitlines() if line.strip()]
+
+
 class LeftRightRow(models.Model):
     """One row of freeform content in a LeftRight guide — the driver-facing
     cheat sheet (LeftRightDetailView) is built entirely from these, in

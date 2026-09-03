@@ -16,6 +16,14 @@
         <a href="{% url url_names.leftright_detail object.pk %}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
             {% include "icons/printer.html" with class="w-4 h-4" %} Print
         </a>
+        {% if has_address_list %}
+        <form method="post" action="{% url url_names.leftright_generate_rows object.pk %}" onsubmit="return lrConfirmGenerate(this)" class="inline-flex">
+            {% csrf_token %}
+            <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
+                {% include "icons/map-pin.html" with class="w-4 h-4" %} Generate from Addresses
+            </button>
+        </form>
+        {% endif %}
         <button type="button" onclick="lrAddRow('normal')" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
             {% include "icons/plus.html" with class="w-4 h-4" %} Insertar fila
         </button>
@@ -71,6 +79,18 @@ const LR_ROW_SAVE_URL = "{% url url_names.leftright_row_save object.pk %}";
 
 function lrCsrfToken() {
     return document.querySelector('#lr-csrf-form [name=csrfmiddlewaretoken]').value;
+}
+
+// "Generate from Addresses" is a plain form POST (not fetch like
+// everything else here) since LeftRightGenerateRowsView does a full
+// redirect back to this page when it's done -- geocoding + OSRM for up to
+// 15 addresses can take ~15-30s, so this just disables the button and
+// says so, rather than pretending it's instant.
+function lrConfirmGenerate(form) {
+    const button = form.querySelector('button');
+    button.disabled = true;
+    button.textContent = 'Generating… (can take up to ~30s)';
+    return true;
 }
 
 const lrSaveStatus = document.getElementById('lr-save-status');

@@ -1,7 +1,9 @@
+import time
 from urllib.parse import urlencode
 
+from django.contrib import messages
 from django.core.mail import EmailMessage
-from django.db.models import Q, Value
+from django.db.models import Max, Q, Value
 from django.db.models.functions import Coalesce, Lower, NullIf
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect
@@ -10,11 +12,13 @@ from django.views import View
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, TemplateView, UpdateView
 
 from vault.mixins import AjaxPartialTemplateMixin, ModuleAccessRequiredMixin
+from vault.routing import GeocodingRateLimited, geocode_address, get_route_legs
 
 from .forms import (
-    AmMidPmEntryForm, DepotLinkFormSet, EmployeeForm, LeftRightForm, LeftRightRowForm, RouteForm, SchoolForm,
+    AmMidPmEntryForm, DepotLinkFormSet, EmployeeForm, LeftRightAddressListForm, LeftRightForm, LeftRightRowForm,
+    RouteForm, SchoolForm,
 )
-from .models import AmMidPmEntry, DepotLink, Employee, LeftRight, LeftRightRow, Route, School
+from .models import AmMidPmEntry, DepotLink, Employee, LeftRight, LeftRightAddressList, LeftRightRow, Route, School
 
 # Not owner-scoped on purpose: School/Employee/Route/AmMidPmEntry/LeftRight
 # are shared reference catalogs (MCPS public schools, MCPS transportation
@@ -406,6 +410,7 @@ class LeftsRightsDomainMixin:
             base: self.url_name(base)
             for base in ("lefts_rights", "leftright_create", "leftright_detail",
                          "leftright_update", "leftright_delete", "leftright_row_save",
+                         "leftright_addresses", "leftright_generate_rows",
                          "depot", "depot_list")
         }
         # depot_upload is a stateless mailer with no LeftRight/DepotLink
@@ -453,6 +458,69 @@ class LeftsRightsView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin, Templat
         context["selected_route"] = route_name
         context["lefts_rights"] = lefts_rights
         return context
+
+
+class LeftRightAddressListView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin, TemplateView):
+    """"Addresses" page: type/pick a route name and paste 4-15 addresses,
+    one per line, in visiting order — saved as a LeftRightAddressList,
+    always fully replacing whatever was saved before for that (domain,
+    route_name). Doesn't touch any LeftRight/LeftRightRow itself;
+    LeftRightGenerateRowsView (button on the Edit page) is what turns this
+    into a guide's actual turn-by-turn rows later, matched purely by
+    route_name + domain -- so addresses can be entered here before their
+    LeftRight even exists.
+
+    `?route=` selects which saved list to show/edit (same convention as
+    LeftsRightsView) -- typing a brand-new route name and saving creates
+    one instead."""
+    template_name = "schools/leftright_addresses.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Two different suggestion lists: `route_names` (routes that
+        # already HAVE a saved address list) drives the "load an existing
+        # one" <select>; `leftright_route_names` (routes with an actual
+        # LeftRight guide) is the <datalist> for the free-text field, so
+        # typing here can match an existing guide's spelling exactly.
+        context["route_names"] = (
+            LeftRightAddressList.objects.filter(domain=self.domain)
+            .order_by("route_name").values_list("route_name", flat=True)
+        )
+        context["leftright_route_names"] = (
+            LeftRight.objects.filter(domain=self.domain)
+            .order_by("route_name").values_list("route_name", flat=True).distinct()
+        )
+        route_name = self.request.GET.get("route", "").strip()
+        context["selected_route"] = route_name
+        context.setdefault(
+            "form",
+            LeftRightAddressListForm(
+                instance=LeftRightAddressList.objects.filter(domain=self.domain, route_name=route_name).first()
+                if route_name else None,
+                initial={"route_name": route_name} if route_name else None,
+            ),
+        )
+        return context
+
+    def post(self, request, *args, **kwargs):
+        route_name = request.POST.get("route_name", "").strip()
+        instance = (
+            LeftRightAddressList.objects.filter(domain=self.domain, route_name=route_name).first()
+            if route_name else None
+        )
+        form = LeftRightAddressListForm(request.POST, instance=instance)
+        if form.is_valid():
+            address_list = form.save(commit=False)
+            address_list.domain = self.domain
+            address_list.save()
+            messages.success(
+                request,
+                f'Saved {len(address_list.address_lines)} address(es) for route "{address_list.route_name}".',
+            )
+            return redirect(
+                reverse_lazy(self.url_name("leftright_addresses")) + "?" + urlencode({"route": address_list.route_name})
+            )
+        return self.render_to_response(self.get_context_data(form=form))
 
 
 class LeftRightRouteNamesDatalistMixin:
@@ -529,7 +597,122 @@ class LeftRightUpdateView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin, Det
         context.setdefault(
             "row_forms", [LeftRightRowForm(instance=row, auto_id=False) for row in self.object.rows.all()]
         )
+        # Only offer "Generate from Addresses" when there's actually
+        # something to generate from -- see LeftRightGenerateRowsView.
+        context["has_address_list"] = LeftRightAddressList.objects.filter(
+            domain=self.domain, route_name=self.object.route_name
+        ).exists()
         return context
+
+
+# OSRM maneuver label (see vault.routing.MODIFIER_LABELS) -> the single
+# direction letter LeftRightDetailView's icon trick looks for (R/L/S/U,
+# followed by a wide gap -- see LeftRightRowSaveView's callers/
+# leftright_detail.html). "Slight"/"Sharp" collapse to the same plain
+# letter as a straight turn/right -- a driver cheat sheet doesn't need the
+# distinction, and LeftRightDetailView only ever renders one icon per
+# letter anyway.
+GENERATE_ROWS_DIRECTION_LETTERS = {
+    "Turn left": "L", "Slight left": "L", "Sharp left": "L",
+    "Turn right": "R", "Slight right": "R", "Sharp right": "R",
+    "U-turn": "U",
+}
+
+
+class LeftRightGenerateRowsView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin, View):
+    """Backs the "Generate from Addresses" button on the Edit page --
+    draws on the LeftRightAddressList saved for this LeftRight's (domain,
+    route_name) on the "Addresses" page (LeftRightAddressListView) and
+    turns it into a first draft of turn-by-turn rows, appended after
+    whatever's already in the guide: geocodes each address (LocationIQ,
+    same as vault.routing/"I am here" Directions), asks OSRM for the
+    driving route between them in order, and creates one Normal row per
+    left/right/U-turn maneuver ("R     STREET NAME" etc. -- see
+    GENERATE_ROWS_DIRECTION_LETTERS and LeftRightDetailView's direction-
+    icon trick) plus one Link "STOP @" row per address after the first
+    (the first address is just the starting point, not a stop).
+
+    Not exact -- OSRM's idea of the best route between two points isn't
+    necessarily the bus's actual path, and "continue straight" legs are
+    silently skipped (see vault.routing.get_route_legs: only left/right/
+    uturn maneuvers are surfaced) -- but a real starting draft beats a
+    blank page. Synchronous: a full 15-address list takes on the order of
+    15-30 seconds (LocationIQ's free tier is ~2 req/sec, spaced out here
+    to stay well under it) -- the browser just waits for the redirect
+    back to the edit page, same as LeftRightRowSaveView's callers don't
+    need to since this is a one-off action, not per-keystroke."""
+
+    def post(self, request, *args, **kwargs):
+        leftright = get_object_or_404(LeftRight, pk=kwargs["pk"], domain=self.domain)
+        edit_url = reverse_lazy(self.url_name("leftright_update"), kwargs={"pk": leftright.pk})
+
+        address_list = LeftRightAddressList.objects.filter(
+            domain=self.domain, route_name=leftright.route_name
+        ).first()
+        if address_list is None:
+            messages.error(
+                request,
+                f'No saved addresses for route "{leftright.route_name}" — add some on the Addresses page first.',
+            )
+            return redirect(edit_url)
+
+        addresses = address_list.address_lines
+        if len(addresses) < 4:
+            messages.error(request, "The saved address list needs at least 4 addresses to generate directions.")
+            return redirect(edit_url)
+
+        coords = []
+        try:
+            for address in addresses:
+                coord = geocode_address(address)
+                if coord is None:
+                    messages.error(
+                        request,
+                        f'Could not find coordinates for "{address}" — nothing was generated. '
+                        f"Fix it on the Addresses page and try again.",
+                    )
+                    return redirect(edit_url)
+                coords.append(coord)
+                time.sleep(1)  # stay well under LocationIQ's free-tier rate limit
+        except GeocodingRateLimited:
+            messages.error(
+                request,
+                "OpenStreetMap's free geocoding service is rate-limiting this server right now "
+                "(HTTP 429) — try again in a few minutes.",
+            )
+            return redirect(edit_url)
+
+        legs = get_route_legs(coords)
+        if legs is None:
+            messages.error(
+                request,
+                "Could not compute driving directions between these addresses right now — try again shortly.",
+            )
+            return redirect(edit_url)
+
+        order = leftright.rows.aggregate(Max("order"))["order__max"] or 0
+        new_rows = []
+        for i, turns in enumerate(legs):
+            for turn in turns:
+                letter = GENERATE_ROWS_DIRECTION_LETTERS.get(turn["label"])
+                if not letter:
+                    continue
+                order += 10
+                new_rows.append(LeftRightRow(
+                    leftright=leftright, order=order, row_type=LeftRightRow.RowType.NORMAL,
+                    text=f"{letter}     {turn['street']}",
+                ))
+            order += 10
+            new_rows.append(LeftRightRow(
+                leftright=leftright, order=order, row_type=LeftRightRow.RowType.LINK,
+                text="STOP @", address=addresses[i + 1],
+            ))
+        LeftRightRow.objects.bulk_create(new_rows)
+
+        messages.success(
+            request, f"Generated {len(new_rows)} row(s) from {len(addresses)} addresses — review and adjust as needed."
+        )
+        return redirect(edit_url)
 
 
 class LeftRightRowSaveView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin, View):

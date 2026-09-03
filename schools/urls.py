@@ -24,6 +24,7 @@ urlpatterns = [
     # MCPS's own Lefts & Rights / Depot -- domain left at its default
     # ("mcps"), exactly as this worked before Transportation existed.
     path("lefts-rights/", views.LeftsRightsView.as_view(), name="lefts_rights"),
+    path("lefts-rights/addresses/", views.LeftRightAddressListView.as_view(), name="leftright_addresses"),
     path("lefts-rights/new/", views.LeftRightCreateView.as_view(), name="leftright_create"),
     path("lefts-rights/depot/", views.DepotView.as_view(), name="depot"),
     path("lefts-rights/depot/list/", views.DepotListView.as_view(), name="depot_list"),
@@ -33,6 +34,7 @@ urlpatterns = [
     path("lefts-rights/<int:pk>/edit/", views.LeftRightUpdateView.as_view(), name="leftright_update"),
     path("lefts-rights/<int:pk>/delete/", views.LeftRightDeleteView.as_view(), name="leftright_delete"),
     path("lefts-rights/<int:pk>/rows/save/", views.LeftRightRowSaveView.as_view(), name="leftright_row_save"),
+    path("lefts-rights/<int:pk>/rows/generate/", views.LeftRightGenerateRowsView.as_view(), name="leftright_generate_rows"),
 
     # Transportation's own Lefts & Rights / Depot -- same view classes,
     # registered again with domain="transportation" (see
@@ -41,6 +43,7 @@ urlpatterns = [
     # of its own, so it's shared rather than duplicated -- see
     # DepotUploadView.
     path("transportation/lefts-rights/", views.LeftsRightsView.as_view(domain="transportation"), name="transportation_lefts_rights"),
+    path("transportation/lefts-rights/addresses/", views.LeftRightAddressListView.as_view(domain="transportation"), name="transportation_leftright_addresses"),
     path("transportation/lefts-rights/new/", views.LeftRightCreateView.as_view(domain="transportation"), name="transportation_leftright_create"),
     path("transportation/lefts-rights/depot/", views.DepotView.as_view(domain="transportation"), name="transportation_depot"),
     path("transportation/lefts-rights/depot/list/", views.DepotListView.as_view(domain="transportation"), name="transportation_depot_list"),
@@ -48,4 +51,5 @@ urlpatterns = [
     path("transportation/lefts-rights/<int:pk>/edit/", views.LeftRightUpdateView.as_view(domain="transportation"), name="transportation_leftright_update"),
     path("transportation/lefts-rights/<int:pk>/delete/", views.LeftRightDeleteView.as_view(domain="transportation"), name="transportation_leftright_delete"),
     path("transportation/lefts-rights/<int:pk>/rows/save/", views.LeftRightRowSaveView.as_view(domain="transportation"), name="transportation_leftright_row_save"),
+    path("transportation/lefts-rights/<int:pk>/rows/generate/", views.LeftRightGenerateRowsView.as_view(domain="transportation"), name="transportation_leftright_generate_rows"),
 ]

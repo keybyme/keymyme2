@@ -6,7 +6,7 @@ from django.forms import modelformset_factory
 
 from vault.forms import TailwindFormMixin
 
-from .models import AmMidPmEntry, DepotLink, Employee, LeftRight, LeftRightRow, Route, School
+from .models import AmMidPmEntry, DepotLink, Employee, LeftRight, LeftRightAddressList, LeftRightRow, Route, School
 
 MINUTES_SECONDS_RE = re.compile(r"^([0-5]?\d):([0-5]\d)$")
 
@@ -99,6 +99,40 @@ class LeftRightForm(TailwindFormMixin, forms.ModelForm):
 
     def clean_route_name(self):
         return self.cleaned_data["route_name"].strip()
+
+
+class LeftRightAddressListForm(TailwindFormMixin, forms.ModelForm):
+    """The "Addresses" page (LeftRightAddressListView). `route_name` is
+    the same free-text convention as LeftRightForm.route_name (not tied
+    to any other catalog) -- the `<datalist>` (rendered by the view/
+    template, id="lr-addr-route-names-datalist") suggests route names
+    already used by either an existing LeftRight or a previously-saved
+    address list. `addresses` is validated to 4-15 non-blank lines --
+    LeftRightGenerateRowsView needs at least 2 to compute even one leg,
+    but the point of this page is a full route, hence 4 as the practical
+    floor; 15 keeps a single "Generate" action's LocationIQ geocoding (~1
+    req/sec, see vault/routing.py) under half a minute."""
+
+    class Meta:
+        model = LeftRightAddressList
+        fields = ["route_name", "addresses"]
+        widgets = {
+            "route_name": forms.TextInput(attrs={"list": "lr-addr-route-names-datalist", "autocomplete": "off", "placeholder": "Type the route name…"}),
+            "addresses": forms.Textarea(attrs={
+                "rows": 14, "placeholder": "One address per line, in visiting order…\n123 Main St, City, MD 20874\n456 Oak Ave, City, MD 20874\n…",
+            }),
+        }
+
+    def clean_route_name(self):
+        return self.cleaned_data["route_name"].strip()
+
+    def clean_addresses(self):
+        lines = [line.strip() for line in self.cleaned_data["addresses"].splitlines() if line.strip()]
+        if len(lines) < 4:
+            raise forms.ValidationError("Enter at least 4 addresses (one per line).")
+        if len(lines) > 15:
+            raise forms.ValidationError("Enter at most 15 addresses (one per line).")
+        return "\n".join(lines)
 
 
 #  Extra text-input classes layered on top of TailwindFormMixin's base
