@@ -1,4 +1,5 @@
 {% extends "base_bare.html" %}
+{% load schools_extras %}
 {% block title %}{{ leftright.name }}{% endblock %}
 {% block content %}
 <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
@@ -91,9 +92,27 @@
                 {% elif row.row_type == "title" %}
                 <p class="mb-1 min-h-4 whitespace-pre-wrap text-center text-2xl font-black text-black{% if 'STOP @' in row.text %} text-4xl{% endif %}">{{ row.text }}</p>
                 {% elif row.row_type == "bold" %}
+                {% with direction=row.text|leftright_direction %}
+                {% if direction.icon %}
+                <p class="mb-1 min-h-3 flex items-center gap-2 font-extrabold text-gray-900{% if 'STOP @' in row.text %} text-2xl{% endif %}">
+                    <span class="inline-flex w-5 flex-none items-center justify-center">{% include direction.icon with class="w-5 h-5" %}</span>
+                    <span class="whitespace-pre-wrap">{{ direction.rest }}</span>
+                </p>
+                {% else %}
                 <p class="mb-1 min-h-3 whitespace-pre-wrap font-extrabold text-gray-900{% if 'STOP @' in row.text %} text-2xl{% endif %}">{{ row.text }}</p>
+                {% endif %}
+                {% endwith %}
+                {% else %}
+                {% with direction=row.text|leftright_direction %}
+                {% if direction.icon %}
+                <p class="mb-1 min-h-3 flex items-center gap-2 font-extrabold text-gray-700{% if 'STOP @' in row.text %} text-2xl{% endif %}">
+                    <span class="inline-flex w-5 flex-none items-center justify-center">{% include direction.icon with class="w-5 h-5" %}</span>
+                    <span class="whitespace-pre-wrap">{{ direction.rest }}</span>
+                </p>
                 {% else %}
                 <p class="mb-1 min-h-3 whitespace-pre-wrap font-extrabold text-gray-700{% if 'STOP @' in row.text %} text-2xl{% endif %}">{{ row.text }}</p>
+                {% endif %}
+                {% endwith %}
                 {% endif %}
             </td>
         </tr>
