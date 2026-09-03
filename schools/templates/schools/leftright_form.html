@@ -3,16 +3,11 @@
 {% block content %}
 <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
     <h1 class="text-2xl font-semibold text-gray-900">{% if object %}Edit{% else %}Add{% endif %} Left & Right</h1>
+    {% if object %}
     <div class="flex flex-wrap items-center gap-2">
-        {% if object %}
         <a href="{% url url_names.lefts_rights %}" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
             {% include "icons/map-pin.html" with class="w-4 h-4" %} Lefts & Rights
         </a>
-        {% endif %}
-        <a href="{% url url_names.leftright_help %}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
-            {% include "icons/question-mark-circle.html" with class="w-4 h-4" %} Help
-        </a>
-        {% if object %}
         {% if domain == "mcps" %}
         <a href="{% url url_names.depot %}" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
             {% include "icons/link.html" with class="w-4 h-4" %} Depot
@@ -28,8 +23,8 @@
             {% include "icons/plus.html" with class="w-4 h-4" %} Post Trip
         </button>
         <input type="number" id="lr-insert-seq" placeholder="# (optional)" title="Optional: a # from the column below to insert there instead of at the end (e.g. 35 to insert between # 30 and # 40)" class="w-28 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
-        {% endif %}
     </div>
+    {% endif %}
 </div>
 
 {% if object %}
