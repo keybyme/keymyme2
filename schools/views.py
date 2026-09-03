@@ -3,7 +3,7 @@ from urllib.parse import urlencode
 
 from django.contrib import messages
 from django.core.mail import EmailMessage
-from django.db.models import Max, Q, Value
+from django.db.models import Count, Max, Q, Value
 from django.db.models.functions import Coalesce, Lower, NullIf
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect
@@ -411,7 +411,7 @@ class LeftsRightsDomainMixin:
             for base in ("lefts_rights", "leftright_create", "leftright_detail",
                          "leftright_update", "leftright_delete", "leftright_row_save",
                          "leftright_addresses", "leftright_generate_rows",
-                         "leftright_create_from_addresses",
+                         "leftright_create_from_addresses", "leftright_route_list",
                          "depot", "depot_list")
         }
         # depot_upload is a stateless mailer with no LeftRight/DepotLink
@@ -480,6 +480,30 @@ class LeftsRightsView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin, Templat
             context["error"] = "Route not found."
             return context
         context["lefts_rights"] = LeftRight.objects.filter(domain=self.domain, route_name=route_name).order_by("name")
+        return context
+
+
+class LeftRightRouteListView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin, TemplateView):
+    """Read-only "Routes" page -- a bare page with a live clock and
+    client-side search, same look as DepotListView/depot_list.html --
+    listing every route name known in THIS domain (has a LeftRight guide,
+    a saved LeftRightAddressList, or both -- same union LeftsRightsView's
+    dropdown uses) with its guide count, each linking straight into
+    schools:lefts_rights?route=<name>. A quick way to find/open a route
+    without going through the dropdown first."""
+    template_name = "schools/leftright_route_list.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        guide_counts = dict(
+            LeftRight.objects.filter(domain=self.domain)
+            .values_list("route_name").annotate(count=Count("id"))
+        )
+        address_route_names = set(
+            LeftRightAddressList.objects.filter(domain=self.domain).values_list("route_name", flat=True)
+        )
+        all_route_names = sorted(set(guide_counts) | address_route_names)
+        context["routes"] = [{"name": name, "count": guide_counts.get(name, 0)} for name in all_route_names]
         return context
 
 
