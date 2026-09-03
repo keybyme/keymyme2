@@ -13,6 +13,9 @@
         <a href="{% url url_names.lefts_rights %}?route={{ leftright.route_name|urlencode }}" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
             {% include "icons/chevron-left.html" with class="w-4 h-4" %} Back
         </a>
+        <a href="{% url url_names.leftright_route_list %}" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
+            {% include "icons/car.html" with class="w-4 h-4" %} Routes
+        </a>
         {% if not hide_depot_button and domain == "mcps" %}
         <a href="{% url url_names.depot %}" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
             {% include "icons/link.html" with class="w-4 h-4" %} Depot
