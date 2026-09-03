@@ -1,5 +1,7 @@
+from django.conf import settings
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
+from django.core.mail import send_mail
 
 from menus.models import UserRole
 
@@ -32,6 +34,28 @@ class CustomUserAdmin(UserAdmin):
     )
     readonly_fields = ("storage_used_bytes", "created_by")
     inlines = [UserRoleInline]
+    actions = ["approve_accounts"]
+
+    @admin.action(description="Approve selected accounts (activate + notify by email)")
+    def approve_accounts(self, request, queryset):
+        pending = queryset.filter(is_active=False)
+        approved_count = 0
+        for user in pending:
+            user.is_active = True
+            user.save(update_fields=["is_active"])
+            if user.email:
+                send_mail(
+                    subject="Your KeyByMe account has been approved",
+                    message=(
+                        f"Hi {user.first_name or user.username},\n\n"
+                        "Your KeyByMe account has been approved. You can now log in:\n"
+                        "https://keybyme.com/accounts/login/"
+                    ),
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[user.email],
+                )
+            approved_count += 1
+        self.message_user(request, f"Approved {approved_count} account(s).")
 
     def storage_used_display(self, obj):
         gb = obj.storage_used_bytes / (1024 ** 3)

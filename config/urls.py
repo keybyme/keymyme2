@@ -1,11 +1,8 @@
 from django.conf import settings
 from django.contrib import admin
-from django.contrib.auth import views as auth_views
 from django.shortcuts import redirect, render
 from django.urls import include, path, re_path
 from django.views.static import serve
-
-from vault.forms import StyledAuthenticationForm
 
 
 def index(request):
@@ -15,22 +12,13 @@ def index(request):
     return render(request, "landing.html")
 
 
-class StyledLoginView(auth_views.LoginView):
-    template_name = "registration/login.html"
-    authentication_form = StyledAuthenticationForm
-
-    def get_default_redirect_url(self):
-        # Sin esto, LOGIN_REDIRECT_URL (fijo a Contacts) mandaría a un 403
-        # a cualquier usuario sin acceso a ese módulo apenas hace login.
-        return self.request.user.default_landing_url
-
-
 urlpatterns = [
     path("", index, name="index"),
     path("privacy/", lambda request: render(request, "privacy.html"), name="privacy"),
     path("admin/", admin.site.urls),
-    path("login/", StyledLoginView.as_view(), name="login"),
-    path("logout/", auth_views.LogoutView.as_view(), name="logout"),
+    # Login/signup/logout/password-reset, "Sign in with Google" incluido —
+    # ver accounts/adapters.py, accounts/forms.py, y config/settings.py.
+    path("accounts/", include("allauth.urls")),
     path("vault/", include("vault.urls")),
     path("finanzas/", include("finanzas.urls")),
     path("schools/", include("schools.urls")),

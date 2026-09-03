@@ -1,0 +1,70 @@
+{% load allauth %}
+{% comment %}
+Input classes mirror vault/forms.py's TailwindFormMixin (INPUT_CLASSES /
+CHECKBOX_CLASSES) so allauth's pages look like the rest of the site — keep
+in sync if that pattern changes. attrs.hide_label (set by our fields.html
+for login/signup forms) drops the visible <label> in favor of a placeholder,
+except for checkbox/radio which always need one to stay usable.
+{% endcomment %}
+<div class="mb-4">
+    {% if attrs.type == "textarea" %}
+        {% if not attrs.hide_label %}
+        <label for="{{ attrs.id }}" class="mb-1 block text-sm font-medium text-gray-700">
+            {% slot label %}
+            {% endslot %}
+        </label>
+        {% endif %}
+        <textarea {% if attrs.required %}required{% endif %}
+                  {% if attrs.rows %}rows="{{ attrs.rows }}"{% endif %}
+                  {% if attrs.disabled %}disabled{% endif %}
+                  {% if attrs.readonly %}readonly{% endif %}
+                  {% if attrs.name %}name="{{ attrs.name }}"{% endif %}
+                  {% if attrs.id %}id="{{ attrs.id }}"{% endif %}
+                  {% if attrs.placeholder %}placeholder="{{ attrs.placeholder }}"{% endif %}
+                  class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">{% slot value %}{% endslot %}</textarea>
+    {% elif attrs.type == "checkbox" or attrs.type == "radio" %}
+        <div class="flex items-center gap-2">
+            <input {% if attrs.required %}required{% endif %}
+                   {% if attrs.disabled %}disabled{% endif %}
+                   {% if attrs.checked %}checked{% endif %}
+                   {% if attrs.name %}name="{{ attrs.name }}"{% endif %}
+                   {% if attrs.id %}id="{{ attrs.id }}"{% endif %}
+                   {% if attrs.value is not None %}value="{{ attrs.value }}"{% endif %}
+                   type="{{ attrs.type }}"
+                   class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+            <label for="{{ attrs.id }}" class="text-sm text-gray-700">
+                {% slot label %}
+                {% endslot %}
+            </label>
+        </div>
+    {% else %}
+        {% if not attrs.hide_label %}
+        <label for="{{ attrs.id }}" class="mb-1 block text-sm font-medium text-gray-700">
+            {% slot label %}
+            {% endslot %}
+            {% if attrs.required %}<span class="text-red-500">*</span>{% endif %}
+        </label>
+        {% endif %}
+        <input {% if attrs.required %}required{% endif %}
+               {% if attrs.disabled %}disabled{% endif %}
+               {% if attrs.readonly %}readonly{% endif %}
+               {% if attrs.name %}name="{{ attrs.name }}"{% endif %}
+               {% if attrs.id %}id="{{ attrs.id }}"{% endif %}
+               {% if attrs.placeholder %}placeholder="{{ attrs.placeholder }}"{% endif %}
+               {% if attrs.autocomplete %}autocomplete="{{ attrs.autocomplete }}"{% endif %}
+               {% if attrs.value is not None %}value="{{ attrs.value }}"{% endif %}
+               type="{{ attrs.type }}"
+               class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+    {% endif %}
+    {% if attrs.errors %}
+        {% for error in attrs.errors %}
+        <p class="mt-1 text-xs text-red-600">{{ error }}</p>
+        {% endfor %}
+    {% endif %}
+    {% if slots.help_text %}
+        <p class="mt-1 text-xs text-gray-500">
+            {% slot help_text %}
+            {% endslot %}
+        </p>
+    {% endif %}
+</div>

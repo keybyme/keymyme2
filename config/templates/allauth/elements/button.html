@@ -1,0 +1,14 @@
+{% load allauth %}
+{% comment %}
+Tailwind styling by tag (see usage across allauth's account/*.html):
+"cancel"/"link" -> plain text link, "outline" -> outline button, anything
+else (including "prominent", or no tags at all) -> solid primary button,
+matching the bg-cafe CTA style used across the rest of the site.
+{% endcomment %}
+{% if "cancel" in attrs.tags or "link" in attrs.tags %}{% if attrs.href %}<a href="{{ attrs.href }}"{% else %}<button{% endif %} class="text-sm font-medium text-gray-600 hover:text-gray-900"{% else %}{% if attrs.href %}<a href="{{ attrs.href }}"{% else %}<button{% endif %} class="inline-flex w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold shadow-sm {% if "outline" in attrs.tags %}border border-gray-300 bg-white text-gray-700 hover:bg-gray-50{% else %}bg-cafe text-white hover:bg-cafe-darker{% endif %}"{% endif %}
+{% if attrs.form %} form="{{ attrs.form }}"{% endif %}
+{% if attrs.id %} id="{{ attrs.id }}"{% endif %}
+{% if attrs.name %} name="{{ attrs.name }}"{% endif %}
+{% if attrs.value %} value="{{ attrs.value }}"{% endif %}
+{% if attrs.type %} type="{{ attrs.type }}"{% endif %}
+>{% slot %}{% endslot %}</{% if attrs.href %}a{% else %}button{% endif %}>

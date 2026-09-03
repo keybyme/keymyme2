@@ -117,7 +117,7 @@
                 {% else %}
                 <span>{{ user.username }}</span>
                 {% endif %}
-                <form method="post" action="{% url 'logout' %}">
+                <form method="post" action="{% url 'account_logout' %}">
                     {% csrf_token %}
                     <button type="submit" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 font-medium text-gray-600 hover:bg-red-50 hover:text-red-600">
                         {% include "icons/logout.html" with class="w-4 h-4" %} Sign out
@@ -232,7 +232,7 @@
                 {% else %}
                 <span class="font-medium">{{ user.username }}</span>
                 {% endif %}
-                <form method="post" action="{% url 'logout' %}">
+                <form method="post" action="{% url 'account_logout' %}">
                     {% csrf_token %}
                     <button type="submit" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 font-medium text-gray-600 hover:bg-red-50 hover:text-red-600">
                         {% include "icons/logout.html" with class="w-4 h-4" %} Sign out

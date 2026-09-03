@@ -34,7 +34,10 @@
                         class="hidden items-center gap-1 rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-600 sm:flex">
                     EN {% include "icons/chevron-down.html" with class="w-3.5 h-3.5" %}
                 </button>
-                <a href="{% url 'login' %}" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-cafe-darker">
+                <a href="{% url 'account_signup' %}" class="hidden items-center gap-2 rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 sm:flex">
+                    Sign up
+                </a>
+                <a href="{% url 'account_login' %}" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-cafe-darker">
                     {% include "icons/key.html" with class="w-4 h-4" %} Log in
                 </a>
             </div>
@@ -53,8 +56,11 @@
                 <p class="mt-6 max-w-xl text-lg text-gray-600">
                     KeyByMe helps you organize, protect, and always have on hand what matters most: your information, your contacts, your access, and much more.
                 </p>
-                <div class="mt-8">
-                    <a href="{% url 'login' %}" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-cafe-darker">
+                <div class="mt-8 flex flex-wrap items-center gap-3">
+                    <a href="{% url 'account_signup' %}" class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50">
+                        Create account
+                    </a>
+                    <a href="{% url 'account_login' %}" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-cafe-darker">
                         {% include "icons/key.html" with class="w-4 h-4" %} Log in
                     </a>
                 </div>

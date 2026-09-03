@@ -1,5 +1,6 @@
 cryptography==49.0.0
 Django==6.0.7
+django-allauth==65.19.2
 django-environ==0.14.0
 psycopg2-binary==2.9.12
 gunicorn==26.0.0

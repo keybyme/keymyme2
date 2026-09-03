@@ -1,0 +1,26 @@
+{% load allauth %}
+{% comment %}
+Loops the form and reuses the "field" element (see field.html) per visible
+field, instead of allauth's stock {{ attrs.form.as_p }} — this way every
+allauth form (login, signup, password reset, email management, ...) gets
+the same Tailwind styling with one place to maintain it. attrs.unlabeled
+(passed by login.html/signup.html) hides visible <label>s in favor of a
+placeholder built from the field's label.
+{% endcomment %}
+<div>
+    {% for field in attrs.form %}
+        {% if field.is_hidden %}
+            {{ field }}
+        {% else %}
+            {% element field type=field.widget_type id=field.id_for_label name=field.html_name value=field.value required=field.field.required disabled=field.field.disabled errors=field.errors autocomplete=field.field.widget.attrs.autocomplete placeholder=field.field.widget.attrs.placeholder|default:field.label hide_label=attrs.unlabeled %}
+                {% slot label %}{{ field.label }}{% endslot %}
+                {% slot help_text %}{{ field.help_text }}{% endslot %}
+            {% endelement %}
+        {% endif %}
+    {% endfor %}
+    {% if attrs.form.non_field_errors %}
+    <div class="mb-4 space-y-1 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+        {% for error in attrs.form.non_field_errors %}<p>{{ error }}</p>{% endfor %}
+    </div>
+    {% endif %}
+</div>

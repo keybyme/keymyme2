@@ -1,0 +1,10 @@
+{% extends "account/email/base_message.txt" %}
+{% load i18n %}
+
+{% block content %}{% autoescape off %}Thanks for signing up for KeyByMe. Please confirm this is your email address by clicking the link below:
+
+{{ activate_url }}
+
+Once confirmed, your account will still need to be approved by the administrator before you can log in — you'll get another email when that happens.
+
+If you didn't create a KeyByMe account, you can safely ignore this message.{% endautoescape %}{% endblock content %}

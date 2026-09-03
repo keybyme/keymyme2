@@ -1,5 +1,4 @@
 from django import forms
-from django.contrib.auth.forms import AuthenticationForm
 from django.core.files.uploadedfile import UploadedFile
 
 from .image_compression import compress_image
@@ -223,10 +222,6 @@ class ReminderForm(TailwindFormMixin, UserCategoryFormMixin, forms.ModelForm):
         # configuró en su perfil) para que el aviso le llegue como texto por default.
         if user is not None and self.instance.pk is None and not self.initial.get("recipient_email"):
             self.fields["recipient_email"].initial = user.sms_gateway_email
-
-
-class StyledAuthenticationForm(TailwindFormMixin, AuthenticationForm):
-    """AuthenticationForm de Django con clases Tailwind, usado por la vista de login."""
 
 
 class QRCodeForm(TailwindFormMixin, forms.Form):

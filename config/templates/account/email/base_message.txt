@@ -1,0 +1,7 @@
+{% load i18n %}{% autoescape off %}Hi{% if user.first_name %} {{ user.first_name }}{% endif %},
+
+{% block content %}{% endblock content %}
+
+— KeyByMe
+{{ current_site.domain }}
+{% endautoescape %}

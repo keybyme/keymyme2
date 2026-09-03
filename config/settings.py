@@ -83,6 +83,13 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites',  # requerido por django-allauth
+
+    # Login: email/password propio + "Sign in with Google" (ver accounts/adapters.py).
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google',
 
     # Apps propias de KeyByMe
     'accounts',
@@ -92,6 +99,8 @@ INSTALLED_APPS = [
     'schools',
 ]
 
+SITE_ID = 1
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
@@ -99,8 +108,14 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'allauth.account.middleware.AccountMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+]
+
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -197,6 +212,44 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 20 * 1024 * 1024
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-LOGIN_URL = "login"
-LOGIN_REDIRECT_URL = "vault:contact_list"
+LOGIN_URL = "account_login"
+LOGIN_REDIRECT_URL = "vault:contact_list"  # sin uso real: KeyByMeAccountAdapter.get_login_redirect_url manda al primer módulo del usuario
 LOGOUT_REDIRECT_URL = "index"
+
+
+# ---------------------------------------------------------------------------
+# django-allauth: signup con email propio o con Google, aprobación manual.
+# Toda cuenta nueva (por email o por Google) queda con is_active=False hasta
+# que el admin la aprueba desde /admin — ver accounts/adapters.py.
+# ---------------------------------------------------------------------------
+ACCOUNT_ADAPTER = "accounts.adapters.KeyByMeAccountAdapter"
+SOCIALACCOUNT_ADAPTER = "accounts.adapters.KeyByMeSocialAccountAdapter"
+ACCOUNT_FORMS = {"signup": "accounts.forms.SignupForm"}
+
+ACCOUNT_LOGIN_METHODS = {"email"}
+# Sin "username*": el username se sigue generando solo (adapter.populate_username),
+# el usuario nunca lo ve ni lo elige.
+ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
+ACCOUNT_EMAIL_VERIFICATION = "mandatory"
+ACCOUNT_UNIQUE_EMAIL = True
+# Los links de los correos (verificación, reset de password) usan este esquema.
+# Cloudflare ya sirve keybyme.com por HTTPS al visitante aunque el origin (EC2)
+# hable HTTP plano (ver CLAUDE.md) — por eso el default es "https" incluso ahí.
+ACCOUNT_DEFAULT_HTTP_PROTOCOL = env("ACCOUNT_DEFAULT_HTTP_PROTOCOL", default="https")
+ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = False  # sigue is_active=False hasta que el admin apruebe
+
+# Google ya verificó el email por su cuenta: no hace falta otra verificación,
+# y auto-signup evita un paso extra de "confirmá tus datos" para el usuario.
+SOCIALACCOUNT_AUTO_SIGNUP = True
+SOCIALACCOUNT_EMAIL_VERIFICATION = "none"
+SOCIALACCOUNT_EMAIL_REQUIRED = True
+SOCIALACCOUNT_PROVIDERS = {
+    "google": {
+        "APP": {
+            "client_id": env("GOOGLE_OAUTH_CLIENT_ID", default=""),
+            "secret": env("GOOGLE_OAUTH_CLIENT_SECRET", default=""),
+            "key": "",
+        },
+        "SCOPE": ["profile", "email"],
+    },
+}
