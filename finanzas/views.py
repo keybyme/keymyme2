@@ -12,7 +12,8 @@ from django.views.generic import CreateView, DeleteView, ListView, UpdateView, V
 from vault.mixins import (
     ModuleAccessRequiredMixin, OwnerCreateMixin, OwnerQuerysetMixin, SearchableListMixin, UserFormKwargsMixin,
 )
-from vault.models import MediaFile
+from vault.models import Category, MediaFile
+from vault.views import CategoryCreateView, CategoryDeleteView, CategoryListView, CategoryUpdateView
 
 from .forms import CuentaForm, DeudaForm, TransaccionForm
 from .models import Cuenta, Deuda, Transaccion
@@ -119,6 +120,7 @@ class TransaccionListView(SearchableListMixin, OwnerQuerysetMixin, ListView):
     context_object_name = "transacciones"
     paginate_by = 15
     search_fields = ("concepto",)
+    category_kind = Category.Kind.FINANZAS
     module_codename = "finanzas_transacciones"
 
     MESES = [
@@ -251,6 +253,33 @@ class TransaccionDeleteView(OwnerQuerysetMixin, DeleteView):
     # OJO: el recibo (MediaFile) NO se borra aquí a propósito — sigue viviendo
     # en Archivos aunque se borre la transacción, por si el usuario lo quiere
     # conservar.
+
+
+class TransaccionCategoryListView(CategoryListView):
+    template_name = "finanzas/transaccion_category_list.html"
+    category_kind = Category.Kind.FINANZAS
+    module_codename = "finanzas_transacciones"
+
+
+class TransaccionCategoryCreateView(CategoryCreateView):
+    template_name = "finanzas/transaccion_category_form.html"
+    success_url = reverse_lazy("finanzas:transaccion_category_list")
+    category_kind = Category.Kind.FINANZAS
+    module_codename = "finanzas_transacciones"
+
+
+class TransaccionCategoryUpdateView(CategoryUpdateView):
+    template_name = "finanzas/transaccion_category_form.html"
+    success_url = reverse_lazy("finanzas:transaccion_category_list")
+    category_kind = Category.Kind.FINANZAS
+    module_codename = "finanzas_transacciones"
+
+
+class TransaccionCategoryDeleteView(CategoryDeleteView):
+    template_name = "finanzas/transaccion_category_confirm_delete.html"
+    success_url = reverse_lazy("finanzas:transaccion_category_list")
+    category_kind = Category.Kind.FINANZAS
+    module_codename = "finanzas_transacciones"
 
 
 # ---------- Deudas ----------

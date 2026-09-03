@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}No access{% endblock %}
+{% block content %}
+<div class="mx-auto max-w-md rounded-xl border border-gray-200 bg-white p-6 text-center shadow-sm">
+    {% include "icons/exclamation-triangle.html" with class="mx-auto mb-4 w-10 h-10 text-amber-600" %}
+    <h1 class="mb-2 text-lg font-semibold text-gray-900">No modules assigned yet</h1>
+    <p class="text-sm text-gray-600">Your account doesn't have access to any module yet. Contact your administrator to get set up.</p>
+</div>
+{% endblock %}

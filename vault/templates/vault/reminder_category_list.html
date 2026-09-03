@@ -1,9 +1,12 @@
 {% extends "base.html" %}
-{% block title %}Categories{% endblock %}
+{% block title %}Reminder categories{% endblock %}
 {% block content %}
 <div class="mb-6 flex items-center justify-between">
-    <h1 class="text-2xl font-semibold text-gray-900">Categories</h1>
-    <a href="{% url 'vault:category_create' %}" class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700">
+    <div>
+        <h1 class="text-2xl font-semibold text-gray-900">Reminder categories</h1>
+        <a href="{% url 'vault:reminder_list' %}" class="text-sm font-medium text-gray-600 hover:text-gray-900">&larr; Back to Reminders</a>
+    </div>
+    <a href="{% url 'vault:reminder_category_create' %}" class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700">
         {% include "icons/plus.html" with class="w-4 h-4" %} New category
     </a>
 </div>
@@ -26,17 +29,17 @@
             </td>
             <td class="whitespace-nowrap px-4 py-3 text-right text-sm">
                 <div class="flex justify-end gap-3">
-                    <a href="{% url 'vault:category_update' category.pk %}" class="text-cafe hover:text-cafe-darker" title="Edit">
+                    <a href="{% url 'vault:reminder_category_update' category.pk %}" class="text-cafe hover:text-cafe-darker" title="Edit">
                         {% include "icons/pencil.html" with class="w-5 h-5" %}
                     </a>
-                    <a href="{% url 'vault:category_delete' category.pk %}" class="text-crimson hover:text-red-800" title="Delete">
+                    <a href="{% url 'vault:reminder_category_delete' category.pk %}" class="text-crimson hover:text-red-800" title="Delete">
                         {% include "icons/trash.html" with class="w-5 h-5" %}
                     </a>
                 </div>
             </td>
         </tr>
         {% empty %}
-        <tr><td colspan="2" class="px-4 py-6 text-center text-sm text-gray-500">You don't have any categories yet.</td></tr>
+        <tr><td colspan="2" class="px-4 py-6 text-center text-sm text-gray-500">You don't have any reminder categories yet.</td></tr>
         {% endfor %}
     </tbody>
 </table>

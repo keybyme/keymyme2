@@ -44,12 +44,20 @@ def user_upload_path(instance, filename):
 
 class Category(models.Model):
     """Categoría definida por el usuario (ej: familia, trabajo, tecnología).
-    'general' se comparte entre Contact, VaultPassword, Url y Reminder;
-    'files' es un catálogo aparte, exclusivo de MediaFile."""
+    Cada módulo (Contacts, Passwords, Links, Files, Reminders, Finances) tiene
+    su propio catálogo aislado vía 'kind' — ver UserCategoryFormMixin.
+    'general' ya no se usa para asignar categorías nuevas: es el kind legado
+    de cuando Contact/VaultPassword/Url/Reminder compartían un solo catálogo;
+    se conserva solo para no perder esos registros históricos."""
 
     class Kind(models.TextChoices):
-        GENERAL = "general", "General"
+        GENERAL = "general", "General (legacy)"
         FILES = "files", "Files"
+        CONTACTS = "contacts", "Contacts"
+        PASSWORDS = "passwords", "Passwords"
+        LINKS = "links", "Links"
+        REMINDERS = "reminders", "Reminders"
+        FINANZAS = "finanzas", "Finances"
 
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="categories")
     name = models.CharField(max_length=100)

@@ -10,8 +10,9 @@ class CustomUser(AbstractUser):
 
     # Módulo -> URL a donde mandar al usuario después del login (o al
     # tocar el logo): el primero de esta lista al que tenga acceso, en el
-    # mismo orden en que aparecen en el nav (ver base.html). Categories
-    # nunca falla porque Category*View no exige ningún módulo.
+    # mismo orden en que aparecen en el nav (ver base.html). Si no tiene
+    # acceso a ninguno, cae en vault:no_access, que nunca falla porque
+    # NoAccessView no exige ningún módulo.
     LANDING_MODULE_URLS = [
         ("contacts", "vault:contact_list"),
         ("passwords", "vault:password_list"),
@@ -138,13 +139,13 @@ class CustomUser(AbstractUser):
     def default_landing_url(self):
         """Where to send this user after login, or where the nav logo
         should point: the first module they have access to, in nav order.
-        Falls back to Categories, which every logged-in user can always
+        Falls back to vault:no_access, which every logged-in user can always
         reach — so this never lands the user on a page they're denied."""
         from django.urls import reverse
         for module_codename, url_name in self.LANDING_MODULE_URLS:
             if self.has_module_access(module_codename):
                 return reverse(url_name)
-        return reverse("vault:category_list")
+        return reverse("vault:no_access")
 
     def has_permission(self, submodule_codename: str) -> bool:
         """Checks whether the user has access to a submodule, honoring

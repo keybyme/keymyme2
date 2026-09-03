@@ -69,9 +69,6 @@
                     </div>
                 </details>
                 {% endif %}
-                <a href="{% url 'vault:category_list' %}" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 hover:bg-gray-100 hover:text-blue-700">
-                    {% include "icons/tag.html" with class="w-4 h-4" %} Categories
-                </a>
                 {% if request.user|has_module_access:"emergency" %}
                 <button type="button" id="emergency-btn" class="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-base font-bold text-red-600 hover:bg-red-50 hover:text-red-700">
                     {% include "icons/exclamation-triangle.html" with class="w-5 h-5" %} Emergency
@@ -188,9 +185,6 @@
                     </div>
                 </details>
                 {% endif %}
-                <a href="{% url 'vault:category_list' %}" class="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-gray-100 hover:text-blue-700">
-                    {% include "icons/tag.html" with class="w-5 h-5" %} Categories
-                </a>
                 {% if request.user|has_module_access:"emergency" %}
                 <button type="button" id="emergency-btn-mobile" class="flex items-center gap-2 rounded-md px-3 py-2.5 text-base font-bold text-red-600 hover:bg-red-50 hover:text-red-700">
                     {% include "icons/exclamation-triangle.html" with class="w-5 h-5" %} Emergency

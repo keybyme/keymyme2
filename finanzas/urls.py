@@ -16,6 +16,26 @@ urlpatterns = [
     path("transacciones/new/", views.TransaccionCreateView.as_view(), name="transaccion_create"),
     path("transacciones/<int:pk>/edit/", views.TransaccionUpdateView.as_view(), name="transaccion_update"),
     path("transacciones/<int:pk>/delete/", views.TransaccionDeleteView.as_view(), name="transaccion_delete"),
+    path(
+        "transacciones/categories/",
+        views.TransaccionCategoryListView.as_view(),
+        name="transaccion_category_list",
+    ),
+    path(
+        "transacciones/categories/new/",
+        views.TransaccionCategoryCreateView.as_view(),
+        name="transaccion_category_create",
+    ),
+    path(
+        "transacciones/categories/<int:pk>/edit/",
+        views.TransaccionCategoryUpdateView.as_view(),
+        name="transaccion_category_update",
+    ),
+    path(
+        "transacciones/categories/<int:pk>/delete/",
+        views.TransaccionCategoryDeleteView.as_view(),
+        name="transaccion_category_delete",
+    ),
 
     # Deudas
     path("deudas/", views.DeudaListView.as_view(), name="deuda_list"),

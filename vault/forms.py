@@ -55,12 +55,16 @@ class CategoryForm(TailwindFormMixin, UserCategoryFormMixin, forms.ModelForm):
 
 
 class ContactForm(TailwindFormMixin, UserCategoryFormMixin, forms.ModelForm):
+    category_kind = Category.Kind.CONTACTS
+
     class Meta:
         model = Contact
         fields = ["name", "phone", "email", "address", "category", "notes"]
 
 
 class ContactImportForm(TailwindFormMixin, UserCategoryFormMixin, forms.Form):
+    category_kind = Category.Kind.CONTACTS
+
     file = forms.FileField(
         label="File (.vcf or .csv)",
         help_text="vCard exported from iPhone/iCloud, or a CSV with name/phone/email/address/notes columns.",
@@ -80,6 +84,8 @@ class ContactImportForm(TailwindFormMixin, UserCategoryFormMixin, forms.Form):
 
 
 class VaultPasswordForm(TailwindFormMixin, UserCategoryFormMixin, forms.ModelForm):
+    category_kind = Category.Kind.PASSWORDS
+
     password = forms.CharField(
         label="Password",
         required=False,
@@ -109,6 +115,8 @@ class VaultPasswordForm(TailwindFormMixin, UserCategoryFormMixin, forms.ModelFor
 
 
 class UrlForm(TailwindFormMixin, UserCategoryFormMixin, forms.ModelForm):
+    category_kind = Category.Kind.LINKS
+
     class Meta:
         model = Url
         fields = ["name", "url", "category", "notes"]
@@ -193,6 +201,8 @@ class MediaFileBulkUploadForm(TailwindFormMixin, UserCategoryFormMixin, forms.Fo
 
 
 class ReminderForm(TailwindFormMixin, UserCategoryFormMixin, forms.ModelForm):
+    category_kind = Category.Kind.REMINDERS
+
     class Meta:
         model = Reminder
         fields = [

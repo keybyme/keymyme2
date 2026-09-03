@@ -3,7 +3,7 @@ from django.core.validators import FileExtensionValidator
 from django.utils import timezone
 
 from vault.forms import TailwindFormMixin, UserCategoryFormMixin
-from vault.models import ALLOWED_MEDIA_EXTENSIONS, VaultPassword
+from vault.models import ALLOWED_MEDIA_EXTENSIONS, Category, VaultPassword
 
 from .models import Cuenta, Deuda, Transaccion
 
@@ -43,6 +43,8 @@ class CuentaForm(TailwindFormMixin, forms.ModelForm):
 
 
 class TransaccionForm(TailwindFormMixin, UserCategoryFormMixin, forms.ModelForm):
+    category_kind = Category.Kind.FINANZAS
+
     recibo_file = forms.FileField(
         required=False,
         label="Receipt photo",

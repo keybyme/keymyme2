@@ -61,18 +61,18 @@ from .routing import GeocodingRateLimited, geocode_address, get_route_legs
 
 
 # ---------- Categories ----------
-# 'general' is shared by Contacts/Passwords/Links/Reminders; 'files' is its
-# own separate catalog for MediaFile. The MediaFileCategory* views below
-# reuse this same logic with category_kind swapped to FILES.
+# Each module owns its own isolated catalog (Category.kind) — Contacts,
+# Passwords, Links, Files, Reminders, and finanzas.Transaccion each get their
+# own Category{List,Create,Update,Delete}View subclass below, setting
+# category_kind (which catalog) and module_codename (whose permission gates
+# it — reusing the parent module's, same as MediaFileCategory* already did
+# for Files). These four base classes are never routed directly: category_kind
+# must be set by a subclass.
 
 class CategoryListView(OwnerQuerysetMixin, ListView):
     model = Category
-    template_name = "vault/category_list.html"
     context_object_name = "categories"
     paginate_by = 15
-    category_kind = Category.Kind.GENERAL
-    # Sin module_codename a propósito: Categories es accesible para
-    # cualquier usuario logueado, sin importar sus roles/módulos.
 
     def get_queryset(self):
         return super().get_queryset().filter(kind=self.category_kind)
@@ -81,9 +81,6 @@ class CategoryListView(OwnerQuerysetMixin, ListView):
 class CategoryCreateView(OwnerCreateMixin, CreateView):
     model = Category
     form_class = CategoryForm
-    template_name = "vault/category_form.html"
-    success_url = reverse_lazy("vault:category_list")
-    category_kind = Category.Kind.GENERAL
 
     def form_valid(self, form):
         form.instance.kind = self.category_kind
@@ -93,9 +90,6 @@ class CategoryCreateView(OwnerCreateMixin, CreateView):
 class CategoryUpdateView(UserFormKwargsMixin, OwnerQuerysetMixin, UpdateView):
     model = Category
     form_class = CategoryForm
-    template_name = "vault/category_form.html"
-    success_url = reverse_lazy("vault:category_list")
-    category_kind = Category.Kind.GENERAL
 
     def get_queryset(self):
         return super().get_queryset().filter(kind=self.category_kind)
@@ -103,12 +97,90 @@ class CategoryUpdateView(UserFormKwargsMixin, OwnerQuerysetMixin, UpdateView):
 
 class CategoryDeleteView(OwnerQuerysetMixin, DeleteView):
     model = Category
-    template_name = "vault/category_confirm_delete.html"
-    success_url = reverse_lazy("vault:category_list")
-    category_kind = Category.Kind.GENERAL
 
     def get_queryset(self):
         return super().get_queryset().filter(kind=self.category_kind)
+
+
+class ContactCategoryListView(CategoryListView):
+    template_name = "vault/contact_category_list.html"
+    category_kind = Category.Kind.CONTACTS
+    module_codename = "contacts"
+
+
+class ContactCategoryCreateView(CategoryCreateView):
+    template_name = "vault/contact_category_form.html"
+    success_url = reverse_lazy("vault:contact_category_list")
+    category_kind = Category.Kind.CONTACTS
+    module_codename = "contacts"
+
+
+class ContactCategoryUpdateView(CategoryUpdateView):
+    template_name = "vault/contact_category_form.html"
+    success_url = reverse_lazy("vault:contact_category_list")
+    category_kind = Category.Kind.CONTACTS
+    module_codename = "contacts"
+
+
+class ContactCategoryDeleteView(CategoryDeleteView):
+    template_name = "vault/contact_category_confirm_delete.html"
+    success_url = reverse_lazy("vault:contact_category_list")
+    category_kind = Category.Kind.CONTACTS
+    module_codename = "contacts"
+
+
+class PasswordCategoryListView(CategoryListView):
+    template_name = "vault/password_category_list.html"
+    category_kind = Category.Kind.PASSWORDS
+    module_codename = "passwords"
+
+
+class PasswordCategoryCreateView(CategoryCreateView):
+    template_name = "vault/password_category_form.html"
+    success_url = reverse_lazy("vault:password_category_list")
+    category_kind = Category.Kind.PASSWORDS
+    module_codename = "passwords"
+
+
+class PasswordCategoryUpdateView(CategoryUpdateView):
+    template_name = "vault/password_category_form.html"
+    success_url = reverse_lazy("vault:password_category_list")
+    category_kind = Category.Kind.PASSWORDS
+    module_codename = "passwords"
+
+
+class PasswordCategoryDeleteView(CategoryDeleteView):
+    template_name = "vault/password_category_confirm_delete.html"
+    success_url = reverse_lazy("vault:password_category_list")
+    category_kind = Category.Kind.PASSWORDS
+    module_codename = "passwords"
+
+
+class UrlCategoryListView(CategoryListView):
+    template_name = "vault/url_category_list.html"
+    category_kind = Category.Kind.LINKS
+    module_codename = "links"
+
+
+class UrlCategoryCreateView(CategoryCreateView):
+    template_name = "vault/url_category_form.html"
+    success_url = reverse_lazy("vault:url_category_list")
+    category_kind = Category.Kind.LINKS
+    module_codename = "links"
+
+
+class UrlCategoryUpdateView(CategoryUpdateView):
+    template_name = "vault/url_category_form.html"
+    success_url = reverse_lazy("vault:url_category_list")
+    category_kind = Category.Kind.LINKS
+    module_codename = "links"
+
+
+class UrlCategoryDeleteView(CategoryDeleteView):
+    template_name = "vault/url_category_confirm_delete.html"
+    success_url = reverse_lazy("vault:url_category_list")
+    category_kind = Category.Kind.LINKS
+    module_codename = "links"
 
 
 class MediaFileCategoryListView(CategoryListView):
@@ -138,6 +210,43 @@ class MediaFileCategoryDeleteView(CategoryDeleteView):
     module_codename = "files"
 
 
+class ReminderCategoryListView(CategoryListView):
+    template_name = "vault/reminder_category_list.html"
+    category_kind = Category.Kind.REMINDERS
+    module_codename = "reminders"
+
+
+class ReminderCategoryCreateView(CategoryCreateView):
+    template_name = "vault/reminder_category_form.html"
+    success_url = reverse_lazy("vault:reminder_category_list")
+    category_kind = Category.Kind.REMINDERS
+    module_codename = "reminders"
+
+
+class ReminderCategoryUpdateView(CategoryUpdateView):
+    template_name = "vault/reminder_category_form.html"
+    success_url = reverse_lazy("vault:reminder_category_list")
+    category_kind = Category.Kind.REMINDERS
+    module_codename = "reminders"
+
+
+class ReminderCategoryDeleteView(CategoryDeleteView):
+    template_name = "vault/reminder_category_confirm_delete.html"
+    success_url = reverse_lazy("vault:reminder_category_list")
+    category_kind = Category.Kind.REMINDERS
+    module_codename = "reminders"
+
+
+class NoAccessView(ModuleAccessRequiredMixin, TemplateView):
+    """Fallback landing page for a user with no module access at all (see
+    CustomUser.default_landing_url) — every category catalog is now scoped
+    to its own module, so there's no longer a universal page any logged-in
+    user can always reach. module_codename stays None (the default) so only
+    login is required, keeping login/index/the nav logo from ever 404ing or
+    403ing such a user."""
+    template_name = "vault/no_access.html"
+
+
 # ---------- Contacts ----------
 
 class ContactListView(AjaxPartialTemplateMixin, SearchableListMixin, OwnerQuerysetMixin, ListView):
@@ -147,6 +256,7 @@ class ContactListView(AjaxPartialTemplateMixin, SearchableListMixin, OwnerQuerys
     context_object_name = "contacts"
     paginate_by = 15
     search_fields = ("name", "phone", "email", "address", "notes")
+    category_kind = Category.Kind.CONTACTS
     module_codename = "contacts"
 
 
@@ -221,6 +331,7 @@ class PasswordListView(AjaxPartialTemplateMixin, SearchableListMixin, OwnerQuery
     context_object_name = "passwords"
     paginate_by = 15
     search_fields = ("site_name", "username", "site_url", "notes")
+    category_kind = Category.Kind.PASSWORDS
     module_codename = "passwords"
     # OJO: el template NUNCA debe imprimir get_password() aquí.
     # El password se revela client-side vía fetch a password_reveal_json.
@@ -294,6 +405,7 @@ class UrlListView(AjaxPartialTemplateMixin, SearchableListMixin, OwnerQuerysetMi
     context_object_name = "urls"
     paginate_by = 15
     search_fields = ("name", "url", "notes")
+    category_kind = Category.Kind.LINKS
     module_codename = "links"
 
 
@@ -566,6 +678,7 @@ class ReminderListView(AjaxPartialTemplateMixin, SearchableListMixin, OwnerQuery
     context_object_name = "reminders"
     paginate_by = 15
     search_fields = ("title", "description")
+    category_kind = Category.Kind.REMINDERS
     module_codename = "reminders"
 
 

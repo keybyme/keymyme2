@@ -4,6 +4,9 @@
 <div class="mb-6 flex items-center justify-between">
     <h1 class="text-2xl font-semibold text-gray-900">Contacts</h1>
     <div class="flex items-center gap-3">
+        <a href="{% url 'vault:contact_category_list' %}" class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">
+            {% include "icons/tag.html" with class="w-4 h-4" %} Categories
+        </a>
         <a href="{% url 'vault:contact_import' %}" class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">
             {% include "icons/arrow-up-tray.html" with class="w-4 h-4" %} Import
         </a>

@@ -6,9 +6,14 @@
         Transactions
         {% if periodo_label %}<span class="text-lg font-normal text-gray-500">— {{ periodo_label }}</span>{% endif %}
     </h1>
-    <a href="{% url 'finanzas:transaccion_create' %}" class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700">
-        {% include "icons/plus.html" with class="w-4 h-4" %} New transaction
-    </a>
+    <div class="flex items-center gap-3">
+        <a href="{% url 'finanzas:transaccion_category_list' %}" class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">
+            {% include "icons/tag.html" with class="w-4 h-4" %} Categories
+        </a>
+        <a href="{% url 'finanzas:transaccion_create' %}" class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700">
+            {% include "icons/plus.html" with class="w-4 h-4" %} New transaction
+        </a>
+    </div>
 </div>
 
 <div class="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">

@@ -5,11 +5,8 @@ from . import views
 app_name = "vault"
 
 urlpatterns = [
-    # Categories
-    path("categories/", views.CategoryListView.as_view(), name="category_list"),
-    path("categories/new/", views.CategoryCreateView.as_view(), name="category_create"),
-    path("categories/<int:pk>/edit/", views.CategoryUpdateView.as_view(), name="category_update"),
-    path("categories/<int:pk>/delete/", views.CategoryDeleteView.as_view(), name="category_delete"),
+    # Fallback landing page for a user with no module access at all
+    path("no-access/", views.NoAccessView.as_view(), name="no_access"),
 
     # Contacts
     path("contacts/", views.ContactListView.as_view(), name="contact_list"),
@@ -17,6 +14,18 @@ urlpatterns = [
     path("contacts/import/", views.ContactImportView.as_view(), name="contact_import"),
     path("contacts/<int:pk>/edit/", views.ContactUpdateView.as_view(), name="contact_update"),
     path("contacts/<int:pk>/delete/", views.ContactDeleteView.as_view(), name="contact_delete"),
+    path("contacts/categories/", views.ContactCategoryListView.as_view(), name="contact_category_list"),
+    path("contacts/categories/new/", views.ContactCategoryCreateView.as_view(), name="contact_category_create"),
+    path(
+        "contacts/categories/<int:pk>/edit/",
+        views.ContactCategoryUpdateView.as_view(),
+        name="contact_category_update",
+    ),
+    path(
+        "contacts/categories/<int:pk>/delete/",
+        views.ContactCategoryDeleteView.as_view(),
+        name="contact_category_delete",
+    ),
 
     # Passwords
     path("passwords/", views.PasswordListView.as_view(), name="password_list"),
@@ -25,12 +34,28 @@ urlpatterns = [
     path("passwords/<int:pk>/delete/", views.PasswordDeleteView.as_view(), name="password_delete"),
     path("passwords/<int:pk>/reveal/", views.PasswordRevealView.as_view(), name="password_reveal"),
     path("passwords/<int:pk>/reveal.json", views.PasswordRevealJSONView.as_view(), name="password_reveal_json"),
+    path("passwords/categories/", views.PasswordCategoryListView.as_view(), name="password_category_list"),
+    path("passwords/categories/new/", views.PasswordCategoryCreateView.as_view(), name="password_category_create"),
+    path(
+        "passwords/categories/<int:pk>/edit/",
+        views.PasswordCategoryUpdateView.as_view(),
+        name="password_category_update",
+    ),
+    path(
+        "passwords/categories/<int:pk>/delete/",
+        views.PasswordCategoryDeleteView.as_view(),
+        name="password_category_delete",
+    ),
 
     # URLs
     path("urls/", views.UrlListView.as_view(), name="url_list"),
     path("urls/new/", views.UrlCreateView.as_view(), name="url_create"),
     path("urls/<int:pk>/edit/", views.UrlUpdateView.as_view(), name="url_update"),
     path("urls/<int:pk>/delete/", views.UrlDeleteView.as_view(), name="url_delete"),
+    path("urls/categories/", views.UrlCategoryListView.as_view(), name="url_category_list"),
+    path("urls/categories/new/", views.UrlCategoryCreateView.as_view(), name="url_category_create"),
+    path("urls/categories/<int:pk>/edit/", views.UrlCategoryUpdateView.as_view(), name="url_category_update"),
+    path("urls/categories/<int:pk>/delete/", views.UrlCategoryDeleteView.as_view(), name="url_category_delete"),
 
     # Media files
     path("files/", views.MediaFileListView.as_view(), name="mediafile_list"),
@@ -64,6 +89,18 @@ urlpatterns = [
     path("reminders/new/", views.ReminderCreateView.as_view(), name="reminder_create"),
     path("reminders/<int:pk>/edit/", views.ReminderUpdateView.as_view(), name="reminder_update"),
     path("reminders/<int:pk>/delete/", views.ReminderDeleteView.as_view(), name="reminder_delete"),
+    path("reminders/categories/", views.ReminderCategoryListView.as_view(), name="reminder_category_list"),
+    path("reminders/categories/new/", views.ReminderCategoryCreateView.as_view(), name="reminder_category_create"),
+    path(
+        "reminders/categories/<int:pk>/edit/",
+        views.ReminderCategoryUpdateView.as_view(),
+        name="reminder_category_update",
+    ),
+    path(
+        "reminders/categories/<int:pk>/delete/",
+        views.ReminderCategoryDeleteView.as_view(),
+        name="reminder_category_delete",
+    ),
 
     # QR Codes
     path("qrcode/", views.QRCodeGeneratorView.as_view(), name="qrcode_generate"),
