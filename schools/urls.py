@@ -32,6 +32,7 @@ urlpatterns = [
     path("lefts-rights/<int:pk>/share/", views.LeftRightShareDetailView.as_view(), name="leftright_share"),
     path("lefts-rights/<int:pk>/edit/", views.LeftRightUpdateView.as_view(), name="leftright_update"),
     path("lefts-rights/<int:pk>/delete/", views.LeftRightDeleteView.as_view(), name="leftright_delete"),
+    path("lefts-rights/<int:pk>/rows/save/", views.LeftRightRowSaveView.as_view(), name="leftright_row_save"),
 
     # Transportation's own Lefts & Rights / Depot -- same view classes,
     # registered again with domain="transportation" (see
@@ -46,4 +47,5 @@ urlpatterns = [
     path("transportation/lefts-rights/<int:pk>/", views.LeftRightDetailView.as_view(domain="transportation"), name="transportation_leftright_detail"),
     path("transportation/lefts-rights/<int:pk>/edit/", views.LeftRightUpdateView.as_view(domain="transportation"), name="transportation_leftright_update"),
     path("transportation/lefts-rights/<int:pk>/delete/", views.LeftRightDeleteView.as_view(domain="transportation"), name="transportation_leftright_delete"),
+    path("transportation/lefts-rights/<int:pk>/rows/save/", views.LeftRightRowSaveView.as_view(domain="transportation"), name="transportation_leftright_row_save"),
 ]

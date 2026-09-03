@@ -2,7 +2,7 @@ import re
 from datetime import time
 
 from django import forms
-from django.forms import inlineformset_factory, modelformset_factory
+from django.forms import modelformset_factory
 
 from vault.forms import TailwindFormMixin
 
@@ -116,21 +116,31 @@ ROW_TEXT_CLASSES = {
 
 
 class LeftRightRowForm(TailwindFormMixin, forms.ModelForm):
-    """One row in the LeftRightRowFormSet below. `row_type` and `order` are
-    hidden inputs set by JS (see leftright_form.html) — not something the
-    user picks from a dropdown; which button they click ("Insertar fila" vs
-    "Insertar vinculo") decides the type. LINK rows use all three of
+    """One row on the Edit page (leftright_form.html). `row_type` and
+    `order` are hidden inputs set by JS -- not something the user picks
+    from a dropdown; which button they click ("Insertar fila" vs "Insertar
+    vinculo") decides the type. LINK rows use all three of
     text/address/text_after (see LeftRightRow); other row types only use
-    `text`."""
+    `text`.
+
+    Each widget's `class` here (lr-row-type/lr-order/lr-text/lr-address/
+    lr-text-after) is the autosave JS's hook -- LeftRightRowSaveView reads
+    a row's current values via these same class names, and lrBuildRow() in
+    leftright_form.html renders freshly-added rows with the exact same
+    classes, so server-rendered and JS-built rows are indistinguishable to
+    that JS. Rows are no longer submitted as a Django formset (this form
+    is used unbound, purely to render each row with consistent widgets/
+    styling) -- see LeftRightUpdateView/LeftRightRowSaveView."""
 
     class Meta:
         model = LeftRightRow
         fields = ["row_type", "order", "text", "address", "text_after"]
         widgets = {
-            "row_type": forms.HiddenInput(),
-            "order": forms.HiddenInput(),
-            "address": forms.TextInput(attrs={"placeholder": "Address…"}),
-            "text_after": forms.TextInput(attrs={"placeholder": "Text…"}),
+            "row_type": forms.HiddenInput(attrs={"class": "lr-row-type"}),
+            "order": forms.HiddenInput(attrs={"class": "lr-order"}),
+            "text": forms.TextInput(attrs={"class": "lr-text"}),
+            "address": forms.TextInput(attrs={"class": "lr-address", "placeholder": "Address…"}),
+            "text_after": forms.TextInput(attrs={"class": "lr-text-after", "placeholder": "Text…"}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -141,14 +151,6 @@ class LeftRightRowForm(TailwindFormMixin, forms.ModelForm):
             self.fields["text"].widget.attrs["class"] = f"{existing} {extra_classes}".strip()
         self.fields["text"].widget.attrs["placeholder"] = "Text…"
 
-
-# extra=0: the form only ever adds rows via JS-cloned formset forms
-# ("Insertar fila" / "Insertar vinculo" in leftright_form.html), not
-# server-rendered blank extras — LeftRightCreateView seeds the initial
-# four rows directly instead.
-LeftRightRowFormSet = inlineformset_factory(
-    LeftRight, LeftRightRow, form=LeftRightRowForm, extra=0, can_delete=True,
-)
 
 
 class DepotLinkForm(TailwindFormMixin, forms.ModelForm):
@@ -169,8 +171,9 @@ class DepotLinkForm(TailwindFormMixin, forms.ModelForm):
 
 # Not an inline formset -- DepotLink has no parent FK, it's a single flat
 # list shared by the whole "Depot" page (see DepotView). extra=0: new rows
-# are added client-side via JS ("Insertar fila" in depot.html), same
-# pattern as LeftRightRowFormSet above.
+# are added client-side via JS ("Insertar fila" in depot.html). Unlike
+# LeftRightRowForm's rows above, DepotView still submits this whole
+# formset in one POST (no autosave here) -- see DepotView.post().
 DepotLinkFormSet = modelformset_factory(
     DepotLink, form=DepotLinkForm, extra=0, can_delete=True,
 )

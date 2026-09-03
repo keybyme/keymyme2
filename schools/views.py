@@ -4,7 +4,7 @@ from django.core.mail import EmailMessage
 from django.db.models import Q, Value
 from django.db.models.functions import Coalesce, Lower, NullIf
 from django.http import JsonResponse
-from django.shortcuts import redirect
+from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
 from django.views import View
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, TemplateView, UpdateView
@@ -12,7 +12,7 @@ from django.views.generic import CreateView, DeleteView, DetailView, ListView, T
 from vault.mixins import AjaxPartialTemplateMixin, ModuleAccessRequiredMixin
 
 from .forms import (
-    AmMidPmEntryForm, DepotLinkFormSet, EmployeeForm, LeftRightForm, LeftRightRowFormSet, RouteForm, SchoolForm,
+    AmMidPmEntryForm, DepotLinkFormSet, EmployeeForm, LeftRightForm, LeftRightRowForm, RouteForm, SchoolForm,
 )
 from .models import AmMidPmEntry, DepotLink, Employee, LeftRight, LeftRightRow, Route, School
 
@@ -405,7 +405,8 @@ class LeftsRightsDomainMixin:
         context["url_names"] = {
             base: self.url_name(base)
             for base in ("lefts_rights", "leftright_create", "leftright_detail",
-                         "leftright_update", "leftright_delete", "depot", "depot_list")
+                         "leftright_update", "leftright_delete", "leftright_row_save",
+                         "depot", "depot_list")
         }
         # depot_upload is a stateless mailer with no LeftRight/DepotLink
         # queries of its own (see DepotUploadView) -- one URL serves both
@@ -511,28 +512,70 @@ class LeftRightCreateView(LeftRightRouteNamesDatalistMixin, LeftsRightsDomainMix
 
 
 class LeftRightUpdateView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin, DetailView):
-    """Edit page for one LeftRight's content rows (LeftRightRowFormSet)
-    only — route_name/name are set once at creation (LeftRightCreateView)
-    and aren't editable here, so this isn't a ModelForm/UpdateView at all,
-    just a DetailView that also handles the formset's POST."""
+    """Edit page for one LeftRight's content rows. GET-only -- rows
+    autosave via AJAX (see LeftRightRowSaveView + leftright_form.html's
+    JS) the instant each one is added, edited, or removed, so there's no
+    Save/Cancel step and no POST handler here at all. route_name/name are
+    set once at creation (LeftRightCreateView) and aren't editable here."""
     model = LeftRight
     template_name = "schools/leftright_form.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context.setdefault("row_formset", LeftRightRowFormSet(instance=self.object, prefix="rows"))
+        # auto_id=False: these are rendered one-per-row with no formset
+        # prefix, so Django's default id="id_text" etc. would collide
+        # across rows -- the JS targets fields by class (lr-text/
+        # lr-address/...) instead, so no ids are needed at all.
+        context.setdefault(
+            "row_forms", [LeftRightRowForm(instance=row, auto_id=False) for row in self.object.rows.all()]
+        )
         return context
 
-    def post(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        row_formset = LeftRightRowFormSet(request.POST, instance=self.object, prefix="rows")
-        if row_formset.is_valid():
-            row_formset.save()
-            return redirect(self.get_success_url())
-        return self.render_to_response(self.get_context_data(row_formset=row_formset))
 
-    def get_success_url(self):
-        return self.lefts_rights_url(self.object.route_name)
+class LeftRightRowSaveView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin, View):
+    """Autosave endpoint backing every row on the Edit page
+    (leftright_form.html) -- POSTed to immediately on blur, and right when
+    a new row is added via Insertar fila/vinculo/Post Trip, so there's no
+    explicit Save step left to forget. `pk` in the URL is the parent
+    LeftRight (scoped to self.domain like everything else in this file so
+    a row can never be attached to the wrong domain's guide); `row_id` in
+    the POST body identifies the LeftRightRow being saved, blank for a
+    brand-new row -- in which case one is created here and its id handed
+    back in the JSON response so the page can target that same row (not
+    create a duplicate) on its next edit. `delete=1` deletes `row_id`
+    instead of saving it."""
+
+    def post(self, request, *args, **kwargs):
+        leftright = get_object_or_404(LeftRight, pk=kwargs["pk"], domain=self.domain)
+        row_id = request.POST.get("row_id") or None
+
+        if request.POST.get("delete") == "1":
+            if row_id:
+                LeftRightRow.objects.filter(pk=row_id, leftright=leftright).delete()
+            return JsonResponse({"ok": True, "deleted": True})
+
+        row_type = request.POST.get("row_type", "")
+        if row_type not in LeftRightRow.RowType.values:
+            return JsonResponse({"ok": False, "error": "Invalid row type."}, status=400)
+
+        try:
+            order = int(request.POST.get("order") or 0)
+        except ValueError:
+            order = 0
+
+        if row_id:
+            row = get_object_or_404(LeftRightRow, pk=row_id, leftright=leftright)
+        else:
+            row = LeftRightRow(leftright=leftright)
+
+        row.row_type = row_type
+        row.order = order
+        row.text = request.POST.get("text", "")[:255]
+        row.address = request.POST.get("address", "")[:255]
+        row.text_after = request.POST.get("text_after", "")[:255]
+        row.save()
+
+        return JsonResponse({"ok": True, "id": row.pk})
 
 
 class LeftRightDeleteView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin, DeleteView):

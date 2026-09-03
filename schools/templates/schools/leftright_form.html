@@ -13,6 +13,9 @@
             {% include "icons/link.html" with class="w-4 h-4" %} Depot
         </a>
         {% endif %}
+        <a href="{% url url_names.leftright_detail object.pk %}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
+            {% include "icons/printer.html" with class="w-4 h-4" %} Print
+        </a>
         <button type="button" onclick="lrAddRow('normal')" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
             {% include "icons/plus.html" with class="w-4 h-4" %} Insertar fila
         </button>
@@ -29,65 +32,100 @@
 
 {% if object %}
 <!-- Edit: content rows only -- route_name/name are set once at creation
-     (see the "else" branch below) and aren't editable here. -->
-{% if row_formset.non_form_errors %}
-<div class="mb-4 max-w-2xl rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-    {% for error in row_formset.non_form_errors %}<p>{{ error }}</p>{% endfor %}
-</div>
-{% endif %}
-<form id="lr-form" method="post" class="max-w-2xl rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-    {% csrf_token %}
-    {{ row_formset.management_form }}
-    <p class="mb-2 text-xs text-gray-400"># is this row's editing sequence (used only on this page). Leave the # field above blank to add at the end, or type one (e.g. 35) to insert there instead — between # 30 and # 40 — for "Insertar fila", "Insertar vinculo", and "Post Trip" alike. Never shown when printing.</p>
+     (see the "else" branch below) and aren't editable here. Every row
+     autosaves (see the script below) -- no Save/Cancel here anymore. -->
+<form id="lr-csrf-form" class="hidden">{% csrf_token %}</form>
+<div id="lr-form" class="max-w-2xl rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+    <p class="mb-2 flex flex-wrap items-center justify-between gap-2 text-xs text-gray-400">
+        <span># is this row's editing sequence (used only on this page). Leave the # field above blank to add at the end, or type one (e.g. 35) to insert there instead — between # 30 and # 40 — for "Insertar fila", "Insertar vinculo", and "Post Trip" alike. Never shown when printing.</span>
+        <span id="lr-save-status" class="flex-none font-medium"></span>
+    </p>
     <div id="lr-rows" class="space-y-3">
-        {% for row_form in row_formset %}
-        <div class="lr-row">
-            {% if row_form.errors %}
-            <div class="mb-1 text-xs text-red-600">{{ row_form.errors }}</div>
-            {% endif %}
-            <div class="flex items-start gap-3">
-                {{ row_form.id }}
-                {{ row_form.row_type }}
-                {{ row_form.order }}
-                <span class="lr-seq mt-2 w-8 flex-none text-right font-mono text-xs font-bold text-gray-600 select-none">{{ row_form.order.value }}</span>
-                <div class="hidden">{{ row_form.DELETE }}</div>
-                <div class="flex-1 {% if row_form.instance.row_type == 'link' %}flex gap-2{% else %}space-y-2{% endif %}">
-                    {{ row_form.text }}
-                    {% if row_form.instance.row_type == "link" %}
-                    {{ row_form.address }}
-                    {{ row_form.text_after }}
-                    {% endif %}
-                </div>
-                <button type="button" onclick="lrRemoveRow(this)" class="mt-2 flex-none text-crimson hover:text-red-800" title="Remove">
-                    {% include "icons/trash.html" with class="w-5 h-5" %}
-                </button>
+        {% for row_form in row_forms %}
+        <div class="lr-row flex items-start gap-3" data-row-id="{{ row_form.instance.pk }}">
+            {{ row_form.row_type }}
+            {{ row_form.order }}
+            <span class="lr-seq mt-2 w-8 flex-none text-right font-mono text-xs font-bold text-gray-600 select-none">{{ row_form.order.value }}</span>
+            <div class="flex-1 {% if row_form.instance.row_type == 'link' %}flex gap-2{% else %}space-y-2{% endif %}">
+                {{ row_form.text }}
+                {% if row_form.instance.row_type == "link" %}
+                {{ row_form.address }}
+                {{ row_form.text_after }}
+                {% endif %}
             </div>
+            <button type="button" onclick="lrRemoveRow(this)" class="mt-2 flex-none text-crimson hover:text-red-800" title="Remove">
+                {% include "icons/trash.html" with class="w-5 h-5" %}
+            </button>
         </div>
         {% endfor %}
     </div>
-
-    <div class="mt-6 flex items-center gap-3">
-        <button type="submit" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700">Save</button>
-        <a href="{% url url_names.lefts_rights %}?route={{ object.route_name|urlencode }}" class="text-sm font-medium text-gray-600 hover:text-gray-900">Cancel</a>
-    </div>
-</form>
+</div>
 
 <script>
-// There is no autosave on this page -- rows added via lrAddRow/lrAddPostTrip
-// (and rows removed via lrRemoveRow) only exist in the browser until the
-// Save button is actually clicked. lrDirty tracks whether there's anything
-// unsaved so the beforeunload handler below can warn the user before they
-// navigate away (top nav buttons, Cancel, browser back/close) and silently
-// lose those rows -- this is what was happening: rows looked "saved" to the
-// user but were only ever in the DOM.
-let lrDirty = false;
-const lrForm = document.getElementById('lr-form');
-lrForm.addEventListener('input', () => { lrDirty = true; });
-lrForm.addEventListener('submit', () => { lrDirty = false; });
-window.addEventListener('beforeunload', (e) => {
-    if (!lrDirty) return;
-    e.preventDefault();
-    e.returnValue = '';
+// Every row autosaves -- see lrAutosaveRow/lrRemoveRow below -- so there's
+// no Save/Cancel step, and nothing here can ever be "lost" by navigating
+// away. Each .lr-row's data-row-id is the LeftRightRow pk once it exists
+// in the database (blank for a row just added client-side and not yet
+// autosaved even once).
+const LR_ROW_SAVE_URL = "{% url url_names.leftright_row_save object.pk %}";
+
+function lrCsrfToken() {
+    return document.querySelector('#lr-csrf-form [name=csrfmiddlewaretoken]').value;
+}
+
+const lrSaveStatus = document.getElementById('lr-save-status');
+let lrSaveStatusTimer = null;
+function lrSetStatus(text, isError) {
+    if (!lrSaveStatus) return;
+    clearTimeout(lrSaveStatusTimer);
+    lrSaveStatus.textContent = text;
+    lrSaveStatus.className = 'flex-none font-medium ' + (isError ? 'text-red-600' : 'text-green-600');
+    if (!isError && text === 'Saved') {
+        lrSaveStatusTimer = setTimeout(() => { lrSaveStatus.textContent = ''; }, 2000);
+    }
+}
+
+// Sends the CURRENT values of one row's fields to LeftRightRowSaveView --
+// an upsert: creates the row (and remembers its new id via data-row-id) if
+// this is the first time it's ever been saved, otherwise updates it in
+// place. Called right after a row is built (lrAddRow/lrAddPostTrip below)
+// and again on every subsequent edit (see the focusout listener below).
+async function lrAutosaveRow(rowEl) {
+    const formData = new FormData();
+    formData.append('row_id', rowEl.dataset.rowId || '');
+    formData.append('row_type', rowEl.querySelector('.lr-row-type').value);
+    formData.append('order', rowEl.querySelector('.lr-order').value);
+    formData.append('text', rowEl.querySelector('.lr-text').value);
+    const addressInput = rowEl.querySelector('.lr-address');
+    const textAfterInput = rowEl.querySelector('.lr-text-after');
+    formData.append('address', addressInput ? addressInput.value : '');
+    formData.append('text_after', textAfterInput ? textAfterInput.value : '');
+
+    lrSetStatus('Saving…');
+    try {
+        const response = await fetch(LR_ROW_SAVE_URL, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': lrCsrfToken() },
+            body: formData,
+        });
+        const data = await response.json();
+        if (!response.ok || !data.ok) {
+            lrSetStatus((data && data.error) || 'Error saving — try again', true);
+            return;
+        }
+        if (data.id) rowEl.dataset.rowId = data.id;
+        lrSetStatus('Saved');
+    } catch (err) {
+        lrSetStatus('Error saving — try again', true);
+    }
+}
+
+// Autosave on blur (not every keystroke) -- one request per row per edit,
+// covering text/address/text_after alike via a single delegated listener
+// (focusout bubbles, unlike blur, so this works for rows added later too).
+document.getElementById('lr-rows').addEventListener('focusout', (event) => {
+    if (!event.target.matches('.lr-text, .lr-address, .lr-text-after')) return;
+    lrAutosaveRow(event.target.closest('.lr-row'));
 });
 
 const LR_INPUT_CLASSES = "block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500";
@@ -112,50 +150,41 @@ const LR_EXTRA_CLASSES = {
 // read/shown on this edit page -- LeftRightDetailView (the printable page)
 // ignores `order` beyond using it to sort rows.
 function lrMaxOrder() {
-    const orders = Array.from(document.querySelectorAll('#lr-rows input[name$="-order"]')).map((i) => parseInt(i.value, 10) || 0);
+    const orders = Array.from(document.querySelectorAll('#lr-rows .lr-order')).map((i) => parseInt(i.value, 10) || 0);
     return orders.length ? Math.max(...orders) : 0;
 }
 function lrNextOrder() {
     return lrMaxOrder() + 10;
 }
 
-// Builds one new, unsaved LeftRightRow formset entry (not yet attached to
-// the page). `kind` is 'normal' ("Insertar fila": one plain text field),
-// 'link' ("Insertar vinculo": ONE row with three fields side by side --
-// text, address, text_after, all part of the same formset entry, not
-// separate rows -- the middle field is always a plain address that
-// LeftRightDetailView turns into a clickable Google Maps GPS link at
-// render time, see LeftRightRow), or 'title' ("Post Trip": one field
+// Builds one new LeftRightRow row (not yet saved -- see lrAutosaveRow,
+// called right after this by every caller below). `kind` is 'normal'
+// ("Insertar fila": one plain text field), 'link' ("Insertar vinculo":
+// text/address/text_after side by side -- the middle field is always a
+// plain address that LeftRightDetailView turns into a clickable GPS link
+// at render time, see LeftRightRow), or 'title' ("Post Trip": one field
 // styled like rows 1-2, optionally pre-filled via `presetText`). `order`
 // is this row's "#" (sequence) value -- callers decide where it goes.
-// The formset prefix index (independent from `order`) only ever increases
-// (never reused or renumbered after a removal -- see lrRemoveRow), so
-// newly added rows can never collide with each other or with existing
-// ones.
 function lrBuildRow(kind, presetText, order) {
-    const totalInput = document.getElementById('id_rows-TOTAL_FORMS');
-    const index = parseInt(totalInput.value, 10);
-    const prefix = `rows-${index}`;
     const textClass = `${LR_INPUT_CLASSES} ${LR_EXTRA_CLASSES[kind] || ''}`.trim();
     const textValue = presetText ? presetText.replace(/"/g, '&quot;') : '';
 
     const wrapper = document.createElement('div');
     wrapper.className = 'lr-row flex items-start gap-3';
+    wrapper.dataset.rowId = '';
     wrapper.innerHTML = `
         <span class="lr-seq mt-2 w-8 flex-none text-right font-mono text-xs font-bold text-gray-600 select-none">${order}</span>
-        <input type="hidden" name="${prefix}-row_type" value="${kind}">
-        <input type="hidden" name="${prefix}-order" value="${order}">
+        <input type="hidden" class="lr-row-type" value="${kind}">
+        <input type="hidden" class="lr-order" value="${order}">
         <div class="flex-1 ${kind === 'link' ? 'flex gap-2' : 'space-y-2'}">
-            <input type="text" name="${prefix}-text" placeholder="Text…" value="${textValue}" class="${textClass}">
+            <input type="text" class="lr-text ${textClass}" placeholder="Text…" value="${textValue}">
             ${kind === 'link' ? `
-            <input type="text" name="${prefix}-address" placeholder="Address…" class="${LR_INPUT_CLASSES}">
-            <input type="text" name="${prefix}-text_after" placeholder="Text…" class="${LR_INPUT_CLASSES}">
+            <input type="text" class="lr-address ${LR_INPUT_CLASSES}" placeholder="Address…">
+            <input type="text" class="lr-text-after ${LR_INPUT_CLASSES}" placeholder="Text…">
             ` : ''}
         </div>
         <button type="button" onclick="lrRemoveRow(this)" class="mt-2 flex-none text-crimson hover:text-red-800" title="Remove">${LR_TRASH_SVG}</button>
     `;
-    totalInput.value = index + 1;
-    lrDirty = true;
     return wrapper;
 }
 
@@ -174,7 +203,7 @@ function lrRequestedOrder() {
 function lrInsertAt(wrapper, order) {
     const rowsContainer = document.getElementById('lr-rows');
     const nextRow = Array.from(rowsContainer.querySelectorAll('.lr-row')).find((row) => {
-        const orderInput = row.querySelector('input[name$="-order"]');
+        const orderInput = row.querySelector('.lr-order');
         return orderInput && parseInt(orderInput.value, 10) > order;
     });
     if (nextRow) {
@@ -184,21 +213,26 @@ function lrInsertAt(wrapper, order) {
     }
 }
 
-// Adds a row via "Insertar fila"/"Insertar vinculo". If #lr-insert-seq is
-// blank, appends at the end (# = current max + 10), matching
-// LeftRightRow.Meta.ordering -- same as before. If it holds a number, the
-// new row is inserted there instead (see lrInsertAt). The field is cleared
-// after each use so it doesn't silently apply again next time.
+// Adds a row via "Insertar fila"/"Insertar vinculo", then autosaves it
+// immediately (so it's in the database right away, not just on-screen).
+// If #lr-insert-seq is blank, appends at the end (# = current max + 10),
+// matching LeftRightRow.Meta.ordering -- same as before. If it holds a
+// number, the new row is inserted there instead (see lrInsertAt). The
+// field is cleared after each use so it doesn't silently apply again next
+// time.
 function lrAddRow(kind, presetText) {
     const requestedOrder = lrRequestedOrder();
+    let wrapper;
 
     if (isNaN(requestedOrder)) {
-        document.getElementById('lr-rows').appendChild(lrBuildRow(kind, presetText, lrNextOrder()));
-        return;
+        wrapper = lrBuildRow(kind, presetText, lrNextOrder());
+        document.getElementById('lr-rows').appendChild(wrapper);
+    } else {
+        wrapper = lrBuildRow(kind, presetText, requestedOrder);
+        lrInsertAt(wrapper, requestedOrder);
+        document.getElementById('lr-insert-seq').value = '';
     }
-
-    lrInsertAt(lrBuildRow(kind, presetText, requestedOrder), requestedOrder);
-    document.getElementById('lr-insert-seq').value = '';
+    lrAutosaveRow(wrapper);
 }
 
 // "Post Trip" button: a blank spacer row, the title-styled "*** POST TRIP
@@ -208,39 +242,67 @@ function lrAddRow(kind, presetText) {
 // consecutive # values past the current max); a number inserts the block
 // there instead, using that number and the next two (e.g. 35 -> 35/36/37,
 // landing right after whatever's at 30 and before whatever's at 40) --
-// each row is inserted in turn so the three land in that same order.
+// each row is inserted in turn so the three land in that same order, then
+// all three autosave.
 function lrAddPostTrip() {
     const requestedOrder = lrRequestedOrder();
+    const rowsContainer = document.getElementById('lr-rows');
+    let rows;
 
     if (isNaN(requestedOrder)) {
-        const rowsContainer = document.getElementById('lr-rows');
-        rowsContainer.appendChild(lrBuildRow('normal', '', lrNextOrder()));
-        rowsContainer.appendChild(lrBuildRow('title', '*** POST TRIP BUS NOW ***', lrNextOrder()));
-        rowsContainer.appendChild(lrBuildRow('normal', '', lrNextOrder()));
+        const r1 = lrBuildRow('normal', '', lrNextOrder());
+        rowsContainer.appendChild(r1);
+        const r2 = lrBuildRow('title', '*** POST TRIP BUS NOW ***', lrNextOrder());
+        rowsContainer.appendChild(r2);
+        const r3 = lrBuildRow('normal', '', lrNextOrder());
+        rowsContainer.appendChild(r3);
+        rows = [r1, r2, r3];
+    } else {
+        const r1 = lrBuildRow('normal', '', requestedOrder);
+        lrInsertAt(r1, requestedOrder);
+        const r2 = lrBuildRow('title', '*** POST TRIP BUS NOW ***', requestedOrder + 1);
+        lrInsertAt(r2, requestedOrder + 1);
+        const r3 = lrBuildRow('normal', '', requestedOrder + 2);
+        lrInsertAt(r3, requestedOrder + 2);
+        rows = [r1, r2, r3];
+        document.getElementById('lr-insert-seq').value = '';
+    }
+    rows.forEach((row) => lrAutosaveRow(row));
+}
+
+// Trash icon: deletes the row via AJAX (LeftRightRowSaveView, delete=1) if
+// it's ever been autosaved (data-row-id set), otherwise it was never
+// saved to begin with -- just remove it from the page, no request needed.
+async function lrRemoveRow(button) {
+    const row = button.closest('.lr-row');
+    const rowId = row.dataset.rowId;
+
+    if (!rowId) {
+        row.remove();
         return;
     }
 
-    lrInsertAt(lrBuildRow('normal', '', requestedOrder), requestedOrder);
-    lrInsertAt(lrBuildRow('title', '*** POST TRIP BUS NOW ***', requestedOrder + 1), requestedOrder + 1);
-    lrInsertAt(lrBuildRow('normal', '', requestedOrder + 2), requestedOrder + 2);
-    document.getElementById('lr-insert-seq').value = '';
-}
+    const formData = new FormData();
+    formData.append('row_id', rowId);
+    formData.append('delete', '1');
 
-// Existing (already-saved) rows carry a DELETE checkbox from the formset
-// (can_delete=True) -- check it and hide the row so it's still submitted
-// (marks it for deletion on save). Rows just added by lrAddRow() above
-// have no such checkbox -- those aren't in the database yet, so they're
-// simply removed from the page.
-function lrRemoveRow(button) {
-    const row = button.closest('.lr-row');
-    const deleteInput = row.querySelector('input[name$="-DELETE"]');
-    if (deleteInput) {
-        deleteInput.checked = true;
-        row.style.display = 'none';
-    } else {
+    lrSetStatus('Deleting…');
+    try {
+        const response = await fetch(LR_ROW_SAVE_URL, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': lrCsrfToken() },
+            body: formData,
+        });
+        const data = await response.json();
+        if (!response.ok || !data.ok) {
+            lrSetStatus((data && data.error) || 'Error deleting — try again', true);
+            return;
+        }
         row.remove();
+        lrSetStatus('Saved');
+    } catch (err) {
+        lrSetStatus('Error deleting — try again', true);
     }
-    lrDirty = true;
 }
 </script>
 
