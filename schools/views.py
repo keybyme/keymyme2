@@ -15,10 +15,14 @@ from vault.mixins import AjaxPartialTemplateMixin, ModuleAccessRequiredMixin
 from vault.routing import GeocodingRateLimited, geocode_address, get_route_legs
 
 from .forms import (
-    AmMidPmEntryForm, DepotLinkFormSet, EmployeeForm, LeftRightAddressListForm, LeftRightForm, LeftRightRowForm,
-    RouteForm, SchoolForm,
+    AmMidPmEntryForm, DepotLinkFormSet, EmployeeForm, LeftRightAddressListForm, LeftRightForm,
+    LeftRightPhotoUploadForm, LeftRightRowForm, RouteForm, SchoolForm,
 )
-from .models import AmMidPmEntry, DepotLink, Employee, LeftRight, LeftRightAddressList, LeftRightRow, Route, School
+from .leftright_photo_ocr import extract_text, parse_photo_text
+from .models import (
+    AmMidPmEntry, DepotLink, Employee, LeftRight, LeftRightAddressList, LeftRightPhotoUpload, LeftRightRow, Route,
+    School,
+)
 
 # Not owner-scoped on purpose: School/Employee/Route/AmMidPmEntry/LeftRight
 # are shared reference catalogs (MCPS public schools, MCPS transportation
@@ -413,6 +417,8 @@ class LeftsRightsDomainMixin:
                          "leftright_addresses", "leftright_generate_rows",
                          "leftright_create_from_addresses", "leftright_route_list",
                          "leftright_route_delete", "leftright_address_list_delete",
+                         "leftright_photo_upload", "leftright_photo_upload_delete",
+                         "leftright_generate_rows_from_photo",
                          "depot", "depot_list")
         }
         # depot_upload is a stateless mailer with no LeftRight/DepotLink
@@ -591,6 +597,11 @@ class LeftRightAddressListView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin
                 initial={"route_name": route_name} if route_name else None,
             ),
         )
+        context.setdefault("photo_upload_form", LeftRightPhotoUploadForm())
+        context["photo_upload"] = (
+            LeftRightPhotoUpload.objects.filter(domain=self.domain, route_name=route_name).first()
+            if route_name else None
+        )
         return context
 
     def post(self, request, *args, **kwargs):
@@ -643,6 +654,85 @@ class LeftRightAddressListDeleteView(LeftsRightsDomainMixin, ModuleAccessRequire
             LeftRightAddressList.objects.filter(domain=self.domain, route_name=route_name).delete()
             messages.success(request, f'Deleted the saved addresses for route "{route_name}".')
         return redirect(list_url)
+
+
+class LeftRightPhotoUploadView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin, View):
+    """Backs the "Upload a photo" panel on the "Addresses" page
+    (leftright_addresses.html) -- OCRs a photo of an already-existing Left
+    & Right sheet (schools/leftright_photo_ocr.py) and saves it as a
+    LeftRightPhotoUpload, always fully replacing whatever was uploaded
+    before for that (domain, route_name) -- same "always overrides"
+    pattern as LeftRightAddressListView. Doesn't touch any LeftRight/
+    LeftRightRow itself; LeftRightGenerateRowsFromPhotoView (button on the
+    Edit page) is what turns the OCR'd text into a guide's actual rows
+    later, matched purely by route_name + domain -- so a photo can be
+    uploaded here before its LeftRight even exists, same as the address
+    list."""
+
+    def post(self, request, *args, **kwargs):
+        route_name = request.POST.get("route_name", "").strip()
+        addresses_url = reverse_lazy(self.url_name("leftright_addresses"))
+        if not route_name:
+            messages.error(request, "Type a route name before uploading a photo.")
+            return redirect(addresses_url)
+
+        redirect_url = str(addresses_url) + "?" + urlencode({"route": route_name})
+        instance = LeftRightPhotoUpload.objects.filter(domain=self.domain, route_name=route_name).first()
+        form = LeftRightPhotoUploadForm(request.POST, request.FILES, instance=instance)
+        if not form.is_valid():
+            for errors in form.errors.values():
+                for error in errors:
+                    messages.error(request, error)
+            return redirect(redirect_url)
+
+        uploaded_file = form.cleaned_data["image"]
+        try:
+            uploaded_file.seek(0)
+            raw_text = extract_text(uploaded_file)
+            uploaded_file.seek(0)  # rewind so ModelForm.save() can still write it to storage
+        except Exception as exc:
+            raw_text = ""
+            messages.warning(request, f"OCR couldn't run ({exc}) — the photo was saved anyway.")
+
+        photo_upload = form.save(commit=False)
+        photo_upload.domain = self.domain
+        photo_upload.route_name = route_name
+        photo_upload.raw_text = raw_text
+        photo_upload.save()
+
+        if raw_text.strip():
+            messages.success(
+                request,
+                f'Photo uploaded for route "{route_name}" — open its Left & Right guide\'s Edit page and use '
+                f'"Generate from Photo" to draft rows from it.',
+            )
+        else:
+            messages.warning(request, "Photo uploaded, but OCR couldn't read any text from it.")
+        return redirect(redirect_url)
+
+
+class LeftRightPhotoUploadDeleteView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin, TemplateView):
+    """Confirm-then-delete for one uploaded photo, from the trash icon next
+    to the photo preview on the "Addresses" page -- removes the
+    LeftRightPhotoUpload (and its underlying file, see
+    LeftRightPhotoUpload.delete()) for (domain, route_name). Doesn't touch
+    any LeftRight/LeftRightRow/LeftRightAddressList -- same scope as
+    LeftRightAddressListDeleteView, just for the photo instead of the
+    address list."""
+    template_name = "schools/leftright_photo_upload_confirm_delete.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["route_name"] = self.request.GET.get("route", "").strip()
+        return context
+
+    def post(self, request, *args, **kwargs):
+        route_name = request.POST.get("route", "").strip()
+        addresses_url = reverse_lazy(self.url_name("leftright_addresses"))
+        if route_name:
+            LeftRightPhotoUpload.objects.filter(domain=self.domain, route_name=route_name).delete()
+            messages.success(request, f'Deleted the uploaded photo for route "{route_name}".')
+        return redirect(str(addresses_url) + "?" + urlencode({"route": route_name}))
 
 
 class LeftRightRouteNamesDatalistMixin:
@@ -722,6 +812,11 @@ class LeftRightUpdateView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin, Det
         # Only offer "Generate from Addresses" when there's actually
         # something to generate from -- see LeftRightGenerateRowsView.
         context["has_address_list"] = LeftRightAddressList.objects.filter(
+            domain=self.domain, route_name=self.object.route_name
+        ).exists()
+        # Same idea for "Generate from Photo" -- see
+        # LeftRightGenerateRowsFromPhotoView.
+        context["has_photo_upload"] = LeftRightPhotoUpload.objects.filter(
             domain=self.domain, route_name=self.object.route_name
         ).exists()
         return context
@@ -828,6 +923,61 @@ class LeftRightGenerateRowsView(LeftsRightsDomainMixin, ModuleAccessRequiredMixi
         else:
             messages.success(
                 request, f"Generated {row_count} row(s) from {address_count} addresses — review and adjust as needed."
+            )
+        return redirect(edit_url)
+
+
+def _generate_rows_from_photo(leftright, domain):
+    """Turns whatever LeftRightPhotoUpload matches (domain,
+    leftright.route_name) into LeftRightRow rows on `leftright`, appended
+    after whatever's already there -- the photo counterpart to
+    _generate_rows_from_addresses, backing LeftRightGenerateRowsFromPhotoView.
+    Uses schools/leftright_photo_ocr.py's line classifier, which -- unlike
+    _generate_rows_from_addresses' OSRM-driven directions -- is a rough
+    guess at best; that's fine here since every row it creates lands on the
+    Edit page's normal, already-editable rows (see LeftRightRowSaveView).
+
+    Returns (row_count, None) on success, or (None, error_message) if
+    nothing could be generated -- never raises, callers surface the
+    message via django.contrib.messages."""
+    photo_upload = LeftRightPhotoUpload.objects.filter(domain=domain, route_name=leftright.route_name).first()
+    if photo_upload is None:
+        return None, (
+            f'No uploaded photo for route "{leftright.route_name}" — upload one on the Addresses page first.'
+        )
+    if not photo_upload.raw_text.strip():
+        return None, "OCR couldn't read any text from the uploaded photo — try re-uploading a clearer one."
+
+    parsed_lines = parse_photo_text(photo_upload.raw_text)
+    if not parsed_lines:
+        return None, "OCR couldn't read any text from the uploaded photo — try re-uploading a clearer one."
+
+    order = leftright.rows.aggregate(Max("order"))["order__max"] or 0
+    new_rows = []
+    for row_type, text, address in parsed_lines:
+        order += 10
+        new_rows.append(LeftRightRow(leftright=leftright, order=order, row_type=row_type, text=text, address=address))
+    LeftRightRow.objects.bulk_create(new_rows)
+    return len(new_rows), None
+
+
+class LeftRightGenerateRowsFromPhotoView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin, View):
+    """Backs the "Generate from Photo" button on the Edit page, for a
+    LeftRight that already exists -- see _generate_rows_from_photo for what
+    this actually does. Synchronous like LeftRightGenerateRowsView, but
+    OCR already ran at upload time (LeftRightPhotoUploadView), so this is
+    just a bulk_create -- fast, no redirect delay to warn about."""
+
+    def post(self, request, *args, **kwargs):
+        leftright = get_object_or_404(LeftRight, pk=kwargs["pk"], domain=self.domain)
+        edit_url = reverse_lazy(self.url_name("leftright_update"), kwargs={"pk": leftright.pk})
+
+        row_count, error = _generate_rows_from_photo(leftright, self.domain)
+        if error:
+            messages.error(request, error)
+        else:
+            messages.success(
+                request, f"Generated {row_count} row(s) from the uploaded photo — review and adjust as needed."
             )
         return redirect(edit_url)
 

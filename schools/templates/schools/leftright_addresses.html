@@ -43,4 +43,36 @@
         {% endif %}
     </div>
 </form>
+
+<!-- Upload a photo of an existing Left & Right sheet -- OCR'd on upload
+     (LeftRightPhotoUploadView), turned into draft rows later via
+     "Generate from Photo" on that route's Edit page
+     (LeftRightGenerateRowsFromPhotoView). `route_name` here is its own
+     text field, not tied to the address-list form above -- a photo can be
+     uploaded for a brand-new route that has no saved address list at
+     all. -->
+<div class="mt-6 max-w-2xl rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+    <h2 class="mb-1 flex items-center gap-2 text-sm font-semibold text-gray-900">
+        {% include "icons/photo.html" with class="w-4 h-4" %} Upload a photo
+    </h2>
+    <p class="mb-4 text-xs text-gray-500">Have an existing Left &amp; Right sheet on paper? Upload a photo of it here — it's OCR'd, and its Edit page gets a "Generate from Photo" button to draft rows from it. Uploading always fully replaces whatever photo was previously uploaded for this route.</p>
+    <form method="post" action="{% url url_names.leftright_photo_upload %}" enctype="multipart/form-data" class="flex flex-wrap items-end gap-3">
+        {% csrf_token %}
+        <div class="min-w-[220px] flex-1">
+            <label for="lr-photo-route" class="mb-1 block text-sm font-medium text-gray-700">Route</label>
+            <input type="text" id="lr-photo-route" name="route_name" value="{{ selected_route }}" list="lr-addr-route-names-datalist" autocomplete="off" placeholder="Type the route name…" class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
+        </div>
+        {{ photo_upload_form.image }}
+        <button type="submit" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700">Upload &amp; OCR</button>
+    </form>
+    {% if photo_upload %}
+    <div class="mt-4 flex items-center gap-3 border-t border-gray-100 pt-4">
+        <img src="{{ photo_upload.image.url }}" alt="Uploaded photo for {{ selected_route }}" class="h-16 w-16 flex-none rounded-lg border border-gray-200 object-cover">
+        <p class="flex-1 text-xs text-gray-500">Uploaded {{ photo_upload.updated_at }}{% if photo_upload.raw_text %} — text was read successfully.{% else %} — OCR couldn't read any text from it.{% endif %}</p>
+        <a href="{% url url_names.leftright_photo_upload_delete %}?route={{ selected_route|urlencode }}" class="flex-none text-crimson hover:text-red-800" title="Delete this uploaded photo">
+            {% include "icons/trash.html" with class="w-5 h-5" %}
+        </a>
+    </div>
+    {% endif %}
+</div>
 {% endblock %}

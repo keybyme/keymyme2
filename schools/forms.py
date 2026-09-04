@@ -6,7 +6,10 @@ from django.forms import modelformset_factory
 
 from vault.forms import TailwindFormMixin
 
-from .models import AmMidPmEntry, DepotLink, Employee, LeftRight, LeftRightAddressList, LeftRightRow, Route, School
+from .models import (
+    AmMidPmEntry, DepotLink, Employee, LeftRight, LeftRightAddressList, LeftRightPhotoUpload, LeftRightRow, Route,
+    School,
+)
 
 MINUTES_SECONDS_RE = re.compile(r"^([0-5]?\d):([0-5]\d)$")
 
@@ -133,6 +136,21 @@ class LeftRightAddressListForm(TailwindFormMixin, forms.ModelForm):
         if len(lines) > 15:
             raise forms.ValidationError("Enter at most 15 addresses (one per line).")
         return "\n".join(lines)
+
+
+class LeftRightPhotoUploadForm(TailwindFormMixin, forms.ModelForm):
+    """Upload control in the "Upload a photo" panel on the "Addresses" page
+    (leftright_addresses.html). `route_name`/`domain` aren't form fields --
+    same convention as LeftRightAddressListForm's view-level handling --
+    the view (LeftRightPhotoUploadView) sets them from the panel's own
+    route_name field before saving, since the route picker on this page
+    already owns that value."""
+
+    class Meta:
+        model = LeftRightPhotoUpload
+        fields = ["image"]
+        labels = {"image": "Photo"}
+        widgets = {"image": forms.ClearableFileInput(attrs={"accept": "image/*"})}
 
 
 #  Extra text-input classes layered on top of TailwindFormMixin's base

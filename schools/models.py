@@ -241,6 +241,51 @@ class LeftRightAddressList(models.Model):
         return [line.strip() for line in self.addresses.splitlines() if line.strip()]
 
 
+class LeftRightPhotoUpload(models.Model):
+    """A photo of an already-existing Left & Right turn-by-turn sheet
+    (e.g. a paper guide already in use for a route), uploaded on the
+    "Addresses" page (LeftRightAddressListView) and OCR'd (schools/
+    leftright_photo_ocr.py, reusing vault.route_sheet_ocr's Tesseract
+    setup) into `raw_text` so LeftRightGenerateRowsFromPhotoView can turn
+    it into a first-draft set of LeftRightRow rows later, on the Edit page
+    for whichever LeftRight actually gets created for that route -- same
+    "enter it here, generate it there" split as LeftRightAddressList /
+    LeftRightGenerateRowsView, and there's no FK to LeftRight for the same
+    reason: a photo is often uploaded before its LeftRight even exists.
+
+    Uploading always fully replaces whatever was uploaded before for that
+    (domain, route_name) -- same "always overrides" pattern as
+    LeftRightAddressList -- rather than keeping any history.
+    """
+
+    domain = models.CharField(
+        max_length=20, choices=LeftRight.Domain.choices, default=LeftRight.Domain.MCPS, verbose_name="Domain",
+        help_text="Which module this photo belongs to — see LeftRight.domain.",
+    )
+    route_name = models.CharField(max_length=100, verbose_name="Route")
+    image = models.ImageField(upload_to="leftright_photos/%Y/%m/", verbose_name="Photo")
+    raw_text = models.TextField(blank=True, help_text="Raw OCR output, kept for troubleshooting a bad parse.")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Last updated")
+
+    class Meta:
+        ordering = ["route_name"]
+        verbose_name = "Left & Right photo upload"
+        verbose_name_plural = "Left & Right photo uploads"
+        constraints = [
+            models.UniqueConstraint(fields=["domain", "route_name"], name="unique_photo_upload_per_route_per_domain"),
+        ]
+
+    def __str__(self):
+        return f"{self.route_name} ({self.get_domain_display()})"
+
+    def delete(self, *args, **kwargs):
+        # Django doesn't delete the underlying file on model delete --
+        # same pattern as vault.RouteSheetUpload.delete().
+        if self.image:
+            self.image.delete(save=False)
+        super().delete(*args, **kwargs)
+
+
 class LeftRightRow(models.Model):
     """One row of freeform content in a LeftRight guide — the driver-facing
     cheat sheet (LeftRightDetailView) is built entirely from these, in

@@ -1,6 +1,9 @@
 from django.contrib import admin
 
-from .models import AmMidPmEntry, DepotLink, Employee, LeftRight, LeftRightAddressList, LeftRightRow, Route, School
+from .models import (
+    AmMidPmEntry, DepotLink, Employee, LeftRight, LeftRightAddressList, LeftRightPhotoUpload, LeftRightRow, Route,
+    School,
+)
 
 
 @admin.register(School)
@@ -53,3 +56,10 @@ class LeftRightAddressListAdmin(admin.ModelAdmin):
     list_display = ("route_name", "domain", "updated_at")
     list_filter = ("domain",)
     search_fields = ("route_name", "addresses")
+
+
+@admin.register(LeftRightPhotoUpload)
+class LeftRightPhotoUploadAdmin(admin.ModelAdmin):
+    list_display = ("route_name", "domain", "updated_at")
+    list_filter = ("domain",)
+    search_fields = ("route_name", "raw_text")
