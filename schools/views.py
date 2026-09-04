@@ -16,13 +16,13 @@ from vault.mixins import AjaxPartialTemplateMixin, ModuleAccessRequiredMixin
 from vault.routing import GeocodingRateLimited, geocode_address, get_route_legs
 
 from .forms import (
-    AmMidPmEntryForm, DepotLinkFormSet, EmployeeForm, LeftRightAddressListForm, LeftRightForm,
-    LeftRightPhotoUploadForm, LeftRightRowForm, RouteForm, SchoolForm,
+    AmMidPmEntryForm, DepotLinkFormSet, EmployeeForm, LeftRightAddressListForm, LeftRightForm, LeftRightRowForm,
+    LeftRightSheetUploadForm, RouteForm, SchoolForm,
 )
-from .leftright_photo_ocr import extract_text, parse_photo_text
+from .leftright_sheet_text import extract_sheet_text, parse_sheet_text, validate_sheet_file
 from .models import (
-    AmMidPmEntry, DepotLink, Employee, LeftRight, LeftRightAddressList, LeftRightPhotoUpload, LeftRightRow, Route,
-    School,
+    AmMidPmEntry, DepotLink, Employee, LEFTRIGHT_SHEET_ALLOWED_EXTENSIONS, LEFTRIGHT_SHEET_IMAGE_EXTENSIONS,
+    LeftRight, LeftRightAddressList, LeftRightRow, LeftRightSheetUpload, Route, School,
 )
 
 # Not owner-scoped on purpose: School/Employee/Route/AmMidPmEntry/LeftRight
@@ -418,8 +418,8 @@ class LeftsRightsDomainMixin:
                          "leftright_addresses", "leftright_generate_rows",
                          "leftright_create_from_addresses", "leftright_route_list",
                          "leftright_route_delete", "leftright_address_list_delete",
-                         "leftright_photo_upload", "leftright_photo_upload_delete",
-                         "leftright_generate_rows_from_photo",
+                         "leftright_sheet_upload", "leftright_sheet_upload_delete",
+                         "leftright_generate_rows_from_sheet",
                          "depot", "depot_list")
         }
         # depot_upload is a stateless mailer with no LeftRight/DepotLink
@@ -598,10 +598,10 @@ class LeftRightAddressListView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin
                 initial={"route_name": route_name} if route_name else None,
             ),
         )
-        context.setdefault("photo_upload_form", LeftRightPhotoUploadForm())
-        context["photo_uploads"] = (
-            LeftRightPhotoUpload.objects.filter(domain=self.domain, route_name=route_name)
-            if route_name else LeftRightPhotoUpload.objects.none()
+        context.setdefault("sheet_upload_form", LeftRightSheetUploadForm())
+        context["sheet_uploads"] = (
+            LeftRightSheetUpload.objects.filter(domain=self.domain, route_name=route_name)
+            if route_name else LeftRightSheetUpload.objects.none()
         )
         return context
 
@@ -657,25 +657,68 @@ class LeftRightAddressListDeleteView(LeftsRightsDomainMixin, ModuleAccessRequire
         return redirect(list_url)
 
 
-LEFTRIGHT_PHOTO_MAX_FILES = 10
+LEFTRIGHT_SHEET_MAX_FILES = 10
 
 
-class LeftRightPhotoUploadView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin, View):
-    """Backs the "Upload photos" panel on the "Addresses" page
-    (leftright_addresses.html) -- OCRs each uploaded photo of an already-
-    existing Left & Right sheet (schools/leftright_photo_ocr.py) and saves
-    one LeftRightPhotoUpload row per file, ADDED after whatever's already
-    uploaded for that (domain, route_name) rather than replacing it (see
-    LeftRightPhotoUpload) -- a long route's paper sheet often spans more
-    than one photo. Each file is validated on its own via a plain
-    forms.ImageField() (not this app's LeftRightPhotoUploadForm, which
-    only backs the panel's widget -- see that form's docstring), so one bad
-    file in a multi-file upload doesn't sink the good ones. Doesn't touch
-    any LeftRight/LeftRightRow itself; LeftRightGenerateRowsFromPhotoView
-    (button on the Edit page) is what turns the OCR'd text into a guide's
-    actual rows later, matched purely by route_name + domain -- so photos
-    can be uploaded here before their LeftRight even exists, same as the
-    address list."""
+def _validate_and_extract_sheet_file(f):
+    """Validates one uploaded file for LeftRightSheetUploadView --
+    extension whitelist, then a real open-and-verify appropriate to that
+    type (Pillow for images via forms.ImageField, schools/
+    leftright_sheet_text.validate_sheet_file for PDF/DOCX) -- and extracts
+    its text. Returns (cleaned_file, raw_text, warning) on success, where
+    `warning` is set (raw_text left empty) instead of failing outright if
+    the file is genuinely valid but text extraction itself broke (e.g.
+    Tesseract being unavailable) -- a corrupted/mislabeled file is a hard
+    reject (raises forms.ValidationError), a valid file with no readable
+    text is not. `cleaned_file` is `f` itself for PDF/DOCX, or the
+    Pillow-validated/rewound file forms.ImageField.clean() returns for
+    images -- either way it's what gets saved to LeftRightSheetUpload.file,
+    already rewound to the start."""
+    extension = f.name.rsplit(".", 1)[-1].lower() if "." in f.name else ""
+    if extension not in LEFTRIGHT_SHEET_ALLOWED_EXTENSIONS:
+        raise forms.ValidationError(
+            f'"{f.name}": not a supported file type. Allowed: photos, PDF, or DOCX.'
+        )
+
+    if extension in LEFTRIGHT_SHEET_IMAGE_EXTENSIONS:
+        try:
+            cleaned_file = forms.ImageField().clean(f)
+        except forms.ValidationError as exc:
+            raise forms.ValidationError(f'"{f.name}": ' + " ".join(exc.messages)) from exc
+    else:
+        try:
+            validate_sheet_file(f, extension)
+        except ValueError as exc:
+            raise forms.ValidationError(f'"{f.name}": {exc}.') from exc
+        cleaned_file = f
+
+    cleaned_file.seek(0)
+    try:
+        raw_text = extract_sheet_text(cleaned_file, extension)
+        warning = None
+    except Exception as exc:
+        raw_text = ""
+        warning = f'"{f.name}": couldn\'t read any text from this file ({exc}) — it was saved anyway.'
+    cleaned_file.seek(0)  # rewind so the file field save below still writes it to storage
+    return cleaned_file, raw_text, warning
+
+
+class LeftRightSheetUploadView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin, View):
+    """Backs the "Upload photos or documents" panel on the "Addresses" page
+    (leftright_addresses.html) -- extracts text from each uploaded page of
+    an already-existing Left & Right sheet (a photo, PDF, or DOCX -- see
+    schools/leftright_sheet_text.py) and saves one LeftRightSheetUpload
+    row per file, ADDED after whatever's already uploaded for that
+    (domain, route_name) rather than replacing it (see
+    LeftRightSheetUpload) -- a long route's paper sheet often spans more
+    than one file. Each file is validated on its own
+    (_validate_and_extract_sheet_file), so one bad file in a multi-file
+    upload doesn't sink the good ones. Doesn't touch any LeftRight/
+    LeftRightRow itself; LeftRightGenerateRowsFromSheetView (button on the
+    Edit page) is what turns the extracted text into a guide's actual rows
+    later, matched purely by route_name + domain -- so files can be
+    uploaded here before their LeftRight even exists, same as the address
+    list."""
 
     def post(self, request, *args, **kwargs):
         route_name = request.POST.get("route_name", "").strip()
@@ -684,73 +727,66 @@ class LeftRightPhotoUploadView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin
             str(addresses_url) + "?" + urlencode({"route": route_name}) if route_name else str(addresses_url)
         )
         if not route_name:
-            messages.error(request, "Type a route name before uploading a photo.")
+            messages.error(request, "Type a route name before uploading a file.")
             return redirect(redirect_url)
 
-        files = request.FILES.getlist("image")
+        files = request.FILES.getlist("file")
         if not files:
-            messages.error(request, "Choose at least one photo to upload.")
+            messages.error(request, "Choose at least one photo or document to upload.")
             return redirect(redirect_url)
-        if len(files) > LEFTRIGHT_PHOTO_MAX_FILES:
-            messages.error(request, f"Please upload at most {LEFTRIGHT_PHOTO_MAX_FILES} photos at a time.")
+        if len(files) > LEFTRIGHT_SHEET_MAX_FILES:
+            messages.error(request, f"Please upload at most {LEFTRIGHT_SHEET_MAX_FILES} files at a time.")
             return redirect(redirect_url)
 
         next_order = (
-            LeftRightPhotoUpload.objects.filter(domain=self.domain, route_name=route_name)
+            LeftRightSheetUpload.objects.filter(domain=self.domain, route_name=route_name)
             .aggregate(Max("order"))["order__max"] or 0
         )
         uploaded_count = 0
         any_text = False
-        image_field = forms.ImageField()
         for f in files:
             try:
-                cleaned_file = image_field.clean(f)
+                cleaned_file, raw_text, warning = _validate_and_extract_sheet_file(f)
             except forms.ValidationError as exc:
-                messages.error(request, f'"{f.name}": ' + " ".join(exc.messages))
+                messages.error(request, " ".join(exc.messages))
                 continue
-
-            try:
-                cleaned_file.seek(0)
-                raw_text = extract_text(cleaned_file)
-                cleaned_file.seek(0)  # rewind so the ImageField save below still writes it to storage
-            except Exception as exc:
-                raw_text = ""
-                messages.warning(request, f'"{f.name}": OCR couldn\'t run ({exc}) — the photo was saved anyway.')
+            if warning:
+                messages.warning(request, warning)
 
             next_order += 10
-            LeftRightPhotoUpload.objects.create(
-                domain=self.domain, route_name=route_name, order=next_order, image=cleaned_file, raw_text=raw_text,
+            LeftRightSheetUpload.objects.create(
+                domain=self.domain, route_name=route_name, order=next_order, file=cleaned_file, raw_text=raw_text,
             )
             uploaded_count += 1
             any_text = any_text or bool(raw_text.strip())
 
         if uploaded_count:
             suffix = (
-                " — open its Left & Right guide's Edit page and use \"Generate from Photo\" to draft rows from them."
-                if any_text else " — OCR couldn't read any text from them."
+                " — open its Left & Right guide's Edit page and use \"Generate from Sheet\" to draft rows from them."
+                if any_text else " — no text could be read from them."
             )
-            messages.success(request, f'Uploaded {uploaded_count} photo(s) for route "{route_name}"{suffix}')
+            messages.success(request, f'Uploaded {uploaded_count} file(s) for route "{route_name}"{suffix}')
         return redirect(redirect_url)
 
 
-class LeftRightPhotoUploadDeleteView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin, TemplateView):
-    """Confirm-then-delete for ONE uploaded photo (not the whole route's
-    set), from the trash icon on that photo's thumbnail on the "Addresses"
-    page -- removes that LeftRightPhotoUpload (and its underlying file, see
-    LeftRightPhotoUpload.delete()). Doesn't touch any other photo for the
-    route, or any LeftRight/LeftRightRow/LeftRightAddressList."""
-    template_name = "schools/leftright_photo_upload_confirm_delete.html"
+class LeftRightSheetUploadDeleteView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin, TemplateView):
+    """Confirm-then-delete for ONE uploaded file (not the whole route's
+    set), from the trash icon on that file's thumbnail on the "Addresses"
+    page -- removes that LeftRightSheetUpload (and its underlying file,
+    see LeftRightSheetUpload.delete()). Doesn't touch any other upload for
+    the route, or any LeftRight/LeftRightRow/LeftRightAddressList."""
+    template_name = "schools/leftright_sheet_upload_confirm_delete.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["photo_upload"] = get_object_or_404(LeftRightPhotoUpload, pk=kwargs["pk"], domain=self.domain)
+        context["sheet_upload"] = get_object_or_404(LeftRightSheetUpload, pk=kwargs["pk"], domain=self.domain)
         return context
 
     def post(self, request, *args, **kwargs):
-        photo_upload = get_object_or_404(LeftRightPhotoUpload, pk=kwargs["pk"], domain=self.domain)
-        route_name = photo_upload.route_name
-        photo_upload.delete()
-        messages.success(request, f'Deleted a photo for route "{route_name}".')
+        sheet_upload = get_object_or_404(LeftRightSheetUpload, pk=kwargs["pk"], domain=self.domain)
+        route_name = sheet_upload.route_name
+        sheet_upload.delete()
+        messages.success(request, f'Deleted a file for route "{route_name}".')
         addresses_url = reverse_lazy(self.url_name("leftright_addresses"))
         return redirect(str(addresses_url) + "?" + urlencode({"route": route_name}))
 
@@ -834,9 +870,9 @@ class LeftRightUpdateView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin, Det
         context["has_address_list"] = LeftRightAddressList.objects.filter(
             domain=self.domain, route_name=self.object.route_name
         ).exists()
-        # Same idea for "Generate from Photo" -- see
-        # LeftRightGenerateRowsFromPhotoView.
-        context["has_photo_upload"] = LeftRightPhotoUpload.objects.filter(
+        # Same idea for "Generate from Sheet" -- see
+        # LeftRightGenerateRowsFromSheetView.
+        context["has_sheet_upload"] = LeftRightSheetUpload.objects.filter(
             domain=self.domain, route_name=self.object.route_name
         ).exists()
         return context
@@ -947,15 +983,15 @@ class LeftRightGenerateRowsView(LeftsRightsDomainMixin, ModuleAccessRequiredMixi
         return redirect(edit_url)
 
 
-def _generate_rows_from_photo(leftright, domain):
-    """Turns every LeftRightPhotoUpload matching (domain,
+def _generate_rows_from_sheet_uploads(leftright, domain):
+    """Turns every LeftRightSheetUpload matching (domain,
     leftright.route_name) into LeftRightRow rows on `leftright`, appended
-    after whatever's already there -- the photo counterpart to
-    _generate_rows_from_addresses, backing LeftRightGenerateRowsFromPhotoView.
-    When a route has several photos (one per page of its paper sheet —
-    see LeftRightPhotoUpload), they're read in `order` and their parsed
+    after whatever's already there -- the sheet-upload counterpart to
+    _generate_rows_from_addresses, backing LeftRightGenerateRowsFromSheetView.
+    When a route has several uploads (one per page of its paper sheet —
+    see LeftRightSheetUpload), they're read in `order` and their parsed
     lines concatenated, so the generated rows read as one continuous guide
-    rather than per-photo. Uses schools/leftright_photo_ocr.py's line
+    rather than per-file. Uses schools/leftright_sheet_text.py's line
     classifier, which -- unlike _generate_rows_from_addresses' OSRM-driven
     directions -- is a rough guess at best; that's fine here since every
     row it creates lands on the Edit page's normal, already-editable rows
@@ -964,17 +1000,17 @@ def _generate_rows_from_photo(leftright, domain):
     Returns (row_count, None) on success, or (None, error_message) if
     nothing could be generated -- never raises, callers surface the
     message via django.contrib.messages."""
-    photo_uploads = LeftRightPhotoUpload.objects.filter(domain=domain, route_name=leftright.route_name)
-    if not photo_uploads.exists():
+    sheet_uploads = LeftRightSheetUpload.objects.filter(domain=domain, route_name=leftright.route_name)
+    if not sheet_uploads.exists():
         return None, (
-            f'No uploaded photos for route "{leftright.route_name}" — upload one on the Addresses page first.'
+            f'No uploaded files for route "{leftright.route_name}" — upload one on the Addresses page first.'
         )
 
     parsed_lines = []
-    for photo_upload in photo_uploads:
-        parsed_lines.extend(parse_photo_text(photo_upload.raw_text))
+    for sheet_upload in sheet_uploads:
+        parsed_lines.extend(parse_sheet_text(sheet_upload.raw_text))
     if not parsed_lines:
-        return None, "OCR couldn't read any text from the uploaded photo(s) — try re-uploading clearer ones."
+        return None, "No text could be read from the uploaded file(s) — try re-uploading clearer ones."
 
     order = leftright.rows.aggregate(Max("order"))["order__max"] or 0
     new_rows = []
@@ -985,23 +1021,24 @@ def _generate_rows_from_photo(leftright, domain):
     return len(new_rows), None
 
 
-class LeftRightGenerateRowsFromPhotoView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin, View):
-    """Backs the "Generate from Photo" button on the Edit page, for a
-    LeftRight that already exists -- see _generate_rows_from_photo for what
-    this actually does. Synchronous like LeftRightGenerateRowsView, but
-    OCR already ran at upload time (LeftRightPhotoUploadView), so this is
-    just a bulk_create -- fast, no redirect delay to warn about."""
+class LeftRightGenerateRowsFromSheetView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin, View):
+    """Backs the "Generate from Sheet" button on the Edit page, for a
+    LeftRight that already exists -- see _generate_rows_from_sheet_uploads
+    for what this actually does. Synchronous like LeftRightGenerateRowsView,
+    but text extraction already ran at upload time
+    (LeftRightSheetUploadView), so this is just a bulk_create -- fast, no
+    redirect delay to warn about."""
 
     def post(self, request, *args, **kwargs):
         leftright = get_object_or_404(LeftRight, pk=kwargs["pk"], domain=self.domain)
         edit_url = reverse_lazy(self.url_name("leftright_update"), kwargs={"pk": leftright.pk})
 
-        row_count, error = _generate_rows_from_photo(leftright, self.domain)
+        row_count, error = _generate_rows_from_sheet_uploads(leftright, self.domain)
         if error:
             messages.error(request, error)
         else:
             messages.success(
-                request, f"Generated {row_count} row(s) from the uploaded photo — review and adjust as needed."
+                request, f"Generated {row_count} row(s) from the uploaded file(s) — review and adjust as needed."
             )
         return redirect(edit_url)
 

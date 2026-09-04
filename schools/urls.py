@@ -29,8 +29,8 @@ urlpatterns = [
     path("lefts-rights/addresses/", views.LeftRightAddressListView.as_view(), name="leftright_addresses"),
     path("lefts-rights/addresses/delete/", views.LeftRightAddressListDeleteView.as_view(), name="leftright_address_list_delete"),
     path("lefts-rights/addresses/generate/", views.LeftRightCreateFromAddressesView.as_view(), name="leftright_create_from_addresses"),
-    path("lefts-rights/addresses/photo/", views.LeftRightPhotoUploadView.as_view(), name="leftright_photo_upload"),
-    path("lefts-rights/addresses/photo/<int:pk>/delete/", views.LeftRightPhotoUploadDeleteView.as_view(), name="leftright_photo_upload_delete"),
+    path("lefts-rights/addresses/sheet/", views.LeftRightSheetUploadView.as_view(), name="leftright_sheet_upload"),
+    path("lefts-rights/addresses/sheet/<int:pk>/delete/", views.LeftRightSheetUploadDeleteView.as_view(), name="leftright_sheet_upload_delete"),
     path("lefts-rights/new/", views.LeftRightCreateView.as_view(), name="leftright_create"),
     path("lefts-rights/depot/", views.DepotView.as_view(), name="depot"),
     path("lefts-rights/depot/list/", views.DepotListView.as_view(), name="depot_list"),
@@ -41,7 +41,7 @@ urlpatterns = [
     path("lefts-rights/<int:pk>/delete/", views.LeftRightDeleteView.as_view(), name="leftright_delete"),
     path("lefts-rights/<int:pk>/rows/save/", views.LeftRightRowSaveView.as_view(), name="leftright_row_save"),
     path("lefts-rights/<int:pk>/rows/generate/", views.LeftRightGenerateRowsView.as_view(), name="leftright_generate_rows"),
-    path("lefts-rights/<int:pk>/rows/generate-from-photo/", views.LeftRightGenerateRowsFromPhotoView.as_view(), name="leftright_generate_rows_from_photo"),
+    path("lefts-rights/<int:pk>/rows/generate-from-sheet/", views.LeftRightGenerateRowsFromSheetView.as_view(), name="leftright_generate_rows_from_sheet"),
 
     # Transportation's own Lefts & Rights / Depot -- same view classes,
     # registered again with domain="transportation" (see
@@ -55,8 +55,8 @@ urlpatterns = [
     path("transportation/lefts-rights/addresses/", views.LeftRightAddressListView.as_view(domain="transportation"), name="transportation_leftright_addresses"),
     path("transportation/lefts-rights/addresses/delete/", views.LeftRightAddressListDeleteView.as_view(domain="transportation"), name="transportation_leftright_address_list_delete"),
     path("transportation/lefts-rights/addresses/generate/", views.LeftRightCreateFromAddressesView.as_view(domain="transportation"), name="transportation_leftright_create_from_addresses"),
-    path("transportation/lefts-rights/addresses/photo/", views.LeftRightPhotoUploadView.as_view(domain="transportation"), name="transportation_leftright_photo_upload"),
-    path("transportation/lefts-rights/addresses/photo/<int:pk>/delete/", views.LeftRightPhotoUploadDeleteView.as_view(domain="transportation"), name="transportation_leftright_photo_upload_delete"),
+    path("transportation/lefts-rights/addresses/sheet/", views.LeftRightSheetUploadView.as_view(domain="transportation"), name="transportation_leftright_sheet_upload"),
+    path("transportation/lefts-rights/addresses/sheet/<int:pk>/delete/", views.LeftRightSheetUploadDeleteView.as_view(domain="transportation"), name="transportation_leftright_sheet_upload_delete"),
     path("transportation/lefts-rights/new/", views.LeftRightCreateView.as_view(domain="transportation"), name="transportation_leftright_create"),
     path("transportation/lefts-rights/depot/", views.DepotView.as_view(domain="transportation"), name="transportation_depot"),
     path("transportation/lefts-rights/depot/list/", views.DepotListView.as_view(domain="transportation"), name="transportation_depot_list"),
@@ -65,5 +65,5 @@ urlpatterns = [
     path("transportation/lefts-rights/<int:pk>/delete/", views.LeftRightDeleteView.as_view(domain="transportation"), name="transportation_leftright_delete"),
     path("transportation/lefts-rights/<int:pk>/rows/save/", views.LeftRightRowSaveView.as_view(domain="transportation"), name="transportation_leftright_row_save"),
     path("transportation/lefts-rights/<int:pk>/rows/generate/", views.LeftRightGenerateRowsView.as_view(domain="transportation"), name="transportation_leftright_generate_rows"),
-    path("transportation/lefts-rights/<int:pk>/rows/generate-from-photo/", views.LeftRightGenerateRowsFromPhotoView.as_view(domain="transportation"), name="transportation_leftright_generate_rows_from_photo"),
+    path("transportation/lefts-rights/<int:pk>/rows/generate-from-sheet/", views.LeftRightGenerateRowsFromSheetView.as_view(domain="transportation"), name="transportation_leftright_generate_rows_from_sheet"),
 ]

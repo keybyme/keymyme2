@@ -27,11 +27,11 @@
             </button>
         </form>
         {% endif %}
-        {% if has_photo_upload %}
-        <form method="post" action="{% url url_names.leftright_generate_rows_from_photo object.pk %}" class="inline-flex">
+        {% if has_sheet_upload %}
+        <form method="post" action="{% url url_names.leftright_generate_rows_from_sheet object.pk %}" class="inline-flex">
             {% csrf_token %}
             <button type="submit" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
-                {% include "icons/photo.html" with class="w-4 h-4" %} Generate from Photo
+                {% include "icons/photo.html" with class="w-4 h-4" %} Generate from Sheet
             </button>
         </form>
         {% endif %}

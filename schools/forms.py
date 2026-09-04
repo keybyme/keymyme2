@@ -7,7 +7,7 @@ from django.forms import modelformset_factory
 from vault.forms import TailwindFormMixin
 
 from .models import (
-    AmMidPmEntry, DepotLink, Employee, LeftRight, LeftRightAddressList, LeftRightPhotoUpload, LeftRightRow, Route,
+    AmMidPmEntry, DepotLink, Employee, LeftRight, LeftRightAddressList, LeftRightRow, LeftRightSheetUpload, Route,
     School,
 )
 
@@ -138,33 +138,34 @@ class LeftRightAddressListForm(TailwindFormMixin, forms.ModelForm):
         return "\n".join(lines)
 
 
-class MultipleFileInput(forms.ClearableFileInput):
+class MultipleFileInput(forms.FileInput):
     """`allow_multiple_selected = True` is what tells Django's own FileInput
     to actually render the `multiple` HTML attribute (passing `multiple`
     via `attrs` directly raises ValueError -- FileInput refuses it unless
-    the widget opts in this way, since a plain ClearableFileInput's
-    value_from_datadict only ever reads one file)."""
+    the widget opts in this way, since a plain FileInput's
+    value_from_datadict only ever reads one file). Plain FileInput rather
+    than ClearableFileInput -- there's no single "existing file" here to
+    offer clearing (see LeftRightSheetUploadForm)."""
     allow_multiple_selected = True
 
 
-class LeftRightPhotoUploadForm(TailwindFormMixin, forms.ModelForm):
-    """Renders the file input in the "Upload photos" panel on the
-    "Addresses" page (leftright_addresses.html) -- used for its widget only
-    (styling via TailwindFormMixin + MultipleFileInput, so several files
-    can be picked at once), never for validation: LeftRightPhotoUploadView
-    processes `request.FILES.getlist("image")` itself (one
-    LeftRightPhotoUpload row per file, each validated on its own via a
-    plain forms.ImageField()) rather than calling this form's is_valid(),
-    since a single ModelForm's ImageField can't represent "0 or more
-    files" the way a multi-file input submits them. `route_name`/`domain`
-    aren't form fields either, for the same reason -- the view sets them
-    from the panel's own route_name field."""
+class LeftRightSheetUploadForm(TailwindFormMixin, forms.ModelForm):
+    """Renders the file input in the "Upload photos or documents" panel on
+    the "Addresses" page (leftright_addresses.html) -- used for its widget
+    only (styling via TailwindFormMixin + MultipleFileInput, so several
+    files can be picked at once), never for validation:
+    LeftRightSheetUploadView processes `request.FILES.getlist("file")`
+    itself (one LeftRightSheetUpload row per file, each validated on its
+    own -- see that view), since a single ModelForm field can't represent
+    "0 or more files" the way a multi-file input submits them.
+    `route_name`/`domain` aren't form fields either, for the same reason
+    -- the view sets them from the panel's own route_name field."""
 
     class Meta:
-        model = LeftRightPhotoUpload
-        fields = ["image"]
-        labels = {"image": "Photos"}
-        widgets = {"image": MultipleFileInput(attrs={"accept": "image/*"})}
+        model = LeftRightSheetUpload
+        fields = ["file"]
+        labels = {"file": "Photos or documents"}
+        widgets = {"file": MultipleFileInput(attrs={"accept": "image/*,.pdf,.docx"})}
 
 
 #  Extra text-input classes layered on top of TailwindFormMixin's base

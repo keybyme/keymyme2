@@ -1,3 +1,4 @@
+from django.core.validators import FileExtensionValidator
 from django.db import models
 
 
@@ -241,51 +242,84 @@ class LeftRightAddressList(models.Model):
         return [line.strip() for line in self.addresses.splitlines() if line.strip()]
 
 
-class LeftRightPhotoUpload(models.Model):
-    """A photo of one page of an already-existing Left & Right turn-by-turn
-    sheet (e.g. a paper guide already in use for a route), uploaded on the
-    "Addresses" page (LeftRightAddressListView) and OCR'd (schools/
-    leftright_photo_ocr.py, reusing vault.route_sheet_ocr's Tesseract
-    setup) into `raw_text` so LeftRightGenerateRowsFromPhotoView can turn
-    it into a first-draft set of LeftRightRow rows later, on the Edit page
-    for whichever LeftRight actually gets created for that route -- same
+# Whitelist, not blacklist -- same reasoning as vault's ALLOWED_MEDIA_
+# EXTENSIONS. HEIC/HEIF need SchoolsConfig.ready() to have registered
+# pillow-heif's opener (iPhones save photos in this format by default);
+# PDF/DOCX are extracted as text directly (or OCR'd per page for a
+# scanned/image-only PDF) rather than via Tesseract -- see
+# schools/leftright_sheet_text.py.
+LEFTRIGHT_SHEET_IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "gif", "webp", "bmp", "tiff", "tif", "heic", "heif"]
+LEFTRIGHT_SHEET_DOCUMENT_EXTENSIONS = ["pdf", "docx"]
+LEFTRIGHT_SHEET_ALLOWED_EXTENSIONS = LEFTRIGHT_SHEET_IMAGE_EXTENSIONS + LEFTRIGHT_SHEET_DOCUMENT_EXTENSIONS
+
+
+class LeftRightSheetUpload(models.Model):
+    """One page of an already-existing Left & Right turn-by-turn sheet
+    (e.g. a paper guide already in use for a route) -- a photo, or a PDF/
+    DOCX export of it -- uploaded on the "Addresses" page
+    (LeftRightAddressListView) and its text extracted (schools/
+    leftright_sheet_text.py: OCR via vault.route_sheet_ocr's Tesseract
+    setup for images, direct text extraction for PDF/DOCX) into
+    `raw_text` so LeftRightGenerateRowsFromSheetView can turn it into a
+    first-draft set of LeftRightRow rows later, on the Edit page for
+    whichever LeftRight actually gets created for that route -- same
     "enter it here, generate it there" split as LeftRightAddressList /
     LeftRightGenerateRowsView, and there's no FK to LeftRight for the same
-    reason: a photo is often uploaded before its LeftRight even exists.
+    reason: a sheet is often uploaded before its LeftRight even exists.
 
-    UNLIKE LeftRightAddressList, uploading here always ADDS another photo
+    UNLIKE LeftRightAddressList, uploading here always ADDS another file
     rather than replacing what's there -- a long route's paper sheet often
-    doesn't fit on a single page/photo, so a route can have several of
-    these, ordered by `order` (upload order, spaced by tens like
-    LeftRightRow.order). LeftRightGenerateRowsFromPhotoView reads every
-    photo for a route in that order and concatenates their OCR'd text
-    before generating rows. Delete one photo at a time (see
-    LeftRightPhotoUploadDeleteView) rather than "replace" if a page needs
+    doesn't fit on a single page, so a route can have several of these,
+    ordered by `order` (upload order, spaced by tens like
+    LeftRightRow.order). LeftRightGenerateRowsFromSheetView reads every
+    upload for a route in that order and concatenates their extracted
+    text before generating rows. Delete one at a time (see
+    LeftRightSheetUploadDeleteView) rather than "replace" if a page needs
     redoing."""
 
     domain = models.CharField(
         max_length=20, choices=LeftRight.Domain.choices, default=LeftRight.Domain.MCPS, verbose_name="Domain",
-        help_text="Which module this photo belongs to — see LeftRight.domain.",
+        help_text="Which module this upload belongs to — see LeftRight.domain.",
     )
     route_name = models.CharField(max_length=100, verbose_name="Route")
     order = models.PositiveIntegerField(default=0, verbose_name="Order")
-    image = models.ImageField(upload_to="leftright_photos/%Y/%m/", verbose_name="Photo")
-    raw_text = models.TextField(blank=True, help_text="Raw OCR output, kept for troubleshooting a bad parse.")
+    file = models.FileField(
+        upload_to="leftright_sheets/%Y/%m/",
+        validators=[FileExtensionValidator(allowed_extensions=LEFTRIGHT_SHEET_ALLOWED_EXTENSIONS)],
+        verbose_name="File",
+        help_text="A photo, PDF, or DOCX of one page of the sheet.",
+    )
+    raw_text = models.TextField(blank=True, help_text="Raw extracted text, kept for troubleshooting a bad parse.")
     uploaded_at = models.DateTimeField(auto_now_add=True, verbose_name="Uploaded")
 
     class Meta:
         ordering = ["route_name", "order", "id"]
-        verbose_name = "Left & Right photo upload"
-        verbose_name_plural = "Left & Right photo uploads"
+        verbose_name = "Left & Right sheet upload"
+        verbose_name_plural = "Left & Right sheet uploads"
 
     def __str__(self):
         return f"{self.route_name} ({self.get_domain_display()}) — page {self.order}"
 
+    @property
+    def is_image(self):
+        """Whether `file` is a photo (vs. a PDF/DOCX) -- drives how the
+        "Addresses" page and the delete-confirm page render it (an <img>
+        thumbnail vs. a paper-clip icon + filename)."""
+        extension = self.file.name.rsplit(".", 1)[-1].lower() if self.file and "." in self.file.name else ""
+        return extension in LEFTRIGHT_SHEET_IMAGE_EXTENSIONS
+
+    @property
+    def filename(self):
+        """Just the original-ish basename (upload_to nests it under
+        leftright_sheets/<year>/<month>/), for display next to the
+        paper-clip icon on a non-image upload."""
+        return self.file.name.rsplit("/", 1)[-1] if self.file else ""
+
     def delete(self, *args, **kwargs):
         # Django doesn't delete the underlying file on model delete --
         # same pattern as vault.RouteSheetUpload.delete().
-        if self.image:
-            self.image.delete(save=False)
+        if self.file:
+            self.file.delete(save=False)
         super().delete(*args, **kwargs)
 
 
