@@ -33,6 +33,15 @@ CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
 SESSION_COOKIE_SECURE = env.bool("SESSION_COOKIE_SECURE", default=not DEBUG)
 CSRF_COOKIE_SECURE = env.bool("CSRF_COOKIE_SECURE", default=not DEBUG)
 
+# Logout automático por inactividad: la sesión expira a los 20 minutos sin
+# actividad. SESSION_SAVE_EVERY_REQUEST hace que cada request autenticado
+# reescriba la cookie con una nueva expiración (rolling expiration), así que
+# el conteo es desde la última actividad, no desde el login. Pasados los 20
+# minutos sin requests, la sesión vence y la siguiente request del usuario
+# llega como anónima (login required la manda de vuelta al login).
+SESSION_COOKIE_AGE = env.int("SESSION_COOKIE_AGE", default=1200)  # 20 minutos
+SESSION_SAVE_EVERY_REQUEST = True
+
 # Llave de cifrado para los passwords guardados en el vault (VaultPassword).
 # Generar con: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 VAULT_ENCRYPTION_KEY = env("VAULT_ENCRYPTION_KEY", default=None)
