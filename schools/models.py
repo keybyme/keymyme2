@@ -242,8 +242,8 @@ class LeftRightAddressList(models.Model):
 
 
 class LeftRightPhotoUpload(models.Model):
-    """A photo of an already-existing Left & Right turn-by-turn sheet
-    (e.g. a paper guide already in use for a route), uploaded on the
+    """A photo of one page of an already-existing Left & Right turn-by-turn
+    sheet (e.g. a paper guide already in use for a route), uploaded on the
     "Addresses" page (LeftRightAddressListView) and OCR'd (schools/
     leftright_photo_ocr.py, reusing vault.route_sheet_ocr's Tesseract
     setup) into `raw_text` so LeftRightGenerateRowsFromPhotoView can turn
@@ -253,30 +253,33 @@ class LeftRightPhotoUpload(models.Model):
     LeftRightGenerateRowsView, and there's no FK to LeftRight for the same
     reason: a photo is often uploaded before its LeftRight even exists.
 
-    Uploading always fully replaces whatever was uploaded before for that
-    (domain, route_name) -- same "always overrides" pattern as
-    LeftRightAddressList -- rather than keeping any history.
-    """
+    UNLIKE LeftRightAddressList, uploading here always ADDS another photo
+    rather than replacing what's there -- a long route's paper sheet often
+    doesn't fit on a single page/photo, so a route can have several of
+    these, ordered by `order` (upload order, spaced by tens like
+    LeftRightRow.order). LeftRightGenerateRowsFromPhotoView reads every
+    photo for a route in that order and concatenates their OCR'd text
+    before generating rows. Delete one photo at a time (see
+    LeftRightPhotoUploadDeleteView) rather than "replace" if a page needs
+    redoing."""
 
     domain = models.CharField(
         max_length=20, choices=LeftRight.Domain.choices, default=LeftRight.Domain.MCPS, verbose_name="Domain",
         help_text="Which module this photo belongs to — see LeftRight.domain.",
     )
     route_name = models.CharField(max_length=100, verbose_name="Route")
+    order = models.PositiveIntegerField(default=0, verbose_name="Order")
     image = models.ImageField(upload_to="leftright_photos/%Y/%m/", verbose_name="Photo")
     raw_text = models.TextField(blank=True, help_text="Raw OCR output, kept for troubleshooting a bad parse.")
-    updated_at = models.DateTimeField(auto_now=True, verbose_name="Last updated")
+    uploaded_at = models.DateTimeField(auto_now_add=True, verbose_name="Uploaded")
 
     class Meta:
-        ordering = ["route_name"]
+        ordering = ["route_name", "order", "id"]
         verbose_name = "Left & Right photo upload"
         verbose_name_plural = "Left & Right photo uploads"
-        constraints = [
-            models.UniqueConstraint(fields=["domain", "route_name"], name="unique_photo_upload_per_route_per_domain"),
-        ]
 
     def __str__(self):
-        return f"{self.route_name} ({self.get_domain_display()})"
+        return f"{self.route_name} ({self.get_domain_display()}) — page {self.order}"
 
     def delete(self, *args, **kwargs):
         # Django doesn't delete the underlying file on model delete --

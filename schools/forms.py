@@ -138,19 +138,33 @@ class LeftRightAddressListForm(TailwindFormMixin, forms.ModelForm):
         return "\n".join(lines)
 
 
+class MultipleFileInput(forms.ClearableFileInput):
+    """`allow_multiple_selected = True` is what tells Django's own FileInput
+    to actually render the `multiple` HTML attribute (passing `multiple`
+    via `attrs` directly raises ValueError -- FileInput refuses it unless
+    the widget opts in this way, since a plain ClearableFileInput's
+    value_from_datadict only ever reads one file)."""
+    allow_multiple_selected = True
+
+
 class LeftRightPhotoUploadForm(TailwindFormMixin, forms.ModelForm):
-    """Upload control in the "Upload a photo" panel on the "Addresses" page
-    (leftright_addresses.html). `route_name`/`domain` aren't form fields --
-    same convention as LeftRightAddressListForm's view-level handling --
-    the view (LeftRightPhotoUploadView) sets them from the panel's own
-    route_name field before saving, since the route picker on this page
-    already owns that value."""
+    """Renders the file input in the "Upload photos" panel on the
+    "Addresses" page (leftright_addresses.html) -- used for its widget only
+    (styling via TailwindFormMixin + MultipleFileInput, so several files
+    can be picked at once), never for validation: LeftRightPhotoUploadView
+    processes `request.FILES.getlist("image")` itself (one
+    LeftRightPhotoUpload row per file, each validated on its own via a
+    plain forms.ImageField()) rather than calling this form's is_valid(),
+    since a single ModelForm's ImageField can't represent "0 or more
+    files" the way a multi-file input submits them. `route_name`/`domain`
+    aren't form fields either, for the same reason -- the view sets them
+    from the panel's own route_name field."""
 
     class Meta:
         model = LeftRightPhotoUpload
         fields = ["image"]
-        labels = {"image": "Photo"}
-        widgets = {"image": forms.ClearableFileInput(attrs={"accept": "image/*"})}
+        labels = {"image": "Photos"}
+        widgets = {"image": MultipleFileInput(attrs={"accept": "image/*"})}
 
 
 #  Extra text-input classes layered on top of TailwindFormMixin's base

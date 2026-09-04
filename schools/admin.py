@@ -60,6 +60,6 @@ class LeftRightAddressListAdmin(admin.ModelAdmin):
 
 @admin.register(LeftRightPhotoUpload)
 class LeftRightPhotoUploadAdmin(admin.ModelAdmin):
-    list_display = ("route_name", "domain", "updated_at")
+    list_display = ("route_name", "domain", "order", "uploaded_at")
     list_filter = ("domain",)
     search_fields = ("route_name", "raw_text")
