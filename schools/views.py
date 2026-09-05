@@ -9,6 +9,7 @@ from django.db.models.functions import Coalesce, Lower, NullIf
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect
 from django.urls import reverse_lazy
+from django.utils import timezone
 from django.views import View
 from django.views.generic import CreateView, DeleteView, DetailView, ListView, TemplateView, UpdateView
 
@@ -1082,34 +1083,28 @@ class LeftRightGenerateRowsView(LeftsRightsDomainMixin, ModuleAccessRequiredMixi
         return redirect(edit_url)
 
 
-def _generate_rows_from_sheet_uploads(leftright, domain):
-    """Turns every LeftRightSheetUpload matching (domain,
-    leftright.route_name) into LeftRightRow rows on `leftright`, appended
-    after whatever's already there -- the sheet-upload counterpart to
-    _generate_rows_from_addresses, backing LeftRightGenerateRowsFromSheetView.
-    When a route has several uploads (one per page of its paper sheet —
-    see LeftRightSheetUpload), they're read in `order` and their parsed
-    lines concatenated, so the generated rows read as one continuous guide
-    rather than per-file. Uses schools/leftright_sheet_text.py's line
-    classifier, which -- unlike _generate_rows_from_addresses' OSRM-driven
-    directions -- is a rough guess at best; that's fine here since every
-    row it creates lands on the Edit page's normal, already-editable rows
-    (see LeftRightRowSaveView).
+def _generate_rows_from_sheet_upload(leftright, sheet_upload):
+    """Turns ONE LeftRightSheetUpload's extracted text into LeftRightRow
+    rows on `leftright`, appended after whatever's already there --
+    the sheet-upload counterpart to _generate_rows_from_addresses, backing
+    LeftRightGenerateRowsFromSheetView. Uses schools/leftright_sheet_text.py's
+    line classifier, which -- unlike _generate_rows_from_addresses' OSRM-
+    driven directions -- is a rough guess at best; that's fine here since
+    every row it creates lands on the Edit page's normal, already-editable
+    rows (see LeftRightRowSaveView). Marks `sheet_upload` as used
+    (`used_at`) so the picker (leftright_generate_from_sheet.html) can flag
+    it next time, in case a route's paper sheet spans several uploads and
+    the user runs this once per page.
 
     Returns (row_count, None) on success, or (None, error_message) if
     nothing could be generated -- never raises, callers surface the
     message via django.contrib.messages."""
-    sheet_uploads = LeftRightSheetUpload.objects.filter(domain=domain, route_name=leftright.route_name)
-    if not sheet_uploads.exists():
-        return None, (
-            f'No uploaded files for route "{leftright.route_name}" — upload one on the Addresses page first.'
-        )
+    if not sheet_upload.raw_text.strip():
+        return None, f'"{sheet_upload.filename}" — no text could be read from it. Try a different file.'
 
-    parsed_lines = []
-    for sheet_upload in sheet_uploads:
-        parsed_lines.extend(parse_sheet_text(sheet_upload.raw_text))
+    parsed_lines = parse_sheet_text(sheet_upload.raw_text)
     if not parsed_lines:
-        return None, "No text could be read from the uploaded file(s) — try re-uploading clearer ones."
+        return None, f'"{sheet_upload.filename}" — no text could be read from it. Try a different file.'
 
     order = leftright.rows.aggregate(Max("order"))["order__max"] or 0
     new_rows = []
@@ -1117,27 +1112,56 @@ def _generate_rows_from_sheet_uploads(leftright, domain):
         order += 10
         new_rows.append(LeftRightRow(leftright=leftright, order=order, row_type=row_type, text=text, address=address))
     LeftRightRow.objects.bulk_create(new_rows)
+    sheet_upload.used_at = timezone.now()
+    sheet_upload.save(update_fields=["used_at"])
     return len(new_rows), None
 
 
-class LeftRightGenerateRowsFromSheetView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin, View):
-    """Backs the "Generate from Sheet" button on the Edit page, for a
-    LeftRight that already exists -- see _generate_rows_from_sheet_uploads
-    for what this actually does. Synchronous like LeftRightGenerateRowsView,
-    but text extraction already ran at upload time
-    (LeftRightSheetUploadView), so this is just a bulk_create -- fast, no
-    redirect delay to warn about."""
+class LeftRightGenerateRowsFromSheetView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin, TemplateView):
+    """Backs the "Generate from Sheet" button on the Edit page -- GET shows
+    a picker (leftright_generate_from_sheet.html) listing every
+    LeftRightSheetUpload uploaded for this LeftRight's route (the same
+    ones shown on the Addresses/Uploads page), each flagged with
+    `used_at` if it's already been used for a previous "Generate from
+    Sheet" here, so the user can tell which are fresh -- letting them pick
+    exactly ONE to generate from (not an automatic combine-everything),
+    since a route can have several unrelated uploads and the user knows
+    best which one applies right now. POST runs
+    _generate_rows_from_sheet_upload on the one they picked, appended
+    after whatever rows already exist (same as every other "Generate
+    from ..." action) -- running this again later with the next page of a
+    multi-page sheet just keeps appending."""
+    template_name = "schools/leftright_generate_from_sheet.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        leftright = get_object_or_404(LeftRight, pk=self.kwargs["pk"], domain=self.domain)
+        context["leftright"] = leftright
+        context["sheet_uploads"] = LeftRightSheetUpload.objects.filter(
+            domain=self.domain, route_name=leftright.route_name
+        )
+        return context
 
     def post(self, request, *args, **kwargs):
         leftright = get_object_or_404(LeftRight, pk=kwargs["pk"], domain=self.domain)
         edit_url = reverse_lazy(self.url_name("leftright_update"), kwargs={"pk": leftright.pk})
+        picker_url = reverse_lazy(self.url_name("leftright_generate_rows_from_sheet"), kwargs={"pk": leftright.pk})
 
-        row_count, error = _generate_rows_from_sheet_uploads(leftright, self.domain)
+        sheet_upload_id = request.POST.get("sheet_upload_id")
+        if not sheet_upload_id:
+            messages.error(request, "Choose a document to generate from.")
+            return redirect(picker_url)
+        sheet_upload = get_object_or_404(
+            LeftRightSheetUpload, pk=sheet_upload_id, domain=self.domain, route_name=leftright.route_name
+        )
+
+        row_count, error = _generate_rows_from_sheet_upload(leftright, sheet_upload)
         if error:
             messages.error(request, error)
         else:
             messages.success(
-                request, f"Generated {row_count} row(s) from the uploaded file(s) — review and adjust as needed."
+                request,
+                f'Generated {row_count} row(s) from "{sheet_upload.filename}" — review and adjust as needed.',
             )
         return redirect(edit_url)
 

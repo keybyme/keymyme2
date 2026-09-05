@@ -302,6 +302,14 @@ class LeftRightSheetUpload(models.Model):
     )
     raw_text = models.TextField(blank=True, help_text="Raw extracted text, kept for troubleshooting a bad parse.")
     uploaded_at = models.DateTimeField(auto_now_add=True, verbose_name="Uploaded")
+    used_at = models.DateTimeField(
+        null=True, blank=True, verbose_name="Used",
+        help_text=(
+            "When this file was last used to generate LeftRightRow rows via \"Generate from Sheet\" "
+            "-- shown in that picker so a route with several uploads doesn't get generated from the "
+            "same one twice by accident. Set by LeftRightGenerateRowsFromSheetView, never by hand."
+        ),
+    )
 
     class Meta:
         ordering = ["route_name", "order", "id"]

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Generate from Sheet{% endblock %}
+{% block content %}
+<div class="mb-6">
+    <h1 class="text-2xl font-semibold text-gray-900">Generate from Sheet</h1>
+    <p class="mt-1 text-sm text-gray-500">Choose which uploaded document to generate rows from for "{{ leftright.name }}" (route "{{ leftright.route_name }}"). New rows are appended after whatever's already on the Edit page — run this again later for another page of the same sheet.</p>
+</div>
+
+{% if sheet_uploads %}
+<form method="post" class="max-w-2xl rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+    {% csrf_token %}
+    <div class="divide-y divide-gray-100">
+        {% for sheet in sheet_uploads %}
+        <label class="flex cursor-pointer items-center gap-3 py-3">
+            <input type="radio" name="sheet_upload_id" value="{{ sheet.pk }}" {% if forloop.first %}checked{% endif %} class="h-4 w-4 flex-none border-gray-300 text-blue-600 focus:ring-blue-500">
+            {% if sheet.is_image %}
+            <img src="{{ sheet.file.url }}" alt="" class="h-12 w-12 flex-none rounded-lg border border-gray-200 object-cover">
+            {% else %}
+            <div class="flex h-12 w-12 flex-none items-center justify-center rounded-lg border border-gray-200 bg-gray-50">
+                {% include "icons/paper-clip.html" with class="w-5 h-5 text-gray-400" %}
+            </div>
+            {% endif %}
+            <div class="min-w-0 flex-1">
+                <p class="truncate text-sm font-medium text-gray-900">{{ sheet.filename }}</p>
+                <p class="truncate text-xs text-gray-500">
+                    uploaded {{ sheet.uploaded_at|date:"M j" }}{% if not sheet.raw_text %} · no text read{% endif %}{% if sheet.used_at %} · <span class="font-medium text-amber-600">already used {{ sheet.used_at|date:"M j" }}</span>{% endif %}
+                </p>
+            </div>
+        </label>
+        {% endfor %}
+    </div>
+    <div class="mt-6 flex items-center gap-3">
+        <button type="submit" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700">Generate</button>
+        <a href="{% url url_names.leftright_update leftright.pk %}" class="text-sm font-medium text-gray-600 hover:text-gray-900">Cancel</a>
+    </div>
+</form>
+{% else %}
+<div class="max-w-2xl rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+    <p class="text-sm text-gray-500">No uploaded documents for route "{{ leftright.route_name }}" yet — upload one on the <a href="{% url url_names.leftright_addresses %}?route={{ leftright.route_name|urlencode }}" class="font-medium text-cafe hover:text-cafe-darker underline">Uploads page</a> first.</p>
+</div>
+{% endif %}
+{% endblock %}
