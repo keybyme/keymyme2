@@ -55,10 +55,18 @@
      autosaves (see the script below) -- no Save/Cancel here anymore. -->
 <form id="lr-csrf-form" class="hidden">{% csrf_token %}</form>
 <div id="lr-form" class="max-w-2xl rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-    <p class="mb-2 flex flex-wrap items-center justify-between gap-2 text-xs text-gray-400">
+    <div class="mb-2 flex flex-wrap items-center justify-between gap-2 text-xs text-gray-400">
         <span># is this row's editing sequence (used only on this page). Leave the # field above blank to add at the end, or type one (e.g. 35) to insert there instead — between # 30 and # 40 — for "Insertar fila", "Insertar vinculo", and "Post Trip" alike. Never shown when printing.</span>
-        <span id="lr-save-status" class="flex-none font-medium"></span>
-    </p>
+        <div class="flex flex-none items-center gap-2">
+            <form method="post" action="{% url url_names.leftright_resequence_rows object.pk %}" class="inline-flex" onsubmit="return confirm('Renumber every row back to 10, 20, 30… in its current order?')">
+                {% csrf_token %}
+                <button type="submit" class="rounded border border-gray-300 bg-white px-2 py-1 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50" title="Renumber every row back to 10, 20, 30… in its current order — useful once inserting rows between others has left odd numbers like 35.">
+                    Resequence
+                </button>
+            </form>
+            <span id="lr-save-status" class="font-medium"></span>
+        </div>
+    </div>
     <div id="lr-rows" class="space-y-3">
         {% for row_form in row_forms %}
         <div class="lr-row flex items-start gap-3" data-row-id="{{ row_form.instance.pk }}">

@@ -416,6 +416,7 @@ class LeftsRightsDomainMixin:
             base: self.url_name(base)
             for base in ("lefts_rights", "leftright_create", "leftright_detail",
                          "leftright_update", "leftright_rename", "leftright_delete", "leftright_row_save",
+                         "leftright_resequence_rows",
                          "leftright_addresses", "leftright_generate_rows",
                          "leftright_create_from_addresses", "leftright_route_list",
                          "leftright_route_delete", "leftright_route_rename", "leftright_address_list_delete",
@@ -1234,6 +1235,27 @@ class LeftRightRowSaveView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin, Vi
         row.save()
 
         return JsonResponse({"ok": True, "id": row.pk})
+
+
+class LeftRightResequenceRowsView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin, View):
+    """Backs the "Resequence" button on the Edit page, next to the "#"
+    column's hint text -- renumbers every row's `order` back to clean
+    multiples of ten (10, 20, 30, ...) in whatever order they're
+    currently in, undoing the odd numbers that inserting a row between
+    two others (the "#" field above "Insertar fila"/"Insertar vinculo"/
+    "Post Trip") leaves behind over time (e.g. 35 between 30 and 40).
+    Only ever renumbers in place -- never reorders or changes any row's
+    content, just tidies up the # column so there's room to insert
+    between rows again."""
+
+    def post(self, request, *args, **kwargs):
+        leftright = get_object_or_404(LeftRight, pk=kwargs["pk"], domain=self.domain)
+        rows = list(leftright.rows.order_by("order", "pk"))
+        for i, row in enumerate(rows, start=1):
+            row.order = i * 10
+        LeftRightRow.objects.bulk_update(rows, ["order"])
+        messages.success(request, f"Resequenced {len(rows)} row(s) back to 10, 20, 30…")
+        return redirect(reverse_lazy(self.url_name("leftright_update"), kwargs={"pk": leftright.pk}))
 
 
 class LeftRightDeleteView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin, DeleteView):

@@ -42,6 +42,7 @@ urlpatterns = [
     path("lefts-rights/<int:pk>/rename/", views.LeftRightRenameView.as_view(), name="leftright_rename"),
     path("lefts-rights/<int:pk>/delete/", views.LeftRightDeleteView.as_view(), name="leftright_delete"),
     path("lefts-rights/<int:pk>/rows/save/", views.LeftRightRowSaveView.as_view(), name="leftright_row_save"),
+    path("lefts-rights/<int:pk>/rows/resequence/", views.LeftRightResequenceRowsView.as_view(), name="leftright_resequence_rows"),
     path("lefts-rights/<int:pk>/rows/generate/", views.LeftRightGenerateRowsView.as_view(), name="leftright_generate_rows"),
     path("lefts-rights/<int:pk>/rows/generate-from-sheet/", views.LeftRightGenerateRowsFromSheetView.as_view(), name="leftright_generate_rows_from_sheet"),
 
@@ -68,6 +69,7 @@ urlpatterns = [
     path("transportation/lefts-rights/<int:pk>/rename/", views.LeftRightRenameView.as_view(domain="transportation"), name="transportation_leftright_rename"),
     path("transportation/lefts-rights/<int:pk>/delete/", views.LeftRightDeleteView.as_view(domain="transportation"), name="transportation_leftright_delete"),
     path("transportation/lefts-rights/<int:pk>/rows/save/", views.LeftRightRowSaveView.as_view(domain="transportation"), name="transportation_leftright_row_save"),
+    path("transportation/lefts-rights/<int:pk>/rows/resequence/", views.LeftRightResequenceRowsView.as_view(domain="transportation"), name="transportation_leftright_resequence_rows"),
     path("transportation/lefts-rights/<int:pk>/rows/generate/", views.LeftRightGenerateRowsView.as_view(domain="transportation"), name="transportation_leftright_generate_rows"),
     path("transportation/lefts-rights/<int:pk>/rows/generate-from-sheet/", views.LeftRightGenerateRowsFromSheetView.as_view(domain="transportation"), name="transportation_leftright_generate_rows_from_sheet"),
 ]
