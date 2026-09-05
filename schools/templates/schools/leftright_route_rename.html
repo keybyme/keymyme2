@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Rename Route{% endblock %}
+{% block content %}
+<div class="mx-auto max-w-md rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+    <h1 class="mb-4 text-lg font-semibold text-gray-900">Rename route "{{ route_name }}"</h1>
+    <p class="mb-6 text-sm text-gray-600">
+        This renames every Left &amp; Right guide, saved address list, and uploaded file for this route at once.
+    </p>
+    <form method="post" class="space-y-4">
+        {% csrf_token %}
+        <input type="hidden" name="route" value="{{ route_name }}">
+        <div>
+            <label for="lr-new-route-name" class="mb-1 block text-sm font-medium text-gray-700">New name</label>
+            <input type="text" id="lr-new-route-name" name="new_route_name" value="{{ route_name }}" autocomplete="off" required autofocus
+                   class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500">
+        </div>
+        <div class="flex items-center gap-3">
+            <button type="submit" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700">Rename</button>
+            <a href="{% url url_names.lefts_rights %}?route={{ route_name|urlencode }}" class="text-sm font-medium text-gray-600 hover:text-gray-900">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

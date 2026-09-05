@@ -30,12 +30,19 @@
 <form method="get" class="mb-6 flex flex-wrap items-end gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
     <div class="flex-1 min-w-[220px]">
         <label for="lr-route" class="mb-1 block text-sm font-medium text-gray-700">Route</label>
-        <select id="lr-route" name="route" onchange="this.form.submit()" class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
-            <option value="">Select a route…</option>
-            {% for route_name in route_names %}
-            <option value="{{ route_name }}" {% if selected_route == route_name %}selected{% endif %}>{{ route_name }}</option>
-            {% endfor %}
-        </select>
+        <div class="flex items-center gap-2">
+            <select id="lr-route" name="route" onchange="this.form.submit()" class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                <option value="">Select a route…</option>
+                {% for route_name in route_names %}
+                <option value="{{ route_name }}" {% if selected_route == route_name %}selected{% endif %}>{{ route_name }}</option>
+                {% endfor %}
+            </select>
+            {% if selected_route %}
+            <a href="{% url url_names.leftright_route_rename %}?route={{ selected_route|urlencode }}" class="flex-none text-cafe hover:text-cafe-darker" title="Rename this route">
+                {% include "icons/pencil.html" with class="w-5 h-5" %}
+            </a>
+            {% endif %}
+        </div>
     </div>
     <a href="{% url url_names.leftright_create %}" class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700">
         {% include "icons/plus.html" with class="w-4 h-4" %} Add Left & Right

@@ -418,7 +418,7 @@ class LeftsRightsDomainMixin:
                          "leftright_update", "leftright_delete", "leftright_row_save",
                          "leftright_addresses", "leftright_generate_rows",
                          "leftright_create_from_addresses", "leftright_route_list",
-                         "leftright_route_delete", "leftright_address_list_delete",
+                         "leftright_route_delete", "leftright_route_rename", "leftright_address_list_delete",
                          "leftright_sheet_upload", "leftright_sheet_upload_delete",
                          "leftright_generate_rows_from_sheet",
                          "depot", "depot_list")
@@ -557,6 +557,58 @@ class LeftRightRouteDeleteView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin
         LeftRightAddressList.objects.filter(domain=self.domain, route_name=route_name).delete()
         messages.success(request, f'Deleted route "{route_name}" — its guides and saved addresses are gone.')
         return redirect(list_url)
+
+
+class LeftRightRouteRenameView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin, TemplateView):
+    """Rename a whole route, from the pencil icon next to the route picker
+    on the "Lefts & Rights" page (lefts_rights.html), shown once a route
+    is selected there -- renames route_name across every LeftRight guide,
+    LeftRightAddressList, and LeftRightSheetUpload row for (domain, route
+    name) at once, same "everything tied to this route name, in one
+    action" scope as LeftRightRouteDeleteView, just updating instead of
+    deleting.
+
+    `route` travels as `?route=`/a POST field, same convention as the rest
+    of this file. Refuses the rename outright if the new name is already
+    in use in this domain (by a guide, a saved address list, or an
+    uploaded file) rather than trying to merge the two routes together --
+    same conservative call LeftRightCreateFromAddressesView makes for a
+    route that already has a guide."""
+    template_name = "schools/leftright_route_rename.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["route_name"] = self.request.GET.get("route", "").strip()
+        return context
+
+    def post(self, request, *args, **kwargs):
+        old_name = request.POST.get("route", "").strip()
+        new_name = request.POST.get("new_route_name", "").strip()
+        rename_url = reverse_lazy(self.url_name("leftright_route_rename")) + "?" + urlencode({"route": old_name})
+
+        if not old_name:
+            return redirect(reverse_lazy(self.url_name("lefts_rights")))
+        if not new_name:
+            messages.error(request, "Enter a new name for the route.")
+            return redirect(rename_url)
+        if new_name == old_name:
+            return redirect(self.lefts_rights_url(old_name))
+
+        name_taken = (
+            LeftRight.objects.filter(domain=self.domain, route_name=new_name).exists()
+            or LeftRightAddressList.objects.filter(domain=self.domain, route_name=new_name).exists()
+            or LeftRightSheetUpload.objects.filter(domain=self.domain, route_name=new_name).exists()
+        )
+        if name_taken:
+            messages.error(request, f'Route "{new_name}" already exists — pick a different name.')
+            return redirect(rename_url)
+
+        LeftRight.objects.filter(domain=self.domain, route_name=old_name).update(route_name=new_name)
+        LeftRightAddressList.objects.filter(domain=self.domain, route_name=old_name).update(route_name=new_name)
+        LeftRightSheetUpload.objects.filter(domain=self.domain, route_name=old_name).update(route_name=new_name)
+
+        messages.success(request, f'Renamed route "{old_name}" to "{new_name}".')
+        return redirect(self.lefts_rights_url(new_name))
 
 
 class LeftRightAddressListView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin, TemplateView):
