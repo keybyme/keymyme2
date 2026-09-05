@@ -173,5 +173,76 @@ class CustomUser(AbstractUser):
             role__submodules__codename=submodule_codename, role__submodules__is_active=True
         ).exists()
 
+    def delete(self, *args, **kwargs):
+        """Deleting a user must never leave orphaned data behind — no vault/
+        finanzas row without an owner, no file on disk without a DB row
+        pointing at it. Plain CASCADE on every `owner` FK isn't enough to
+        guarantee that on its own, for two real reasons:
+
+        1. Category/Cuenta use on_delete=PROTECT on the models that
+           reference them (Contact/VaultPassword/Url/MediaFile/Reminder
+           .category, finanzas.Transaccion.{cuenta,category},
+           finanzas.Deuda.cuenta) — intentional, so a user can't delete a
+           category/account still in use via the app UI (see
+           vault.CategoryDeleteView, which catches exactly this as a
+           friendly error). But Django's deletion collector checks each
+           PROTECT relation against whatever currently references that
+           row, without accounting for those referencing rows ALSO being
+           cascaded away via their own `owner` FK in the very same
+           operation — so naively deleting a CustomUser raises
+           ProtectedError (rolling back the whole delete, user included)
+           the instant they have so much as one Contact filed under a
+           Category, or one Transaccion posted to a Cuenta — i.e. almost
+           any real account.
+        2. MediaFile, RouteSheetUpload, and Vehicle override delete() to
+           also remove an underlying file from disk. Django's cascade
+           delete (and any bulk queryset .delete(), including this
+           model's own admin — see CustomUserAdmin.delete_queryset())
+           never calls a model's own delete() method for cascaded/bulk
+           rows, only raw SQL DELETEs — so those files would be silently
+           left behind on disk even though the DB rows are gone cleanly.
+
+        Fixing both means deleting everything this user owns by hand, in
+        dependency order, BEFORE any cascade runs: Deuda/Transaccion
+        before Cuenta (PROTECT), everything Category-protected before
+        Category, per-instance wherever delete() has side effects to run.
+        What's left after that — RouteStop, LocationCheckIn,
+        MaintenanceRecord (via Vehicle's own cascade), MedicalRecord,
+        PhotoSlideshowLink, menus' UserRole/UserModuleOverride/
+        UserPermissionOverride, allauth's own rows — has no PROTECT
+        dependents and nothing needing file cleanup, so plain CASCADE
+        handles it fine once this has run first.
+
+        Local imports: vault/finanzas load after accounts in
+        INSTALLED_APPS, so importing them at module level here would risk
+        AppRegistryNotReady during startup."""
+        from finanzas.models import Cuenta, Deuda, Transaccion
+        from vault.models import Category, Contact, MediaFile, Reminder, RouteSheetUpload, Url, Vehicle, VaultPassword
+
+        # Deuda.delete() also deletes its own linked Reminder — do this
+        # first so the bulk Reminder delete below never has to.
+        for deuda in self.deudas.all():
+            deuda.delete()
+        Transaccion.objects.filter(owner=self).delete()
+        Cuenta.objects.filter(owner=self).delete()
+
+        # Per-instance, not a bulk queryset delete -- these three override
+        # delete() to remove a file from disk too.
+        for media_file in self.media_files.all():
+            media_file.delete()
+        for vehicle in self.vehicles.all():
+            vehicle.delete()
+        for upload in RouteSheetUpload.objects.filter(uploaded_by=self):
+            upload.delete()
+
+        # Everything left that PROTECTs Category, then Category itself.
+        Contact.objects.filter(owner=self).delete()
+        VaultPassword.objects.filter(owner=self).delete()
+        Url.objects.filter(owner=self).delete()
+        Reminder.objects.filter(owner=self).delete()
+        Category.objects.filter(owner=self).delete()
+
+        super().delete(*args, **kwargs)
+
     def __str__(self):
         return self.username

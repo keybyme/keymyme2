@@ -81,6 +81,34 @@ class CustomUserAdmin(UserAdmin):
             request, "admin/accounts/customuser/approve_accounts_confirmation.html", context,
         )
 
+    def get_deleted_objects(self, objs, request):
+        # Django's own delete-confirm page (both the single-object delete
+        # view and the bulk "Delete selected" action) previews what would
+        # be deleted with its OWN plain FK-graph collector, independent of
+        # CustomUser.delete()'s override below -- that preview hits the
+        # exact same PROTECT relations (Category/Cuenta) explained there,
+        # and would otherwise show a "Cannot delete" page that blocks
+        # deletion outright, for any user who has so much as one Contact
+        # filed under a Category or one Transaccion posted to a Cuenta —
+        # i.e. almost any real account. Clearing `protected` here is safe
+        # specifically because CustomUser.delete() actually does clean
+        # all of that up first, in the right order, before those
+        # constraints would ever be checked for real.
+        deleted_objects, model_count, perms_needed, protected = super().get_deleted_objects(objs, request)
+        return deleted_objects, model_count, perms_needed, []
+
+    def delete_queryset(self, request, queryset):
+        # Django's default here is a single bulk queryset.delete() --
+        # which, like any bulk delete, never calls a model's own delete()
+        # method, only raw SQL DELETEs. CustomUser.delete() is overridden
+        # to clean up owned data that plain CASCADE can't handle safely
+        # (see its docstring) -- looping and calling .delete() per user is
+        # what makes the "Delete selected" bulk action in this list
+        # actually run that, same as the single-object delete confirm
+        # page already does via obj.delete().
+        for user in queryset:
+            user.delete()
+
     def storage_used_display(self, obj):
         gb = obj.storage_used_bytes / (1024 ** 3)
         return f"{gb:.3f} GB of {obj.storage_quota_gb} GB"

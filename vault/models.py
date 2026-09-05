@@ -377,10 +377,16 @@ class RouteSheetUpload(models.Model):
     vault/route_sheet_ocr.py) into draft stops (RouteSheetStopDraft) for an
     admin to review/correct before Import creates real RouteStop rows.
     Admin-only (Rutas), not owned by a single driver — the sheet doesn't say
-    which driver account it belongs to until route_number is set here."""
+    which driver account it belongs to until route_number is set here.
+
+    `uploaded_by` is CASCADE, not SET_NULL: deleting the admin who
+    uploaded a sheet also deletes the sheet (see
+    CustomUser.delete()'s docstring for why this matters — a nulled-out
+    FK here would otherwise be exactly the "loose data with no user"
+    this policy exists to prevent)."""
     image = models.ImageField(upload_to="route_sheets/%Y/%m/")
     uploaded_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="route_sheet_uploads"
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, related_name="route_sheet_uploads"
     )
     uploaded_at = models.DateTimeField(auto_now_add=True)
     raw_text = models.TextField(blank=True, help_text="Raw OCR output, kept for troubleshooting a bad parse.")
@@ -465,6 +471,15 @@ class Vehicle(models.Model):
 
     def verify_pin(self, raw_pin: str) -> bool:
         return bool(raw_pin) and check_password(raw_pin, self._pin_hash)
+
+    def delete(self, *args, **kwargs):
+        # Django doesn't delete the underlying file on model delete --
+        # same pattern as MediaFile.delete()/RouteSheetUpload.delete() --
+        # this was previously missing here, silently leaking
+        # insurance_card files on disk on every vehicle delete.
+        if self.insurance_card:
+            self.insurance_card.delete(save=False)
+        super().delete(*args, **kwargs)
 
 
 class MaintenanceRecord(models.Model):
