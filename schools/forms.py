@@ -103,6 +103,33 @@ class LeftRightForm(TailwindFormMixin, forms.ModelForm):
     def clean_route_name(self):
         return self.cleaned_data["route_name"].strip()
 
+    def clean_name(self):
+        return self.cleaned_data["name"].strip()
+
+    def clean(self):
+        # ModelForm's own validate_unique() can't catch a collision on
+        # LeftRight's (domain, route_name, name) constraint here --
+        # `domain` isn't a form field, so Django always excludes it from
+        # that check (see BaseModelForm._get_validation_exclusions()),
+        # which means the constraint is silently skipped rather than
+        # checked with the wrong/blank domain. self.instance.domain IS
+        # reliably set by the time this runs (both LeftRightCreateView and
+        # LeftRightRenameView's get_form() set it before is_valid() ever
+        # gets called) -- so check it by hand instead of leaning on a
+        # UniqueConstraint that never fires through this form, which would
+        # otherwise surface as a raw IntegrityError at save() instead of a
+        # normal form error.
+        cleaned_data = super().clean()
+        route_name = cleaned_data.get("route_name")
+        name = cleaned_data.get("name")
+        if route_name and name:
+            conflict = LeftRight.objects.filter(
+                domain=self.instance.domain, route_name=route_name, name=name
+            ).exclude(pk=self.instance.pk)
+            if conflict.exists():
+                raise forms.ValidationError(f'"{name}" already exists for route "{route_name}".')
+        return cleaned_data
+
 
 class LeftRightAddressListForm(TailwindFormMixin, forms.ModelForm):
     """The "Addresses" page (LeftRightAddressListView). `route_name` is

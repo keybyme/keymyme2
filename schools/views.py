@@ -415,7 +415,7 @@ class LeftsRightsDomainMixin:
         context["url_names"] = {
             base: self.url_name(base)
             for base in ("lefts_rights", "leftright_create", "leftright_detail",
-                         "leftright_update", "leftright_delete", "leftright_row_save",
+                         "leftright_update", "leftright_rename", "leftright_delete", "leftright_row_save",
                          "leftright_addresses", "leftright_generate_rows",
                          "leftright_create_from_addresses", "leftright_route_list",
                          "leftright_route_delete", "leftright_route_rename", "leftright_address_list_delete",
@@ -912,6 +912,34 @@ class LeftRightCreateView(LeftRightRouteNamesDatalistMixin, LeftsRightsDomainMix
             LeftRightRow(leftright=self.object, order=40, row_type=LeftRightRow.RowType.NORMAL),
         ])
         return response
+
+    def get_success_url(self):
+        return self.lefts_rights_url(self.object.route_name)
+
+
+class LeftRightRenameView(LeftRightRouteNamesDatalistMixin, LeftsRightsDomainMixin, ModuleAccessRequiredMixin, UpdateView):
+    """Edit one existing LeftRight's route_name/name -- from the pencil
+    icon next to its name in the list on the "Lefts & Rights" page
+    (lefts_rights.html). Separate from LeftRightUpdateView (the "Edit"
+    page reached by clicking that same row's other pencil icon), which is
+    GET-only and only ever touches this guide's content rows --
+    route_name/name used to be permanently fixed at creation time
+    (LeftRightCreateView); this is what lifts that restriction. Changing
+    route_name here moves this one guide to a different route bucket
+    without affecting any of that route's other guides/addresses/uploads
+    -- for renaming a WHOLE route (every guide + saved address list +
+    uploaded files at once), see LeftRightRouteRenameView instead."""
+    model = LeftRight
+    form_class = LeftRightForm
+    template_name = "schools/leftright_rename.html"
+
+    def get_form(self, form_class=None):
+        # Same reasoning as LeftRightCreateView.get_form -- domain must be
+        # set on the instance before is_valid()/full_clean() validates the
+        # (domain, route_name, name) uniqueness constraint.
+        form = super().get_form(form_class)
+        form.instance.domain = self.domain
+        return form
 
     def get_success_url(self):
         return self.lefts_rights_url(self.object.route_name)

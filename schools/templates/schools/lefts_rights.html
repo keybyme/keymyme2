@@ -67,9 +67,14 @@
     <div class="space-y-3">
         {% for lr in lefts_rights %}
         <div class="flex items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
-            <a href="{% url url_names.leftright_detail lr.pk %}" class="flex items-center gap-2 text-sm font-medium text-cafe-dark hover:text-cafe">
-                {% include "icons/map-pin.html" with class="w-4 h-4 text-blue-600" %} {{ lr.name }}
-            </a>
+            <div class="flex min-w-0 flex-1 items-center gap-2">
+                <a href="{% url url_names.leftright_detail lr.pk %}" class="flex min-w-0 items-center gap-2 text-sm font-medium text-cafe-dark hover:text-cafe">
+                    {% include "icons/map-pin.html" with class="w-4 h-4 flex-none text-blue-600" %} <span class="truncate">{{ lr.name }}</span>
+                </a>
+                <a href="{% url url_names.leftright_rename lr.pk %}" class="flex-none text-gray-400 hover:text-cafe" title="Rename">
+                    {% include "icons/pencil.html" with class="w-4 h-4" %}
+                </a>
+            </div>
             <div class="flex items-center gap-3">
                 <a href="{% url url_names.leftright_update lr.pk %}" class="text-cafe hover:text-cafe-darker" title="Edit">
                     {% include "icons/pencil.html" with class="w-5 h-5" %}
