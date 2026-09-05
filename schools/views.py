@@ -22,7 +22,8 @@ from .forms import (
 from .leftright_sheet_text import extract_sheet_text, parse_sheet_text, validate_sheet_file
 from .models import (
     AmMidPmEntry, DepotLink, Employee, LEFTRIGHT_SHEET_ALLOWED_EXTENSIONS, LEFTRIGHT_SHEET_IMAGE_EXTENSIONS,
-    LeftRight, LeftRightAddressList, LeftRightRow, LeftRightSheetUpload, Route, School,
+    LEFTRIGHT_SHEET_RETENTION_DAYS, LeftRight, LeftRightAddressList, LeftRightRow, LeftRightSheetUpload, Route,
+    School,
 )
 
 # Not owner-scoped on purpose: School/Employee/Route/AmMidPmEntry/LeftRight
@@ -559,50 +560,67 @@ class LeftRightRouteDeleteView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin
 
 
 class LeftRightAddressListView(LeftsRightsDomainMixin, ModuleAccessRequiredMixin, TemplateView):
-    """"Addresses" page: type/pick a route name and paste 4-15 addresses,
-    one per line, in visiting order — saved as a LeftRightAddressList,
-    always fully replacing whatever was saved before for that (domain,
-    route_name). Doesn't touch any LeftRight/LeftRightRow itself;
-    LeftRightGenerateRowsView (button on the Edit page) is what turns this
-    into a guide's actual turn-by-turn rows later, matched purely by
-    route_name + domain -- so addresses can be entered here before their
-    LeftRight even exists.
+    """MCPS's "Addresses" page: type/pick a route name and paste 4-15
+    addresses, one per line, in visiting order — saved as a
+    LeftRightAddressList, always fully replacing whatever was saved
+    before for that (domain, route_name). Doesn't touch any LeftRight/
+    LeftRightRow itself; LeftRightGenerateRowsView (button on the Edit
+    page) is what turns this into a guide's actual turn-by-turn rows
+    later, matched purely by route_name + domain -- so addresses can be
+    entered here before their LeftRight even exists.
 
     `?route=` selects which saved list to show/edit (same convention as
     LeftsRightsView) -- typing a brand-new route name and saving creates
-    one instead."""
+    one instead.
+
+    Transportation's flavor of this same page is titled "Uploads"
+    instead, and drops the address-list form/picker entirely (see
+    leftright_addresses.html's `{% if domain != "transportation" %}` —
+    Transportation only ever uses file uploads (LeftRightSheetUploadView)
+    to draft a guide's rows, not typed-in addresses) — both domains keep
+    the upload panel and the "Uploaded documents" listing below it."""
     template_name = "schools/leftright_addresses.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Two different suggestion lists: `route_names` (routes that
-        # already HAVE a saved address list) drives the "load an existing
-        # one" <select>; `leftright_route_names` (routes with an actual
-        # LeftRight guide) is the <datalist> for the free-text field, so
-        # typing here can match an existing guide's spelling exactly.
-        context["route_names"] = (
-            LeftRightAddressList.objects.filter(domain=self.domain)
-            .order_by("route_name").values_list("route_name", flat=True)
-        )
+        # `leftright_route_names` (routes with an actual LeftRight guide)
+        # is the <datalist> for the free-text route fields on this page
+        # (both the MCPS address form below and the upload panel), so
+        # typing can match an existing guide's spelling exactly.
         context["leftright_route_names"] = (
             LeftRight.objects.filter(domain=self.domain)
             .order_by("route_name").values_list("route_name", flat=True).distinct()
         )
         route_name = self.request.GET.get("route", "").strip()
         context["selected_route"] = route_name
-        context.setdefault(
-            "form",
-            LeftRightAddressListForm(
-                instance=LeftRightAddressList.objects.filter(domain=self.domain, route_name=route_name).first()
-                if route_name else None,
-                initial={"route_name": route_name} if route_name else None,
-            ),
-        )
+
+        # The address-list form/"load a saved list" picker only renders
+        # for MCPS now (see leftright_addresses.html) -- Transportation
+        # dropped it in favor of file uploads only (LeftRightSheetUploadView),
+        # so skip these queries/instance lookups entirely for that domain.
+        if self.domain != "transportation":
+            # Routes that already HAVE a saved address list, for the
+            # "load an existing one" <select>.
+            context["route_names"] = (
+                LeftRightAddressList.objects.filter(domain=self.domain)
+                .order_by("route_name").values_list("route_name", flat=True)
+            )
+            context.setdefault(
+                "form",
+                LeftRightAddressListForm(
+                    instance=LeftRightAddressList.objects.filter(domain=self.domain, route_name=route_name).first()
+                    if route_name else None,
+                    initial={"route_name": route_name} if route_name else None,
+                ),
+            )
+
         context.setdefault("sheet_upload_form", LeftRightSheetUploadForm())
-        context["sheet_uploads"] = (
-            LeftRightSheetUpload.objects.filter(domain=self.domain, route_name=route_name)
-            if route_name else LeftRightSheetUpload.objects.none()
-        )
+        # Every uploaded file for this domain, across every route -- not
+        # just `route_name` -- so the "Uploaded documents" listing is a
+        # full audit list (each row shows its own route_name) rather than
+        # a per-route preview.
+        context["all_sheet_uploads"] = LeftRightSheetUpload.objects.filter(domain=self.domain).order_by("-uploaded_at")
+        context["retention_days"] = LEFTRIGHT_SHEET_RETENTION_DAYS
         return context
 
     def post(self, request, *args, **kwargs):

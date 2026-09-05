@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.core.validators import FileExtensionValidator
 from django.db import models
 
@@ -252,6 +254,15 @@ LEFTRIGHT_SHEET_IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "gif", "webp", "bmp", 
 LEFTRIGHT_SHEET_DOCUMENT_EXTENSIONS = ["pdf", "docx"]
 LEFTRIGHT_SHEET_ALLOWED_EXTENSIONS = LEFTRIGHT_SHEET_IMAGE_EXTENSIONS + LEFTRIGHT_SHEET_DOCUMENT_EXTENSIONS
 
+# Uploads are only ever a scratch input for drafting LeftRightRow rows
+# (see LeftRightGenerateRowsFromSheetView) -- not meant to be kept around
+# -- so the `purge_old_leftright_sheet_uploads` management command
+# (crontab, daily) deletes them this long after upload. Shared with
+# LeftRightSheetUpload.expires_at so the "Uploaded documents" listing
+# (leftright_addresses.html) shows the same date the cron job will
+# actually act on.
+LEFTRIGHT_SHEET_RETENTION_DAYS = 3
+
 
 class LeftRightSheetUpload(models.Model):
     """One page of an already-existing Left & Right turn-by-turn sheet
@@ -314,6 +325,15 @@ class LeftRightSheetUpload(models.Model):
         leftright_sheets/<year>/<month>/), for display next to the
         paper-clip icon on a non-image upload."""
         return self.file.name.rsplit("/", 1)[-1] if self.file else ""
+
+    @property
+    def expires_at(self):
+        """When `purge_old_leftright_sheet_uploads` (crontab, daily) will
+        delete this upload -- see LEFTRIGHT_SHEET_RETENTION_DAYS. Purely
+        informational here (the "Uploaded documents" listing shows it);
+        the command itself recomputes its own cutoff rather than reading
+        this per-row."""
+        return self.uploaded_at + timedelta(days=LEFTRIGHT_SHEET_RETENTION_DAYS)
 
     def delete(self, *args, **kwargs):
         # Django doesn't delete the underlying file on model delete --

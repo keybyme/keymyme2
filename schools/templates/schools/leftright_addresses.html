@@ -1,16 +1,27 @@
 {% extends "base.html" %}
-{% block title %}Addresses{% endblock %}
+{% block title %}{% if domain == "transportation" %}Uploads{% else %}Addresses{% endif %}{% endblock %}
 {% block content %}
 <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
     <div>
-        <h1 class="text-2xl font-semibold text-gray-900">Addresses</h1>
+        <h1 class="text-2xl font-semibold text-gray-900">{% if domain == "transportation" %}Uploads{% else %}Addresses{% endif %}</h1>
+        {% if domain == "transportation" %}
+        <p class="mt-1 text-sm text-gray-500">Upload a photo or document of a route's Left &amp; Right sheet — the text is extracted, and the route's Edit page can draft rows from it ("Generate from Sheet"). Uploaded files are deleted automatically {{ retention_days }} days after upload.</p>
+        {% else %}
         <p class="mt-1 text-sm text-gray-500">Paste 4–15 addresses for a route, one per line, in the order they're visited — used to auto-draft that route's Left &amp; Right directions on the Edit page ("Generate from Addresses").</p>
+        {% endif %}
     </div>
     <a href="{% url url_names.lefts_rights %}" class="inline-flex items-center gap-2 rounded-lg bg-cafe px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-cafe-darker">
         {% include "icons/map-pin.html" with class="w-4 h-4" %} Lefts & Rights
     </a>
 </div>
 
+<datalist id="lr-addr-route-names-datalist">
+    {% for route_name in leftright_route_names %}
+    <option value="{{ route_name }}"></option>
+    {% endfor %}
+</datalist>
+
+{% if domain != "transportation" %}
 {% if route_names %}
 <form method="get" class="mb-6 flex flex-wrap items-end gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
     <div class="flex-1 min-w-[220px]">
@@ -28,11 +39,6 @@
 <form method="post" class="max-w-2xl rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
     {% csrf_token %}
     {% include "_form_fields.html" %}
-    <datalist id="lr-addr-route-names-datalist">
-        {% for route_name in leftright_route_names %}
-        <option value="{{ route_name }}"></option>
-        {% endfor %}
-    </datalist>
     <p class="mb-4 text-xs text-gray-400">Saving always fully replaces whatever was previously saved for this route — it doesn't add to it.</p>
     <div class="flex items-center gap-3">
         <button type="submit" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700">Save</button>
@@ -43,6 +49,7 @@
         {% endif %}
     </div>
 </form>
+{% endif %}
 
 <!-- Upload photos or documents of an existing Left & Right sheet -- text
      extracted on upload (LeftRightSheetUploadView: OCR for photos, direct
@@ -54,8 +61,8 @@
      address list at all. Several files can be picked at once (or
      uploaded across several visits) -- useful for a long route whose
      paper sheet spans more than one page -- each ADDS to the route's set
-     instead of replacing it; delete a specific one below if it needs
-     redoing. -->
+     instead of replacing it; the "Uploaded documents" list further down
+     is where to delete one if it needs redoing. -->
 <div class="mt-6 max-w-2xl rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
     <h2 class="mb-1 flex items-center gap-2 text-sm font-semibold text-gray-900">
         {% include "icons/photo.html" with class="w-4 h-4" %} Upload photos or documents
@@ -70,25 +77,43 @@
         {{ sheet_upload_form.file }}
         <button type="submit" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700">Upload</button>
     </form>
-    {% if sheet_uploads %}
-    <div class="mt-4 flex flex-wrap gap-4 border-t border-gray-100 pt-4">
-        {% for sheet in sheet_uploads %}
-        <div class="flex w-40 flex-none flex-col gap-2 rounded-lg border border-gray-200 p-2">
+</div>
+
+<!-- Every LeftRightSheetUpload in this domain, across every route -- not
+     filtered to whatever's typed in the Route field above -- each row
+     names its own route so this doubles as a full audit list of what's
+     pending (or about to expire, see LEFTRIGHT_SHEET_RETENTION_DAYS/
+     purge_old_leftright_sheet_uploads) across the whole module. -->
+<div class="mt-6 max-w-2xl rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+    <h2 class="mb-1 flex items-center gap-2 text-sm font-semibold text-gray-900">
+        {% include "icons/paper-clip.html" with class="w-4 h-4" %} Uploaded documents
+    </h2>
+    <p class="mb-4 text-xs text-gray-500">Every photo or document uploaded above — deleted automatically {{ retention_days }} days after upload.</p>
+    {% if all_sheet_uploads %}
+    <div class="divide-y divide-gray-100">
+        {% for sheet in all_sheet_uploads %}
+        <div class="flex items-center gap-3 py-3">
             {% if sheet.is_image %}
-            <img src="{{ sheet.file.url }}" alt="Uploaded file for {{ selected_route }}" class="h-24 w-full rounded object-cover">
+            <img src="{{ sheet.file.url }}" alt="" class="h-12 w-12 flex-none rounded-lg border border-gray-200 object-cover">
             {% else %}
-            <div class="flex h-24 w-full flex-col items-center justify-center gap-1 rounded bg-gray-50 p-2 text-center">
-                {% include "icons/paper-clip.html" with class="w-6 h-6 text-gray-400" %}
-                <span class="w-full truncate text-xs text-gray-600">{{ sheet.filename }}</span>
+            <div class="flex h-12 w-12 flex-none items-center justify-center rounded-lg border border-gray-200 bg-gray-50">
+                {% include "icons/paper-clip.html" with class="w-5 h-5 text-gray-400" %}
             </div>
             {% endif %}
-            <p class="text-xs text-gray-500">{{ sheet.uploaded_at }}{% if not sheet.raw_text %} — no text read{% endif %}</p>
-            <a href="{% url url_names.leftright_sheet_upload_delete sheet.pk %}" class="flex items-center gap-1 text-xs font-medium text-crimson hover:text-red-800" title="Delete this file">
-                {% include "icons/trash.html" with class="w-4 h-4" %} Delete
+            <div class="min-w-0 flex-1">
+                <p class="truncate text-sm font-medium text-gray-900">{{ sheet.route_name }}</p>
+                <p class="truncate text-xs text-gray-500">
+                    {{ sheet.filename }} · uploaded {{ sheet.uploaded_at|date:"M j" }} · deletes {{ sheet.expires_at|date:"M j" }}{% if not sheet.raw_text %} · no text read{% endif %}
+                </p>
+            </div>
+            <a href="{% url url_names.leftright_sheet_upload_delete sheet.pk %}" class="flex-none text-crimson hover:text-red-800" title="Delete this file">
+                {% include "icons/trash.html" with class="w-5 h-5" %}
             </a>
         </div>
         {% endfor %}
     </div>
+    {% else %}
+    <p class="text-sm text-gray-500">No documents uploaded yet.</p>
     {% endif %}
 </div>
 {% endblock %}
